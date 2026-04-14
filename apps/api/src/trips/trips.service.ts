@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTripDto } from './dto/create-trip.dto';
+import { UpdateTripDto } from './dto/update-trip.dto';
 import { QueryTripsDto } from './dto/query-trips.dto';
 
 @Injectable()
@@ -12,7 +13,7 @@ export class TripsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(query: QueryTripsDto) {
-    const where: any = { status: 'SCHEDULED' };
+    const where: any = {};
 
     if (query.routeId) {
       where.routeId = query.routeId;
@@ -80,6 +81,26 @@ export class TripsService {
       },
       include: { route: true },
     });
+  }
+
+  async update(id: string, dto: UpdateTripDto) {
+    const trip = await this.prisma.trip.findUnique({ where: { id } });
+    if (!trip) throw new NotFoundException(`Viaje no encontrado`);
+    return this.prisma.trip.update({
+      where: { id },
+      data: {
+        ...dto,
+        ...(dto.departureAt && { departureAt: new Date(dto.departureAt) }),
+      },
+      include: { route: true },
+    });
+  }
+
+  async remove(id: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id } });
+    if (!trip) throw new NotFoundException(`Viaje no encontrado`);
+    await this.prisma.trip.delete({ where: { id } });
+    return { message: 'Viaje eliminado' };
   }
 
   async seed() {

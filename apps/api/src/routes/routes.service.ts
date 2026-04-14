@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRouteDto } from './dto/create-route.dto';
+import { UpdateRouteDto } from './dto/update-route.dto';
 
 @Injectable()
 export class RoutesService {
@@ -8,7 +9,6 @@ export class RoutesService {
 
   async findAll() {
     return this.prisma.route.findMany({
-      where: { isActive: true },
       orderBy: { origin: 'asc' },
     });
   }
@@ -34,6 +34,19 @@ export class RoutesService {
 
   async create(dto: CreateRouteDto) {
     return this.prisma.route.create({ data: dto });
+  }
+
+  async update(id: string, dto: UpdateRouteDto) {
+    const route = await this.prisma.route.findUnique({ where: { id } });
+    if (!route) throw new NotFoundException(`Ruta no encontrada`);
+    return this.prisma.route.update({ where: { id }, data: dto });
+  }
+
+  async remove(id: string) {
+    const route = await this.prisma.route.findUnique({ where: { id } });
+    if (!route) throw new NotFoundException(`Ruta no encontrada`);
+    await this.prisma.route.delete({ where: { id } });
+    return { message: 'Ruta eliminada' };
   }
 
   async seed() {

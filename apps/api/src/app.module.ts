@@ -7,6 +7,8 @@ import { BookingsModule } from './bookings/bookings.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
 
+import { AdminModule } from './admin/admin.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -16,6 +18,7 @@ import { PaymentsModule } from './payments/payments.module';
     BookingsModule,
     AuthModule,
     PaymentsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

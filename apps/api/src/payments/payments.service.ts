@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { EmailService } from '../email/email.service';
+import { AdminService } from '../admin/admin.service';
 
 interface PaymentResult {
   success: boolean;
@@ -14,7 +16,11 @@ interface PaymentResult {
 
 @Injectable()
 export class PaymentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private email: EmailService,
+    private adminService: AdminService,
+  ) {}
 
   private get isMock(): boolean {
     return process.env.PAYMENT_MODE !== 'live';
@@ -23,7 +29,7 @@ export class PaymentsService {
   async processPayment(dto: CreatePaymentDto) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: dto.bookingId },
-      include: { trip: { include: { route: true } }, payment: true },
+      include: { trip: { include: { route: true } }, payment: true, user: true },
     });
 
     if (!booking) throw new NotFoundException('Booking no encontrado');
@@ -72,6 +78,34 @@ export class PaymentsService {
       }),
     ]);
 
+    const route = `${booking.trip.route.origin} → ${booking.trip.route.destination}`;
+
+    await this.email.sendBookingConfirmation(booking.user.email, {
+      name: booking.user.name,
+      bookingId: booking.id,
+      route,
+      departure: booking.trip.departureAt,
+      passengers: booking.passengers,
+      type: booking.type,
+      amount: Number(booking.totalAmount),
+      transactionId: paymentResult.transactionId!,
+    });
+
+    const adminProfile = this.adminService.getProfile();
+    if (adminProfile.email) {
+      await this.email.sendNewBookingAlert(adminProfile.email, {
+        adminName: adminProfile.name,
+        bookingId: booking.id,
+        customerName: booking.user.name,
+        customerEmail: booking.user.email,
+        route,
+        departure: booking.trip.departureAt,
+        passengers: booking.passengers,
+        type: booking.type,
+        amount: Number(booking.totalAmount),
+      });
+    }
+
     return {
       success: true,
       bookingId: booking.id,
@@ -82,7 +116,7 @@ export class PaymentsService {
       mode: this.isMock ? 'SIMULATED' : 'LIVE',
       booking: {
         id: booking.id,
-        route: `${booking.trip.route.origin} → ${booking.trip.route.destination}`,
+        route,
         departure: booking.trip.departureAt,
         passengers: booking.passengers,
         type: booking.type,
@@ -104,17 +138,11 @@ export class PaymentsService {
     const apiUrl = process.env.BAC_API_URL;
 
     if (!apiKey || !merchantId || !apiUrl) {
-      return {
-        success: false,
-        error: 'BAC Credomatic no está configurado',
-      };
+      return { success: false, error: 'BAC Credomatic no está configurado' };
     }
 
     // TODO: implementar integración real con BAC
-    return {
-      success: false,
-      error: 'Integración BAC pendiente de configuración',
-    };
+    return { success: false, error: 'Integración BAC pendiente de configuración' };
   }
 
   async getPaymentByBooking(bookingId: string) {
