@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  DRIVER
+}
+
+enum TripStatus {
+  SCHEDULED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum BookingType {
+  SHARED
+  PRIVATE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String
+  phone     String?
+  password  String    @default("")
+  role      Role      @default(CUSTOMER)
+  bookings  Booking[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Route {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  origin      String
+  destination String
+  durationMin Int
+  distanceKm  Int
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  trips       Trip[]
+  createdAt   DateTime @default(now())
+}
+
+model Trip {
+  id           String     @id @default(uuid())
+  route        Route      @relation(fields: [routeId], references: [id])
+  routeId      String
+  departureAt  DateTime
+  capacity     Int        @default(10)
+  bookedSeats  Int        @default(0)
+  priceShared  Decimal    @db.Decimal(10, 2)
+  pricePrivate Decimal    @db.Decimal(10, 2)
+  status       TripStatus @default(SCHEDULED)
+  bookings     Booking[]
+  createdAt    DateTime   @default(now())
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String
+  trip        Trip          @relation(fields: [tripId], references: [id])
+  tripId      String
+  type        BookingType
+  passengers  Int
+  totalAmount Decimal       @db.Decimal(10, 2)
+  status      BookingStatus @default(PENDING)
+  heldUntil   DateTime?
+  notes       String?
+  payment     Payment?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Payment {
+  id         String        @id @default(uuid())
+  booking    Booking       @relation(fields: [bookingId], references: [id])
+  bookingId  String        @unique
+  provider   String        @default("BAC_CREDOMATIC")
+  externalId String?
+  amount     Decimal       @db.Decimal(10, 2)
+  currency   String        @default("USD")
+  status     PaymentStatus @default(PENDING)
+  paidAt     DateTime?
+  createdAt  DateTime      @default(now())
+}
