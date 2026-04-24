@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PenLine, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 type Route = { id: string; origin: string; destination: string };
@@ -196,8 +197,8 @@ export default function TripsContent() {
       )}
 
       {/* Table */}
-      <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e8e4dc", overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 100px 100px 100px 130px 80px", padding: "0.875rem 1.5rem", borderBottom: "1px solid #f0ece4", fontSize: "0.75rem", color: "var(--brand-gray)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <div style={{ background: "var(--surface)", borderRadius: "16px", border: "1px solid var(--border-strong)", overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 100px 100px 100px 130px 80px", padding: "0.875rem 1.5rem", borderBottom: "1px solid var(--border-soft)", fontSize: "0.75rem", color: "var(--brand-gray)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
           <span>Route</span><span>Departure</span><span>Seats</span><span>Shared $</span><span>Private $</span><span>Status</span><span></span>
         </div>
 
@@ -209,7 +210,7 @@ export default function TripsContent() {
           const available = t.capacity - t.bookedSeats;
           const occupancy = Math.round((t.bookedSeats / t.capacity) * 100);
           return (
-            <div key={t.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 100px 100px 100px 130px 80px", padding: "0.875rem 1.5rem", alignItems: "center", borderBottom: i < trips.length - 1 ? "1px solid #f5f2ec" : "none", fontSize: "0.875rem" }}>
+            <div key={t.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 100px 100px 100px 130px 80px", padding: "0.875rem 1.5rem", alignItems: "center", borderBottom: i < trips.length - 1 ? "1px solid var(--border-soft)" : "none", fontSize: "0.875rem" }}>
               <div>
                 <div style={{ fontWeight: 500, marginBottom: "2px" }}>{t.route?.origin} → {t.route?.destination}</div>
                 <div style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}>{t.id.slice(0, 8).toUpperCase()}</div>
@@ -223,7 +224,7 @@ export default function TripsContent() {
                   <span style={{ color: available <= 2 ? "#c0392b" : "var(--brand-green)" }}>{available}</span>
                   <span style={{ color: "var(--brand-gray)", fontWeight: 400 }}>/{t.capacity}</span>
                 </div>
-                <div style={{ height: "4px", background: "#f0ece4", borderRadius: "2px", overflow: "hidden" }}>
+                <div style={{ height: "4px", background: "var(--border-soft)", borderRadius: "2px", overflow: "hidden" }}>
                   <div style={{ height: "100%", borderRadius: "2px", width: occupancy + "%", background: occupancy > 80 ? "#c0392b" : occupancy > 50 ? "#e67e22" : "var(--brand-green)" }} />
                 </div>
               </div>
@@ -233,8 +234,8 @@ export default function TripsContent() {
                 {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
               </select>
               <div style={{ display: "flex", gap: "4px" }}>
-                <button onClick={() => openEdit(t)} style={iconBtn}>✏️</button>
-                <button onClick={() => handleDelete(t)} style={iconBtn}>🗑️</button>
+                <button onClick={() => openEdit(t)} style={iconBtn}><PenLine size={14} /></button>
+                <button onClick={() => handleDelete(t)} style={iconBtn}><Trash2 size={14} /></button>
               </div>
             </div>
           );
@@ -248,10 +249,12 @@ const statusColor = (s: string) => s === "SCHEDULED" ? "#1a6b4a" : s === "CONFIR
 const statusBg = (s: string) => s === "SCHEDULED" ? "#f0faf5" : s === "CONFIRMED" ? "#f0f5fa" : s === "CANCELLED" ? "#fff0f0" : "#f5f5f5";
 
 const btnPrimary: React.CSSProperties = { background: "var(--brand-gold)", color: "var(--brand-dark)", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer" };
-const btnSecondary: React.CSSProperties = { padding: "8px 16px", borderRadius: "8px", border: "1px solid #e0dbd0", background: "#fff", fontSize: "0.875rem", cursor: "pointer" };
-const inputStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: "8px", border: "1px solid #e0dbd0", fontSize: "0.875rem" };
-const selectStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: "8px", border: "1px solid #e0dbd0", fontSize: "0.875rem", background: "#fff" };
+const btnSecondary: React.CSSProperties = { padding: "8px 16px", borderRadius: "8px", border: "1px solid var(--border-strong)", background: "var(--surface)", fontSize: "0.875rem", cursor: "pointer" };
+const inputStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border-strong)", fontSize: "0.875rem" };
+const selectStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border-strong)", fontSize: "0.875rem", background: "var(--surface)" };
 const labelStyle: React.CSSProperties = { fontSize: "0.8rem", fontWeight: 500, display: "block", marginBottom: "4px" };
 const overlay: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 };
-const modal: React.CSSProperties = { background: "#fff", borderRadius: "16px", padding: "2rem", width: "100%", maxWidth: "480px", boxShadow: "0 8px 40px rgba(0,0,0,0.15)" };
+const modal: React.CSSProperties = { background: "var(--surface)", borderRadius: "16px", padding: "2rem", width: "100%", maxWidth: "480px", boxShadow: "0 8px 40px rgba(0,0,0,0.15)" };
 const iconBtn: React.CSSProperties = { background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", padding: "0 2px" };
+
+

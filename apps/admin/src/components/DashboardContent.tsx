@@ -123,10 +123,10 @@ export default function DashboardContent() {
           <div
             key={s.label}
             style={{
-              background: "#fff",
+              background: "var(--surface)",
               borderRadius: "14px",
               padding: "1.25rem",
-              border: "1px solid #e8e4dc",
+              border: "1px solid var(--border-strong)",
             }}
           >
             <div
@@ -157,16 +157,16 @@ export default function DashboardContent() {
         {/* Recent bookings */}
         <div
           style={{
-            background: "#fff",
+            background: "var(--surface)",
             borderRadius: "16px",
-            border: "1px solid #e8e4dc",
+            border: "1px solid var(--border-strong)",
             overflow: "hidden",
           }}
         >
           <div
             style={{
               padding: "1.25rem 1.5rem",
-              borderBottom: "1px solid #f0ece4",
+              borderBottom: "1px solid var(--border-soft)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
@@ -214,7 +214,7 @@ export default function DashboardContent() {
                 key={b.id}
                 style={{
                   padding: "0.875rem 1.5rem",
-                  borderBottom: "1px solid #f5f2ec",
+                  borderBottom: "1px solid var(--border-soft)",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
@@ -257,16 +257,16 @@ export default function DashboardContent() {
         {/* Upcoming trips */}
         <div
           style={{
-            background: "#fff",
+            background: "var(--surface)",
             borderRadius: "16px",
-            border: "1px solid #e8e4dc",
+            border: "1px solid var(--border-strong)",
             overflow: "hidden",
           }}
         >
           <div
             style={{
               padding: "1.25rem 1.5rem",
-              borderBottom: "1px solid #f0ece4",
+              borderBottom: "1px solid var(--border-soft)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
@@ -316,7 +316,7 @@ export default function DashboardContent() {
                   key={t.id}
                   style={{
                     padding: "0.875rem 1.5rem",
-                    borderBottom: "1px solid #f5f2ec",
+                    borderBottom: "1px solid var(--border-soft)",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
@@ -400,4 +400,5 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
 

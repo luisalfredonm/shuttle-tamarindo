@@ -45,7 +45,7 @@ export default function ProfileContent() {
         </p>
       </div>
 
-      <div style={{ maxWidth: "480px", background: "#fff", borderRadius: "16px", padding: "2rem", border: "1px solid #e8e4dc" }}>
+      <div style={{ maxWidth: "480px", background: "var(--surface)", borderRadius: "16px", padding: "2rem", border: "1px solid var(--border-strong)" }}>
         {loading ? (
           <p style={{ color: "var(--brand-gray)", fontSize: "0.875rem" }}>Loading...</p>
         ) : (
@@ -97,5 +97,6 @@ const labelStyle: React.CSSProperties = {
 };
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "10px 12px", borderRadius: "8px",
-  border: "1px solid #e0dbd0", fontSize: "0.875rem", boxSizing: "border-box",
+  border: "1px solid var(--border-strong)", fontSize: "0.875rem", boxSizing: "border-box",
 };
+
