@@ -25,10 +25,8 @@ export class TripsService {
 
     if (query.date) {
       const [year, month, day] = query.date.split('-').map(Number);
-      const start = new Date(year, month - 1, day);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(year, month - 1, day);
-      end.setHours(23, 59, 59, 999);
+      const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+      const end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
       where.departureAt = { gte: start, lte: end };
     } else {
       where.departureAt = { gte: new Date() };
@@ -132,18 +130,24 @@ export class TripsService {
         for (const hour of hours) {
           const departureAt = new Date();
           departureAt.setDate(departureAt.getDate() + day);
-          departureAt.setHours(hour, 0, 0, 0);
+          departureAt.setUTCHours(hour, 0, 0, 0);
 
-          await this.prisma.trip.create({
-            data: {
-              routeId: route.id,
-              departureAt,
-              capacity: 10,
-              priceShared: price.shared,
-              pricePrivate: price.private,
-            },
+          const exists = await this.prisma.trip.findFirst({
+            where: { routeId: route.id, departureAt },
           });
-          created++;
+
+          if (!exists) {
+            await this.prisma.trip.create({
+              data: {
+                routeId: route.id,
+                departureAt,
+                capacity: 10,
+                priceShared: price.shared,
+                pricePrivate: price.private,
+              },
+            });
+            created++;
+          }
         }
       }
     }

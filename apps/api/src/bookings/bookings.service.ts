@@ -178,6 +178,7 @@ export class BookingsService {
       include: {
         trip: { include: { route: true } },
         payment: true,
+        user: { select: { id: true, name: true, email: true, phone: true } },
       },
       orderBy: { createdAt: 'desc' },
     });

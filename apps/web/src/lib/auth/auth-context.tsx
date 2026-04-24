@@ -14,6 +14,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   role: string;
 }
 
@@ -22,13 +23,9 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (
-    name: string,
-    email: string,
-    password: string,
-    phone?: string,
-  ) => Promise<void>;
+  register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
   logout: () => void;
+  updateUser: (data: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -84,6 +81,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("shuttle_user", JSON.stringify(data.user));
   }
 
+  function updateUser(data: Partial<User>) {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...data };
+      localStorage.setItem('shuttle_user', JSON.stringify(updated));
+      return updated;
+    });
+  }
+
   function logout() {
     setUser(null);
     setToken(null);
@@ -93,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout }}
+      value={{ user, token, loading, login, register, logout, updateUser }}
     >
       {children}
     </AuthContext.Provider>

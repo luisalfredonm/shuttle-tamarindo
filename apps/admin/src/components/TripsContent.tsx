@@ -124,6 +124,17 @@ export default function TripsContent() {
 
   const applyFilters = () => loadTrips(filterRoute, filterDate);
 
+  const handleSeed = async () => {
+    if (!confirm('Create trips for the next 30 days?')) return;
+    try {
+      const res = await apiFetch('/trips/seed', { method: 'POST' });
+      alert(res.message);
+      loadTrips();
+    } catch (err: any) {
+      alert(err.message || 'Error running seed');
+    }
+  };
+
   return (
     <div>
       {/* Header */}
@@ -136,6 +147,7 @@ export default function TripsContent() {
           </select>
           <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} style={inputStyle} />
           <button onClick={applyFilters} style={btnSecondary}>Filter</button>
+          <button onClick={handleSeed} style={{ ...btnSecondary, color: 'var(--brand-green)', borderColor: 'var(--brand-green)' }}>⚡ Seed 30 days</button>
           <button onClick={openCreate} style={btnPrimary}>+ New Trip</button>
         </div>
       </div>

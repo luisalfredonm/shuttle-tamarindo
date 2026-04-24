@@ -162,6 +162,21 @@ export default function Navbar() {
                   }}
                 >
                   <Link
+                    href="/profile"
+                    onClick={() => setDropOpen(false)}
+                    style={{
+                      display: "block",
+                      padding: "11px 16px",
+                      fontFamily: "DM Sans, sans-serif",
+                      fontSize: "0.875rem",
+                      color: "var(--brand-dark)",
+                      textDecoration: "none",
+                      borderBottom: "1px solid #f0ece4",
+                    }}
+                  >
+                    My Profile
+                  </Link>
+                  <Link
                     href="/account"
                     onClick={() => setDropOpen(false)}
                     style={{
@@ -296,6 +311,9 @@ export default function Navbar() {
           ))}
           {user ? (
             <>
+              <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ color: "rgba(255,255,255,0.8)", fontFamily: "DM Sans, sans-serif", fontSize: "1rem", textDecoration: "none" }}>
+                My Profile
+              </Link>
               <Link
                 href="/account"
                 onClick={() => setMenuOpen(false)}

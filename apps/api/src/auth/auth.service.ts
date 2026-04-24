@@ -91,6 +91,25 @@ export class AuthService {
     return user;
   }
 
+  async updateProfile(userId: string, dto: { name?: string; phone?: string }) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: dto,
+      select: { id: true, name: true, email: true, phone: true, role: true },
+    });
+    return user;
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('Usuario no encontrado');
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) throw new UnauthorizedException('Current password is incorrect');
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+    return { message: 'Password updated' };
+  }
+
   private signToken(userId: string, email: string) {
     return this.jwt.sign({ sub: userId, email });
   }
