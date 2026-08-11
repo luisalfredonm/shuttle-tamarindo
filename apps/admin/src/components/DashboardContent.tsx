@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 
+/** El tramo de ida representa la reserva en los listados */
+const outboundLeg = (b: any) =>
+  b?.legs?.find((l: any) => l.direction === "OUTBOUND") ?? b?.legs?.[0];
+
 interface Stats {
   totalBookings: number;
   confirmedBookings: number;
@@ -228,7 +232,9 @@ export default function DashboardContent() {
                       marginBottom: "2px",
                     }}
                   >
-                    {b.trip?.route?.origin} - {b.trip?.route?.destination}
+                    {outboundLeg(b)?.trip?.route?.origin} -{" "}
+                    {outboundLeg(b)?.trip?.route?.destination}
+                    {b.tripType === "ROUND_TRIP" && " (round trip)"}
                   </div>
                   <div
                     style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}

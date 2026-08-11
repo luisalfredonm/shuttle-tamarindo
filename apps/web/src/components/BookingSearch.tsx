@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { getReverseRoute } from "@/lib/routes-data";
 
 const ROUTES = [
   {
@@ -23,15 +24,27 @@ export default function BookingSearch() {
   const [date, setDate] = useState("");
   const [passengers, setPass] = useState("1");
   const [type, setType] = useState<"SHARED" | "PRIVATE">("SHARED");
+  const [tripType, setTripType] = useState<"ONE_WAY" | "ROUND_TRIP">("ONE_WAY");
+  const [returnDate, setReturnDate] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
+
+  // Solo hay ida y vuelta donde existe la ruta inversa cargada
+  const reverse = route ? getReverseRoute(route) : undefined;
+  const canRoundTrip = !!reverse;
+  const isRoundTrip = canRoundTrip && tripType === "ROUND_TRIP";
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!route || !date) return;
-    router.push(
-      `/book?route=${route}&date=${date}&passengers=${passengers}&type=${type}`,
-    );
+    if (isRoundTrip && !returnDate) return;
+
+    const params = new URLSearchParams({ route, date, passengers, type });
+    if (isRoundTrip) {
+      params.set("tripType", "ROUND_TRIP");
+      params.set("returnDate", returnDate);
+    }
+    router.push(`/book?${params}`);
   }
 
   return (
@@ -94,6 +107,39 @@ export default function BookingSearch() {
           ))}
         </div>
 
+        {/* Ida / ida y vuelta. Se muestra solo cuando la ruta inversa existe */}
+        {canRoundTrip && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: "2rem",
+            }}
+          >
+            {(["ONE_WAY", "ROUND_TRIP"] as const).map((tt) => (
+              <button
+                key={tt}
+                type="button"
+                onClick={() => setTripType(tt)}
+                style={{
+                  padding: "8px 22px",
+                  border: "1px solid #d9d4ca",
+                  background:
+                    tripType === tt ? "var(--brand-dark)" : "transparent",
+                  color: tripType === tt ? "#fff" : "var(--brand-gray)",
+                  cursor: "pointer",
+                  fontFamily: "DM Sans, sans-serif",
+                  fontSize: "0.85rem",
+                  borderRadius: tt === "ONE_WAY" ? "8px 0 0 8px" : "0 8px 8px 0",
+                  fontWeight: 500,
+                }}
+              >
+                {tt === "ONE_WAY" ? "One way" : "Round trip"}
+              </button>
+            ))}
+          </div>
+        )}
+
         <form
           onSubmit={handleSearch}
           style={{
@@ -121,7 +167,7 @@ export default function BookingSearch() {
           </div>
 
           <div>
-            <label style={labelStyle}>Date</label>
+            <label style={labelStyle}>{isRoundTrip ? "Departure" : "Date"}</label>
             <input
               type="date"
               value={date}
@@ -131,6 +177,21 @@ export default function BookingSearch() {
               required
             />
           </div>
+
+          {isRoundTrip && (
+            <div>
+              <label style={labelStyle}>Return</label>
+              <input
+                type="date"
+                value={returnDate}
+                // El regreso nunca puede ser antes de la ida
+                min={date || today}
+                onChange={(e) => setReturnDate(e.target.value)}
+                style={inputStyle}
+                required
+              />
+            </div>
+          )}
 
           {type === "SHARED" && (
             <div>

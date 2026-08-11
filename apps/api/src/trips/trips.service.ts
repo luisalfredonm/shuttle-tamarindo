@@ -8,9 +8,34 @@ import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { QueryTripsDto } from './dto/query-trips.dto';
 
+/** Debe coincidir con SHARED_MIN_PASSENGERS de BookingsService */
+const SHARED_MIN_PASSENGERS = 3;
+
 @Injectable()
 export class TripsService {
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * Asientos CONFIRMED por viaje.
+   *
+   * Se expone aparte de bookedSeats (que incluye holds PENDING) porque es lo
+   * que habilita a un pasajero suelto a sumarse a un compartido: la web
+   * necesita el dato para decir "unite" o "abrila" antes de que el usuario
+   * llene el formulario y se lleve el rechazo.
+   */
+  private async confirmedSeatsByTrip(
+    tripIds: string[],
+  ): Promise<Map<string, number>> {
+    if (tripIds.length === 0) return new Map();
+
+    const rows = await this.prisma.booking.groupBy({
+      by: ['tripId'],
+      where: { tripId: { in: tripIds }, reservation: { status: 'CONFIRMED' } },
+      _sum: { passengers: true },
+    });
+
+    return new Map(rows.map((r) => [r.tripId, r._sum.passengers || 0]));
+  }
 
   async findAll(query: QueryTripsDto) {
     const where: any = {};
@@ -38,12 +63,21 @@ export class TripsService {
       orderBy: { departureAt: 'asc' },
     });
 
-    return trips.map((trip) => ({
-      ...trip,
-      availableSeats: trip.capacity - trip.bookedSeats,
-      isFull: trip.bookedSeats >= trip.capacity,
-      occupancyPercent: Math.round((trip.bookedSeats / trip.capacity) * 100),
-    }));
+    const confirmed = await this.confirmedSeatsByTrip(trips.map((t) => t.id));
+
+    return trips.map((trip) => {
+      const confirmedSeats = confirmed.get(trip.id) || 0;
+      return {
+        ...trip,
+        availableSeats: trip.capacity - trip.bookedSeats,
+        isFull: trip.bookedSeats >= trip.capacity,
+        occupancyPercent: Math.round((trip.bookedSeats / trip.capacity) * 100),
+        confirmedSeats,
+        sharedMinPassengers: SHARED_MIN_PASSENGERS,
+        // false => un pasajero suelto todavia no puede sumarse a esta salida
+        sharedOpen: confirmedSeats >= SHARED_MIN_PASSENGERS,
+      };
+    });
   }
 
   async findById(id: string) {
@@ -54,11 +88,16 @@ export class TripsService {
 
     if (!trip) throw new NotFoundException(`Viaje no encontrado`);
 
+    const confirmedSeats = (await this.confirmedSeatsByTrip([id])).get(id) || 0;
+
     return {
       ...trip,
       availableSeats: trip.capacity - trip.bookedSeats,
       isFull: trip.bookedSeats >= trip.capacity,
       occupancyPercent: Math.round((trip.bookedSeats / trip.capacity) * 100),
+      confirmedSeats,
+      sharedMinPassengers: SHARED_MIN_PASSENGERS,
+      sharedOpen: confirmedSeats >= SHARED_MIN_PASSENGERS,
     };
   }
 

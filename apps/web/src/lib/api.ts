@@ -21,20 +21,60 @@ export interface Trip {
   availableSeats: number;
   isFull: boolean;
   occupancyPercent: number;
+  /** Asientos ya pagados. Distinto de bookedSeats, que incluye holds. */
+  confirmedSeats: number;
+  sharedMinPassengers: number;
+  /** true cuando un pasajero suelto ya puede sumarse a esta salida */
+  sharedOpen: boolean;
   route: Route;
 }
 
-export interface Booking {
+/** Un tramo de la reserva: una salida concreta */
+export interface BookingLeg {
   id: string;
   tripId: string;
+  direction: "OUTBOUND" | "RETURN";
+  passengers: number;
+  amount: number;
+  trip: Trip;
+}
+
+/**
+ * Lo que el cliente llama "su reserva". Agrupa 1 tramo (ida) o 2 (ida y
+ * vuelta) y concentra el importe, porque el cobro es uno solo.
+ */
+export interface Booking {
+  id: string;
   userId: string;
   type: "SHARED" | "PRIVATE";
+  tripType: "ONE_WAY" | "ROUND_TRIP";
   passengers: number;
   totalAmount: number;
   status: string;
   heldUntil: string;
   minutesToPay: number;
-  trip: Trip;
+  legs: BookingLeg[];
+}
+
+/**
+ * El tramo de ida. Define la fecha y la ruta que representan a la reserva
+ * cuando hay que mostrarla en una sola línea.
+ */
+export function outboundLeg(booking: any): any {
+  return (
+    booking?.legs?.find((l: any) => l.direction === "OUTBOUND") ??
+    booking?.legs?.[0]
+  );
+}
+
+/** El viaje de ida, o undefined si la reserva viniera sin tramos */
+export function outboundTrip(booking: any): any {
+  return outboundLeg(booking)?.trip;
+}
+
+/** El tramo de regreso; solo existe en ida y vuelta */
+export function returnLeg(booking: any): any {
+  return booking?.legs?.find((l: any) => l.direction === "RETURN");
 }
 
 /**
@@ -84,6 +124,8 @@ export async function getRoutes(): Promise<Route[]> {
 
 export async function createBooking(data: {
   tripId: string;
+  /** Solo en ida y vuelta: la salida del regreso */
+  returnTripId?: string;
   type: "SHARED" | "PRIVATE";
   passengers: number;
 }): Promise<Booking> {

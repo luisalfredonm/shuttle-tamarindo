@@ -4,22 +4,30 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
-import { authFetch } from '@/lib/api';
+import { authFetch, outboundTrip } from '@/lib/api';
 
-interface Booking {
-  id: string;
-  type: 'SHARED' | 'PRIVATE';
+interface Leg {
+  direction: 'OUTBOUND' | 'RETURN';
   passengers: number;
-  totalAmount: number;
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'REFUNDED';
-  createdAt: string;
-  heldUntil: string | null;
+  amount: number;
   trip: {
     departureAt: string;
     priceShared: number;
     pricePrivate: number;
     route: { origin: string; destination: string; durationMin: number };
   };
+}
+
+interface Booking {
+  id: string;
+  type: 'SHARED' | 'PRIVATE';
+  tripType: 'ONE_WAY' | 'ROUND_TRIP';
+  passengers: number;
+  totalAmount: number;
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'REFUNDED';
+  createdAt: string;
+  heldUntil: string | null;
+  legs: Leg[];
   payment: { status: string; externalId: string } | null;
 }
 
@@ -46,8 +54,8 @@ export default function AccountPage() {
   }, [user, router]);
 
   const now = new Date();
-  const upcoming = bookings.filter(b => new Date(b.trip.departureAt) >= now && b.status !== 'CANCELLED');
-  const past = bookings.filter(b => new Date(b.trip.departureAt) < now || b.status === 'CANCELLED');
+  const upcoming = bookings.filter(b => new Date(outboundTrip(b).departureAt) >= now && b.status !== 'CANCELLED');
+  const past = bookings.filter(b => new Date(outboundTrip(b).departureAt) < now || b.status === 'CANCELLED');
   const displayed = tab === 'upcoming' ? upcoming : past;
 
   if (!user) return null;
@@ -70,7 +78,7 @@ export default function AccountPage() {
         {[
           { label: 'Total bookings', value: bookings.length },
           { label: 'Upcoming trips', value: upcoming.length },
-          { label: 'Completed trips', value: bookings.filter(b => b.status === 'CONFIRMED' && new Date(b.trip.departureAt) < now).length },
+          { label: 'Completed trips', value: bookings.filter(b => b.status === 'CONFIRMED' && new Date(outboundTrip(b).departureAt) < now).length },
         ].map(s => (
           <div key={s.label} style={{ background: '#fff', borderRadius: '14px', padding: '1.25rem', border: '1px solid #e8e4dc', textAlign: 'center' }}>
             <div style={{ fontSize: '2rem', fontWeight: 700, fontFamily: 'Playfair Display, serif', color: 'var(--brand-green)', lineHeight: 1, marginBottom: '6px' }}>
@@ -127,7 +135,7 @@ export default function AccountPage() {
 
 function BookingCard({ booking }: { booking: Booking }) {
   const router = useRouter();
-  const dep = new Date(booking.trip.departureAt);
+  const dep = new Date(outboundTrip(booking).departureAt);
   const isPast = dep < new Date();
   const status = STATUS_STYLES[booking.status] || STATUS_STYLES.PENDING;
 
@@ -136,8 +144,15 @@ function BookingCard({ booking }: { booking: Booking }) {
       <div style={{ background: isPast ? '#f5f4f0' : 'var(--brand-dark)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.95rem', color: isPast ? 'var(--brand-dark)' : '#fff' }}>
-            {booking.trip.route.origin} → {booking.trip.route.destination}
+            {outboundTrip(booking).route.origin}
+            {booking.tripType === 'ROUND_TRIP' ? ' ⇄ ' : ' → '}
+            {outboundTrip(booking).route.destination}
           </span>
+          {booking.tripType === 'ROUND_TRIP' && (
+            <span style={{ background: 'rgba(201,151,58,0.18)', color: 'var(--brand-gold)', padding: '3px 10px', borderRadius: '100px', fontSize: '0.72rem', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+              Round trip
+            </span>
+          )}
           <span style={{ background: status.bg, color: status.color, padding: '3px 10px', borderRadius: '100px', fontSize: '0.75rem', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
             {status.label}
           </span>

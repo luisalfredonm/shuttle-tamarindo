@@ -30,9 +30,14 @@ export class PaymentsService {
   }
 
   async processPayment(dto: CreatePaymentDto, user: RequestUser) {
-    const booking = await this.prisma.booking.findUnique({
+    // Un round trip son dos tramos y un solo cobro: el pago vive en la reserva
+    const booking = await this.prisma.reservation.findUnique({
       where: { id: dto.bookingId },
-      include: { trip: { include: { route: true } }, payment: true, user: true },
+      include: {
+        legs: { include: { trip: { include: { route: true } } } },
+        payment: true,
+        user: true,
+      },
     });
 
     if (!booking) throw new NotFoundException('Booking no encontrado');
@@ -48,7 +53,7 @@ export class PaymentsService {
     }
 
     if (booking.heldUntil && new Date() > new Date(booking.heldUntil)) {
-      await this.prisma.booking.update({
+      await this.prisma.reservation.update({
         where: { id: dto.bookingId },
         data: { status: 'CANCELLED' },
       });
@@ -68,13 +73,13 @@ export class PaymentsService {
     }
 
     await this.prisma.$transaction([
-      this.prisma.booking.update({
+      this.prisma.reservation.update({
         where: { id: dto.bookingId },
         data: { status: 'CONFIRMED', heldUntil: null },
       }),
       this.prisma.payment.create({
         data: {
-          bookingId: dto.bookingId,
+          reservationId: dto.bookingId,
           provider: this.isMock ? 'MOCK' : 'BAC_CREDOMATIC',
           externalId: paymentResult.transactionId,
           amount: booking.totalAmount,
@@ -85,13 +90,17 @@ export class PaymentsService {
       }),
     ]);
 
-    const route = `${booking.trip.route.origin} → ${booking.trip.route.destination}`;
+    const outbound = booking.legs.find((l) => l.direction === 'OUTBOUND')!;
+    const isRoundTrip = booking.tripType === 'ROUND_TRIP';
+    const route =
+      `${outbound.trip.route.origin} → ${outbound.trip.route.destination}` +
+      (isRoundTrip ? ' (ida y vuelta)' : '');
 
     await this.email.sendBookingConfirmation(booking.user.email, {
       name: booking.user.name,
       bookingId: booking.id,
       route,
-      departure: booking.trip.departureAt,
+      departure: outbound.trip.departureAt,
       passengers: booking.passengers,
       type: booking.type,
       amount: Number(booking.totalAmount),
@@ -106,7 +115,7 @@ export class PaymentsService {
         customerName: booking.user.name,
         customerEmail: booking.user.email,
         route,
-        departure: booking.trip.departureAt,
+        departure: outbound.trip.departureAt,
         passengers: booking.passengers,
         type: booking.type,
         amount: Number(booking.totalAmount),
@@ -124,7 +133,7 @@ export class PaymentsService {
       booking: {
         id: booking.id,
         route,
-        departure: booking.trip.departureAt,
+        departure: outbound.trip.departureAt,
         passengers: booking.passengers,
         type: booking.type,
       },
@@ -152,17 +161,17 @@ export class PaymentsService {
     return { success: false, error: 'Integración BAC pendiente de configuración' };
   }
 
-  async getPaymentByBooking(bookingId: string, user: RequestUser) {
+  async getPaymentByBooking(reservationId: string, user: RequestUser) {
     const payment = await this.prisma.payment.findUnique({
-      where: { bookingId },
-      include: { booking: { select: { userId: true } } },
+      where: { reservationId },
+      include: { reservation: { select: { userId: true } } },
     });
 
     if (!payment) throw new NotFoundException('Pago no encontrado');
-    assertOwnerOrAdmin(payment.booking.userId, user, NOT_YOURS);
+    assertOwnerOrAdmin(payment.reservation.userId, user, NOT_YOURS);
 
     // No devolvemos la reserva anidada: solo se cargó para validar el permiso
-    const { booking: _owner, ...rest } = payment;
+    const { reservation: _owner, ...rest } = payment;
     return rest;
   }
 }

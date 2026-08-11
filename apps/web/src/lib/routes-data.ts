@@ -251,3 +251,22 @@ export const ROUTES_DATA: RouteData[] = [
 export function getRouteBySlug(slug: string): RouteData | undefined {
   return ROUTES_DATA.find((r) => r.slug === slug);
 }
+
+/**
+ * Ruta que deshace el camino de la dada, si existe.
+ *
+ * Hoy solo Tamarindo <-> Liberia esta cargada en las dos direcciones, asi que
+ * el ida y vuelta solo se ofrece ahi. El resto son rutas de una sola mano y
+ * habria que darlas de alta con sus precios y horarios de regreso.
+ */
+export function getReverseRoute(slug: string): RouteData | undefined {
+  const route = getRouteBySlug(slug);
+  if (!route) return undefined;
+
+  return ROUTES_DATA.find(
+    (r) =>
+      r.slug !== route.slug &&
+      r.origin === route.destination &&
+      r.destination === route.origin,
+  );
+}

@@ -6,21 +6,33 @@ import { apiFetch } from "@/lib/api";
 
 const STATUS_FILTER = ["ALL", "CONFIRMED", "PENDING", "CANCELLED"];
 
+type Leg = {
+  direction: "OUTBOUND" | "RETURN";
+  passengers: number;
+  amount: number;
+  trip: {
+    departureAt: string;
+    route: { origin: string; destination: string };
+  };
+};
+
 type Booking = {
   id: string;
   status: string;
   type: string;
+  tripType: "ONE_WAY" | "ROUND_TRIP";
   passengers: number;
   totalAmount: number;
   createdAt: string;
   notes?: string;
   user: { id: string; name: string; email: string; phone?: string };
-  trip: {
-    departureAt: string;
-    route: { origin: string; destination: string };
-  };
+  legs: Leg[];
   payment?: { externalId?: string; paidAt?: string; amount: number };
 };
+
+/** El tramo de ida representa la reserva cuando hay que mostrarla en una línea */
+const outbound = (b: Booking) =>
+  b.legs?.find((l) => l.direction === "OUTBOUND") ?? b.legs?.[0];
 
 export default function BookingsContent() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -43,8 +55,8 @@ export default function BookingsContent() {
       b.id.toLowerCase().includes(search.toLowerCase()) ||
       b.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
       b.user?.email?.toLowerCase().includes(search.toLowerCase()) ||
-      b.trip?.route?.origin?.toLowerCase().includes(search.toLowerCase()) ||
-      b.trip?.route?.destination?.toLowerCase().includes(search.toLowerCase());
+      outbound(b)?.trip?.route?.origin?.toLowerCase().includes(search.toLowerCase()) ||
+      outbound(b)?.trip?.route?.destination?.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
 
@@ -174,29 +186,41 @@ export default function BookingsContent() {
               <Row label="Phone" value={selected.user?.phone || "-"} />
             </Section>
 
-            <Section title="Trip">
-              <Row
-                label="Route"
-                value={`${selected.trip?.route?.origin} -> ${selected.trip?.route?.destination}`}
-              />
-              <Row
-                label="Departure"
-                value={new Date(selected.trip?.departureAt).toLocaleString(
-                  "en-US",
-                  {
+            {/* Un tramo por salida: en ida y vuelta el despacho necesita ver
+                las dos, porque son dos vehiculos en dos dias distintos */}
+            {selected.legs?.map((leg) => (
+              <Section
+                key={leg.direction}
+                title={leg.direction === "RETURN" ? "Return leg" : "Outbound leg"}
+              >
+                <Row
+                  label="Route"
+                  value={`${leg.trip?.route?.origin} -> ${leg.trip?.route?.destination}`}
+                />
+                <Row
+                  label="Departure"
+                  value={new Date(leg.trip?.departureAt).toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
-                  },
-                )}
-              />
-            </Section>
+                  })}
+                />
+                <Row label="Seats" value={String(leg.passengers)} />
+                <Row label="Leg amount" value={`$${leg.amount}`} />
+              </Section>
+            ))}
 
             <Section title="Booking">
               <Row label="ID" value={selected.id.slice(0, 8).toUpperCase()} />
               <Row label="Type" value={selected.type} />
+              <Row
+                label="Trip type"
+                value={
+                  selected.tripType === "ROUND_TRIP" ? "Round trip" : "One way"
+                }
+              />
               <Row label="Passengers" value={String(selected.passengers)} />
               <Row label="Amount" value={`$${selected.totalAmount}`} green />
               <Row label="Status" value={selected.status} />
@@ -305,7 +329,7 @@ export default function BookingsContent() {
 
         {!loading &&
           filtered.map((b, i) => {
-            const dep = new Date(b.trip?.departureAt);
+            const dep = new Date(outbound(b)?.trip?.departureAt);
             const s = statusStyle(b.status);
             return (
               <div
@@ -322,7 +346,7 @@ export default function BookingsContent() {
               >
                 <div>
                   <div style={{ fontWeight: 500, marginBottom: "2px" }}>
-                    {b.trip?.route?.origin} -&gt; {b.trip?.route?.destination}
+                    {outbound(b)?.trip?.route?.origin} -&gt; {outbound(b)?.trip?.route?.destination}
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}>
                     {b.id.slice(0, 8).toUpperCase()}

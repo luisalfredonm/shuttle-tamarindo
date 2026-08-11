@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { authFetch } from "@/lib/api";
+import { authFetch, outboundTrip } from "@/lib/api";
 
 export default function ConfirmationDetail() {
   const params = useSearchParams();
@@ -49,7 +49,7 @@ export default function ConfirmationDetail() {
       <p style={{ fontFamily: "DM Sans, sans-serif" }}>Booking not found.</p>
     );
 
-  const dep = new Date(booking.trip.departureAt);
+  const dep = new Date(outboundTrip(booking).departureAt);
 
   return (
     <div style={{ maxWidth: "520px", width: "100%" }}>
@@ -108,7 +108,7 @@ export default function ConfirmationDetail() {
             { label: "Status", value: "Pending Payment" },
             {
               label: "Route",
-              value: `${booking.trip.route.origin} → ${booking.trip.route.destination}`,
+              value: `${outboundTrip(booking).route.origin} → ${outboundTrip(booking).route.destination}`,
             },
             {
               label: "Date",

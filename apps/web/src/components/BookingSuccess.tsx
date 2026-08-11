@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { authFetch } from '@/lib/api';
+import { authFetch, outboundTrip } from '@/lib/api';
 
 export default function BookingSuccess() {
   const params    = useSearchParams();
@@ -37,7 +37,7 @@ export default function BookingSuccess() {
     </div>
   );
 
-  const dep = new Date(booking.trip.departureAt);
+  const dep = new Date(outboundTrip(booking).departureAt);
 
   return (
     <div style={{ maxWidth: '540px', width: '100%' }}>
@@ -78,11 +78,11 @@ export default function BookingSuccess() {
               Your Transfer
             </div>
             <div style={{ color: '#fff', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1rem' }}>
-              {booking.trip.route.origin}
+              {outboundTrip(booking).route.origin}
             </div>
             <div style={{ color: 'var(--brand-gold)', fontSize: '1.1rem', margin: '2px 0' }}>↓</div>
             <div style={{ color: '#fff', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1rem' }}>
-              {booking.trip.route.destination}
+              {outboundTrip(booking).route.destination}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>

@@ -26,6 +26,16 @@ enum BookingType {
   PRIVATE
 }
 
+enum TripType {
+  ONE_WAY
+  ROUND_TRIP
+}
+
+enum LegDirection {
+  OUTBOUND
+  RETURN
+}
+
 enum BookingStatus {
   PENDING
   CONFIRMED
@@ -41,15 +51,15 @@ enum PaymentStatus {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  name      String
-  phone     String?
-  password  String    @default("")
-  role      Role      @default(CUSTOMER)
-  bookings  Booking[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String
+  phone        String?
+  password     String        @default("")
+  role         Role          @default(CUSTOMER)
+  reservations Reservation[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Route {
@@ -79,27 +89,48 @@ model Trip {
   createdAt    DateTime   @default(now())
 }
 
-model Booking {
+/// Una compra. Agrupa 1 tramo (ida) o 2 (ida y vuelta).
+/// Concentra plata, estado y ciclo de vida: un round trip es un solo cobro,
+/// asi que el pago cuelga de aca y no de cada tramo.
+model Reservation {
   id          String        @id @default(uuid())
   user        User          @relation(fields: [userId], references: [id])
   userId      String
-  trip        Trip          @relation(fields: [tripId], references: [id])
-  tripId      String
   type        BookingType
+  tripType    TripType      @default(ONE_WAY)
   passengers  Int
   totalAmount Decimal       @db.Decimal(10, 2)
   status      BookingStatus @default(PENDING)
   heldUntil   DateTime?
   notes       String?
+  legs        Booking[]
   payment     Payment?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }
 
+/// Un tramo: la ocupacion de asientos en UNA salida concreta.
+/// El estado y el dinero viven en Reservation; aca solo va el asiento,
+/// para que el conteo de capacidad siga siendo por viaje.
+model Booking {
+  id            String       @id @default(uuid())
+  reservation   Reservation  @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  reservationId String
+  trip          Trip         @relation(fields: [tripId], references: [id])
+  tripId        String
+  direction     LegDirection @default(OUTBOUND)
+  passengers    Int
+  amount        Decimal      @db.Decimal(10, 2)
+  createdAt     DateTime     @default(now())
+
+  @@unique([reservationId, direction])
+  @@index([tripId])
+}
+
 model Payment {
-  id         String        @id @default(uuid())
-  booking    Booking       @relation(fields: [bookingId], references: [id])
-  bookingId  String        @unique
+  id            String       @id @default(uuid())
+  reservation   Reservation  @relation(fields: [reservationId], references: [id])
+  reservationId String       @unique
   provider   String        @default("BAC_CREDOMATIC")
   externalId String?
   amount     Decimal       @db.Decimal(10, 2)
