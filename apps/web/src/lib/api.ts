@@ -37,6 +37,32 @@ export interface Booking {
   trip: Trip;
 }
 
+/**
+ * fetch con el JWT del usuario. Los endpoints de reservas y pagos exigen
+ * sesión y solo devuelven lo que le pertenece a quien consulta.
+ */
+export async function authFetch(path: string, options?: RequestInit) {
+  const token = localStorage.getItem("shuttle_token");
+  if (!token) throw new Error("You must be signed in");
+
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...options?.headers,
+    },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || "Request failed");
+  }
+
+  return res.json();
+}
+
 export async function getTrips(params: {
   routeSlug?: string;
   date?: string;
@@ -58,13 +84,19 @@ export async function getRoutes(): Promise<Route[]> {
 
 export async function createBooking(data: {
   tripId: string;
-  userId: string;
   type: "SHARED" | "PRIVATE";
   passengers: number;
 }): Promise<Booking> {
+  // El userId ya no se envía: el backend lo toma del JWT
+  const token = localStorage.getItem("shuttle_token");
+  if (!token) throw new Error("You must be signed in to book a trip");
+
   const res = await fetch(`${API_URL}/bookings`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(data),
   });
   if (!res.ok) {

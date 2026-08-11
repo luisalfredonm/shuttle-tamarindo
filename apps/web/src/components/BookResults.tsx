@@ -40,13 +40,20 @@ export default function BookResults() {
   }, [routeSlug, date]);
 
   async function handleBook(tripId: string) {
+    // Reservar exige sesión: el backend saca el userId del JWT.
+    // Volvemos a esta misma búsqueda después del login.
+    if (!user) {
+      const returnTo = `/book?${params.toString()}`;
+      router.push(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+
     setBooking(true);
     setSelected(tripId);
     setError("");
     try {
       const b = await createBooking({
         tripId,
-        userId: user?.id || "user-test-001", // temporal hasta tener auth
         type,
         passengers,
       });

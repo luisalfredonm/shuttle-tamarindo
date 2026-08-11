@@ -3,8 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+import { authFetch } from '@/lib/api';
 
 export default function BookingSuccess() {
   const params    = useSearchParams();
@@ -17,12 +16,13 @@ export default function BookingSuccess() {
   useEffect(() => {
     if (!bookingId) return;
     Promise.all([
-      fetch(`${API_URL}/bookings/${bookingId}`).then(r => r.json()),
-      fetch(`${API_URL}/payments/booking/${bookingId}`).then(r => r.json()).catch(() => null),
+      authFetch(`/bookings/${bookingId}`),
+      authFetch(`/payments/booking/${bookingId}`).catch(() => null),
     ]).then(([b, p]) => {
       setBooking(b);
       setPayment(p);
-    }).finally(() => setLoading(false));
+    }).catch(() => setBooking(null))
+      .finally(() => setLoading(false));
   }, [bookingId]);
 
   if (loading) return (

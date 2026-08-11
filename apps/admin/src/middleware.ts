@@ -1,18 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+import { decodeJwt } from 'jose';
 
-const secret = new TextEncoder().encode(process.env.AUTH_SECRET!);
-
+/**
+ * Gate de navegación del panel.
+ *
+ * Solo decodifica el token para ver si sigue vigente; NO verifica la firma a
+ * propósito: el secreto de firma vive únicamente en la API, que es quien
+ * autoriza de verdad en cada request (JwtAuthGuard + RolesGuard). Acá basta
+ * con evitar renderizar el panel a quien no trae sesión.
+ */
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get('admin_token')?.value;
   const isLoginPage = req.nextUrl.pathname === '/login';
 
+  let validSession = false;
   if (token) {
     try {
-      await jwtVerify(token, secret);
-      if (isLoginPage) return NextResponse.redirect(new URL('/dashboard', req.url));
-      return NextResponse.next();
-    } catch {}
+      const { exp } = decodeJwt(token);
+      validSession = !!exp && exp * 1000 > Date.now();
+    } catch {
+      validSession = false;
+    }
+  }
+
+  if (validSession) {
+    if (isLoginPage) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+    return NextResponse.next();
   }
 
   if (!isLoginPage) {

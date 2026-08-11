@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+import { authFetch } from '@/lib/api';
 
 interface Booking {
   id: string;
@@ -40,9 +39,9 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (!user) { router.push('/login'); return; }
-    fetch(`${API_URL}/bookings/user/${user.id}`)
-      .then(r => r.json())
+    authFetch(`/bookings/user/${user.id}`)
       .then(data => setBookings(Array.isArray(data) ? data : []))
+      .catch(() => setBookings([]))
       .finally(() => setLoading(false));
   }, [user, router]);
 

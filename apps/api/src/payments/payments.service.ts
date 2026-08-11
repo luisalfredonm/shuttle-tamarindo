@@ -7,6 +7,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { EmailService } from '../email/email.service';
 import { AdminService } from '../admin/admin.service';
+import { RequestUser, assertOwnerOrAdmin } from '../auth/request-user';
+
+const NOT_YOURS = 'No tienes acceso a esta reserva';
 
 interface PaymentResult {
   success: boolean;
@@ -26,13 +29,17 @@ export class PaymentsService {
     return process.env.PAYMENT_MODE !== 'live';
   }
 
-  async processPayment(dto: CreatePaymentDto) {
+  async processPayment(dto: CreatePaymentDto, user: RequestUser) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: dto.bookingId },
       include: { trip: { include: { route: true } }, payment: true, user: true },
     });
 
     if (!booking) throw new NotFoundException('Booking no encontrado');
+
+    // Solo el dueño de la reserva puede pagarla (o un ADMIN, para cobros manuales)
+    assertOwnerOrAdmin(booking.userId, user, NOT_YOURS);
+
     if (booking.status === 'CONFIRMED') {
       throw new BadRequestException('Este booking ya fue pagado');
     }
@@ -145,11 +152,17 @@ export class PaymentsService {
     return { success: false, error: 'Integración BAC pendiente de configuración' };
   }
 
-  async getPaymentByBooking(bookingId: string) {
+  async getPaymentByBooking(bookingId: string, user: RequestUser) {
     const payment = await this.prisma.payment.findUnique({
       where: { bookingId },
+      include: { booking: { select: { userId: true } } },
     });
+
     if (!payment) throw new NotFoundException('Pago no encontrado');
-    return payment;
+    assertOwnerOrAdmin(payment.booking.userId, user, NOT_YOURS);
+
+    // No devolvemos la reserva anidada: solo se cargó para validar el permiso
+    const { booking: _owner, ...rest } = payment;
+    return rest;
   }
 }

@@ -3,8 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { authFetch } from "@/lib/api";
 
 export default function ConfirmationDetail() {
   const params = useSearchParams();
@@ -16,8 +15,7 @@ export default function ConfirmationDetail() {
 
   useEffect(() => {
     if (!bookingId) return;
-    fetch(`${API_URL}/bookings/${bookingId}`)
-      .then((r) => r.json())
+    authFetch(`/bookings/${bookingId}`)
       .then((b) => {
         // Si ya está confirmado, redirigir a success
         if (b.status === "CONFIRMED") {
@@ -26,6 +24,11 @@ export default function ConfirmationDetail() {
         }
         setBooking(b);
       })
+      .catch(() =>
+        router.replace(
+          `/login?returnTo=${encodeURIComponent(`/confirmation?bookingId=${bookingId}`)}`,
+        ),
+      )
       .finally(() => setLoading(false));
   }, [bookingId, router]);
 

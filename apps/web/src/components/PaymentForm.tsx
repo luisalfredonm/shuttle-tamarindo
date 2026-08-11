@@ -3,8 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { authFetch } from "@/lib/api";
 
 export default function PaymentForm() {
   const params = useSearchParams();
@@ -20,8 +19,7 @@ export default function PaymentForm() {
   // Cargar booking
   useEffect(() => {
     if (!bookingId) return;
-    fetch(`${API_URL}/bookings/${bookingId}`)
-      .then((r) => r.json())
+    authFetch(`/bookings/${bookingId}`)
       .then((b) => {
         setBooking(b);
         setLoading(false);
@@ -47,13 +45,10 @@ export default function PaymentForm() {
     setPaying(true);
     setError("");
     try {
-      const res = await fetch(`${API_URL}/payments/process`, {
+      await authFetch("/payments/process", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
       router.push(`/booking-success?bookingId=${bookingId}`);
     } catch (e: any) {
       setError(e.message || "Payment failed. Please try again.");

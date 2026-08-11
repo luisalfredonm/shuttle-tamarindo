@@ -9,8 +9,7 @@ export class CreateBookingDto {
   @IsString()
   tripId: string;
 
-  @IsString()
-  userId: string;
+  // userId NO se acepta del cliente: sale del JWT en el controller
 
   @IsEnum(BookingTypeEnum)
   type: BookingTypeEnum;

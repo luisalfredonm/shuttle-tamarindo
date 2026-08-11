@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import LoginForm from "@/components/LoginForm";
 
 export const metadata: Metadata = {
   title: "Sign In",
-  description: "Sign in to your Shuttle Tamarindo account.",
+  description: "Sign in to your Retana Services Tamarindo account.",
 };
 
 export default function LoginPage() {
@@ -19,7 +20,10 @@ export default function LoginPage() {
         paddingTop: "88px",
       }}
     >
-      <LoginForm />
+      {/* useSearchParams (returnTo) exige un boundary de Suspense */}
+      <Suspense fallback={null}>
+        <LoginForm />
+      </Suspense>
     </main>
   );
 }

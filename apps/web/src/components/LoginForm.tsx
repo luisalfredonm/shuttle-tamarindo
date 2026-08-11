@@ -1,13 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
 
 export default function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
   const { login } = useAuth();
+
+  // Solo aceptamos rutas internas para evitar open redirect
+  const rawReturnTo = params.get("returnTo") || "";
+  const returnTo =
+    rawReturnTo.startsWith("/") && !rawReturnTo.startsWith("//")
+      ? rawReturnTo
+      : "/account";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,7 +28,7 @@ export default function LoginForm() {
     setError("");
     try {
       await login(email, password);
-      router.push("/account");
+      router.push(returnTo);
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
     } finally {
