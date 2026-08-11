@@ -18,13 +18,13 @@ export class EmailService {
       const result = await this.resend.emails.send({
         from: this.from,
         to,
-        subject: 'Welcome to Shuttle Tamarindo 🌴',
+        subject: 'Welcome to Retana Services Tamarindo 🌴',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #0d1f17;">
             <div style="text-align: center; margin-bottom: 32px;">
               <div style="display: inline-block; width: 48px; height: 48px; background: #1a6b4a; border-radius: 12px; line-height: 48px; font-size: 24px; color: #fff; font-weight: 700;">S</div>
               <h1 style="margin: 16px 0 4px; font-size: 24px;">Welcome, ${name}!</h1>
-              <p style="color: #6b7b74; margin: 0;">Your Shuttle Tamarindo account is ready.</p>
+              <p style="color: #6b7b74; margin: 0;">Your Retana Services Tamarindo account is ready.</p>
             </div>
             <div style="background: #f7f3ec; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
               <p style="margin: 0 0 12px; font-size: 15px;">You can now:</p>
@@ -37,7 +37,7 @@ export class EmailService {
             <div style="text-align: center;">
               <a href="https://shuttletamarindo.com/book" style="display: inline-block; background: #1a6b4a; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 15px;">Book your first transfer</a>
             </div>
-            <p style="text-align: center; color: #6b7b74; font-size: 13px; margin-top: 32px;">Shuttle Tamarindo · Costa Rica</p>
+            <p style="text-align: center; color: #6b7b74; font-size: 13px; margin-top: 32px;">Retana Services Tamarindo · Costa Rica</p>
           </div>
         `,
       });
@@ -84,7 +84,7 @@ export class EmailService {
               </table>
             </div>
             <p style="font-size: 12px; color: #6b7b74; margin: 0 0 24px;">Booking ID: ${data.bookingId.slice(0, 8).toUpperCase()} · Transaction: ${data.transactionId}</p>
-            <p style="text-align: center; color: #6b7b74; font-size: 13px; margin: 0;">Shuttle Tamarindo · Costa Rica</p>
+            <p style="text-align: center; color: #6b7b74; font-size: 13px; margin: 0;">Retana Services Tamarindo · Costa Rica</p>
           </div>
         `,
       });

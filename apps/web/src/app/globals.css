@@ -1,4 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap");
+/* Playfair Display se usa como display face en 14 componentes pero nunca se
+   estaba cargando: caía al serif por defecto del navegador (Times). */
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:wght@500;600;700&display=swap");
 @import "tailwindcss";
 
 
@@ -10,6 +12,9 @@
   --brand-cream: #f7f3ec;
   --brand-gray: #6b7b74;
   --sidebar-w: 240px;
+  /* Se usaba con var(--radius) sin estar definida, así que los botones
+     quedaban con esquinas rectas */
+  --radius: 10px;
 }
 
 * {
@@ -23,5 +28,12 @@ body {
   background: #f4f2ee;
   color: #0d1f17;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Los estilos inline no pueden expresar :focus-visible, y sin esto el foco
+   de teclado es invisible sobre la foto del hero */
+.hero-cta:focus-visible {
+  outline: 2px solid var(--brand-gold);
+  outline-offset: 3px;
 }
 

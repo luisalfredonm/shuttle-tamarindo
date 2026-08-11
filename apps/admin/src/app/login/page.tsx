@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,11 +18,11 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.message || "Invalid password");
+        setError(data.message || "Invalid credentials");
         return;
       }
       router.push("/dashboard");
@@ -59,15 +60,29 @@ export default function LoginPage() {
             boxShadow: "0 2px 8px rgba(26,107,74,0.35)",
           }}>S</div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text)" }}>Shuttle Tamarindo</div>
+            <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text)" }}>Retana Services Tamarindo</div>
             <div style={{ fontSize: "0.72rem", color: "var(--text-3)", marginTop: "1px" }}>Admin Panel</div>
           </div>
         </div>
 
         <h1 style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: "0.25rem", color: "var(--text)" }}>Welcome back</h1>
-        <p style={{ fontSize: "0.85rem", color: "var(--text-3)", marginBottom: "1.75rem" }}>Enter your password to continue</p>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-3)", marginBottom: "1.75rem" }}>Sign in with your admin account</p>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div>
+            <label style={{ fontSize: "0.75rem", fontWeight: 600, display: "block", marginBottom: "6px", color: "var(--text-2)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Email
+            </label>
+            <input
+              type="email"
+              required
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input"
+              placeholder="you@example.com"
+            />
+          </div>
           <div>
             <label style={{ fontSize: "0.75rem", fontWeight: 600, display: "block", marginBottom: "6px", color: "var(--text-2)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Password
@@ -75,7 +90,6 @@ export default function LoginPage() {
             <input
               type="password"
               required
-              autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input"

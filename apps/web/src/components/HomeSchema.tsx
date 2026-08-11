@@ -1,3 +1,7 @@
+import { BRAND_LOGO, BRAND_FOUNDED } from "@/lib/brand";
+
+// TODO(dominio): cuando se defina el dominio definitivo, cambiarlo acá y en
+// app/layout.tsx (metadataBase), app/robots.ts y app/sitemap.ts — los cuatro juntos.
 const BASE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://shuttletamarindo.com";
 
@@ -8,11 +12,12 @@ export default function HomeSchema() {
       {
         "@type": "Organization",
         "@id": BASE_URL + "/#organization",
-        name: "Shuttle Tamarindo",
+        name: "Retana Services Tamarindo",
         url: BASE_URL,
+        foundingDate: BRAND_FOUNDED,
         logo: {
           "@type": "ImageObject",
-          url: BASE_URL + "/logo.png",
+          url: BASE_URL + BRAND_LOGO,
         },
         contactPoint: {
           "@type": "ContactPoint",
@@ -37,7 +42,7 @@ export default function HomeSchema() {
       {
         "@type": "LocalBusiness",
         "@id": BASE_URL + "/#localbusiness",
-        name: "Shuttle Tamarindo",
+        name: "Retana Services Tamarindo",
         description:
           "Shared shuttles and private transfers in Guanacaste, Costa Rica.",
         url: BASE_URL,
@@ -97,7 +102,7 @@ export default function HomeSchema() {
         "@type": "WebSite",
         "@id": BASE_URL + "/#website",
         url: BASE_URL,
-        name: "Shuttle Tamarindo",
+        name: "Retana Services Tamarindo",
         publisher: { "@id": BASE_URL + "/#organization" },
         potentialAction: {
           "@type": "SearchAction",

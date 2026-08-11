@@ -39,7 +39,7 @@ export default function RouteDetail({ route }: Props) {
             description: route.metaDescription,
             provider: {
               "@type": "Organization",
-              name: "Shuttle Tamarindo",
+              name: "Retana Services Tamarindo",
             },
             offers: {
               "@type": "Offer",

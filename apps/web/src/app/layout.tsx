@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
     default:
-      "Shuttle Tamarindo | Guaranteed Transfers in Guanacaste, Costa Rica",
-    template: "%s | Shuttle Tamarindo",
+      "Retana Services Tamarindo | Guaranteed Transfers in Guanacaste, Costa Rica",
+    template: "%s | Retana Services Tamarindo",
   },
   description:
     "Shared shuttles and private transfers from Tamarindo to Liberia Airport and all major destinations in Costa Rica. Guaranteed departures, no minimum passengers. From $30/person.",
@@ -35,9 +35,9 @@ export const metadata: Metadata = {
     "costa rica private transfer",
     "tamarindo arenal shuttle",
   ],
-  authors: [{ name: "Shuttle Tamarindo", url: BASE_URL }],
-  creator: "Shuttle Tamarindo",
-  publisher: "Shuttle Tamarindo",
+  authors: [{ name: "Retana Services Tamarindo", url: BASE_URL }],
+  creator: "Retana Services Tamarindo",
+  publisher: "Retana Services Tamarindo",
   robots: {
     index: true,
     follow: true,
@@ -53,8 +53,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: BASE_URL,
-    siteName: "Shuttle Tamarindo",
-    title: "Shuttle Tamarindo | Guaranteed Transfers in Guanacaste",
+    siteName: "Retana Services Tamarindo",
+    title: "Retana Services Tamarindo | Guaranteed Transfers in Guanacaste",
     description:
       "Shared shuttles and private transfers from Tamarindo to Liberia Airport. Guaranteed departures, no minimum passengers. Book online in 2 minutes.",
     images: [
@@ -62,13 +62,13 @@ export const metadata: Metadata = {
         url: BASE_URL + "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Shuttle Tamarindo — Guaranteed Transfers in Guanacaste",
+        alt: "Retana Services Tamarindo — Guaranteed Transfers in Guanacaste",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Shuttle Tamarindo | Guaranteed Transfers in Guanacaste",
+    title: "Retana Services Tamarindo | Guaranteed Transfers in Guanacaste",
     description:
       "Shared shuttles and private transfers in Guanacaste. From $30/person. Guaranteed departures.",
     images: [BASE_URL + "/og-image.jpg"],
@@ -93,7 +93,10 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body>
+      {/* suppressHydrationWarning: extensiones del navegador (ColorZilla, Grammarly)
+          inyectan atributos en <body> antes de que React hidrate, causando un
+          mismatch falso. Solo silencia el primer nivel: no oculta errores propios. */}
+      <body suppressHydrationWarning>
         <AuthProvider>
           <Navbar />
           {children}

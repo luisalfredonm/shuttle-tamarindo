@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
+import { BRAND_LOGO } from "@/lib/brand";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -53,32 +55,41 @@ export default function Navbar() {
             gap: "10px",
           }}
         >
-          <div
+          {/* El logo es artwork oscuro sobre crema: el disco le da el fondo
+              claro que necesita para leerse sobre la barra verde */}
+          <span
             style={{
-              width: "34px",
-              height: "34px",
-              borderRadius: "8px",
-              background: "var(--brand-gold)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1rem",
-              color: "var(--brand-dark)",
-              fontWeight: 700,
-              fontFamily: "Playfair Display, serif",
+              width: "38px",
+              height: "38px",
+              flexShrink: 0,
+              borderRadius: "50%",
+              background: "var(--brand-cream)",
+              display: "block",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
-            S
-          </div>
+            <Image
+              src={BRAND_LOGO}
+              alt=""
+              fill
+              sizes="38px"
+              style={{ objectFit: "contain" }}
+            />
+          </span>
           <span
             style={{
               fontFamily: "Playfair Display, serif",
               fontSize: "1.1rem",
               fontWeight: 700,
               color: "#fff",
+              lineHeight: 1.15,
             }}
           >
-            Shuttle Tamarindo
+            Retana Services
+            <span style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "var(--brand-gold)", letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "DM Sans, sans-serif" }}>
+              Tamarindo
+            </span>
           </span>
         </Link>
 

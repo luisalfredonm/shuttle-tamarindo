@@ -1,5 +1,7 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { ROUTES_DATA } from "@/lib/routes-data";
+import { BRAND_LOGO, BRAND_FOUNDED } from "@/lib/brand";
 
 const ROUTES = ROUTES_DATA.slice(0, 6).map((route) => ({
   label: `${route.origin} -> ${route.destination}`,
@@ -38,18 +40,34 @@ export default function Footer() {
 
           {/* Brand */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-              <div style={{
-                width: '34px', height: '34px', borderRadius: '8px',
-                background: 'var(--brand-gold)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1rem', color: 'var(--brand-dark)', fontWeight: 700,
-              }}>S</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
+              {/* Disco crema: el logo es artwork oscuro y necesita fondo claro */}
+              <span style={{
+                width: '52px', height: '52px', flexShrink: 0,
+                borderRadius: '50%', background: 'var(--brand-cream)',
+                display: 'block', position: 'relative', overflow: 'hidden',
+              }}>
+                <Image
+                  src={BRAND_LOGO}
+                  alt=""
+                  fill
+                  sizes="52px"
+                  style={{ objectFit: 'contain' }}
+                />
+              </span>
               <span style={{
                 fontFamily: 'Playfair Display, serif',
                 fontSize: '1.05rem', fontWeight: 700, color: '#fff',
+                lineHeight: 1.2,
               }}>
-                Shuttle Tamarindo
+                Retana Services
+                <span style={{
+                  display: 'block', fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '0.72rem', fontWeight: 500, letterSpacing: '0.14em',
+                  textTransform: 'uppercase', color: 'var(--brand-gold)',
+                }}>
+                  Tamarindo · since {BRAND_FOUNDED}
+                </span>
               </span>
             </div>
             <p style={{
@@ -155,7 +173,7 @@ export default function Footer() {
         {/* Divider */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)' }}>
-            © {new Date().getFullYear()} Shuttle Tamarindo. All rights reserved.
+            © {new Date().getFullYear()} Retana Services Tamarindo. All rights reserved.
           </p>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
             {[

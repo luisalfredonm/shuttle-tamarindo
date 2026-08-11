@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import BookingSuccess from "@/components/BookingSuccess";
 
-export const metadata = { title: "Payment Confirmed — Shuttle Tamarindo" };
+export const metadata = { title: "Payment Confirmed — Retana Services Tamarindo" };
 
 export default function BookingSuccessPage() {
   return (

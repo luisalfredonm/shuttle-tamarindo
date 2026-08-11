@@ -3,7 +3,7 @@ import RegisterForm from "@/components/RegisterForm";
 
 export const metadata: Metadata = {
   title: "Create Account",
-  description: "Create your Shuttle Tamarindo account to manage bookings.",
+  description: "Create your Retana Services Tamarindo account to manage bookings.",
 };
 
 export default function RegisterPage() {

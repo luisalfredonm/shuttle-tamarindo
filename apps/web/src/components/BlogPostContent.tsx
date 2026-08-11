@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BlogPost } from "@/lib/blog/posts";
+import { BlogPost } from "@/app/blog/posts";
 
 interface Props {
   post: BlogPost;
@@ -24,8 +24,8 @@ export default function BlogPostContent({ post, related }: Props) {
             headline: post.title,
             description: post.metaDescription,
             datePublished: post.publishedAt,
-            author: { "@type": "Organization", name: "Shuttle Tamarindo" },
-            publisher: { "@type": "Organization", name: "Shuttle Tamarindo" },
+            author: { "@type": "Organization", name: "Retana Services Tamarindo" },
+            publisher: { "@type": "Organization", name: "Retana Services Tamarindo" },
             keywords: post.keywords.join(", "),
           }),
         }}

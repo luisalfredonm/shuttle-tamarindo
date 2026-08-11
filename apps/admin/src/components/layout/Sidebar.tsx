@@ -44,7 +44,7 @@ export default function Sidebar() {
             boxShadow: '0 2px 8px rgba(26,107,74,0.4)',
           }}>S</div>
           <div className="sidebar-brand-text">
-            <div style={{ color: '#fff', fontSize: '0.88rem', fontWeight: 600, lineHeight: 1.2 }}>Shuttle Tamarindo</div>
+            <div style={{ color: '#fff', fontSize: '0.88rem', fontWeight: 600, lineHeight: 1.2 }}>Retana Services Tamarindo</div>
             <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.68rem', marginTop: '2px' }}>Admin Panel</div>
           </div>
         </div>
