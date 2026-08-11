@@ -39,7 +39,8 @@ export default function Hero() {
         // Es el elemento LCP de la home: se precarga desde el <head>.
         // En Next 16 `priority` quedó deprecado en favor de `preload`.
         preload
-        quality={85}
+        // Sin `quality`: en Next 16 el default de `qualities` es [75] y
+        // cualquier otro valor lo rechaza el optimizador con 400
         sizes="100vw"
         placeholder="blur"
         blurDataURL={BLUR_PLACEHOLDER}
