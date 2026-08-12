@@ -18,11 +18,6 @@ export class UpdateTripDto {
   priceShared?: number;
 
   @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  pricePrivate?: number;
-
-  @IsOptional()
   @IsEnum(TripStatus)
   status?: TripStatus;
 }

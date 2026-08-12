@@ -8,7 +8,14 @@ export const metadata = {
 
 export default function BookPage() {
   return (
-    <main style={{ minHeight: "100vh", background: "var(--brand-cream)" }}>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "var(--brand-cream)",
+        // 68px: la barra fija no debe tapar el "Back to home"
+        paddingTop: "68px",
+      }}
+    >
       <Suspense fallback={<LoadingState />}>
         <BookResults />
       </Suspense>

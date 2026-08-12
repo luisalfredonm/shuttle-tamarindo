@@ -26,6 +26,10 @@ export default function BookingSearch() {
   const [type, setType] = useState<"SHARED" | "PRIVATE">("SHARED");
   const [tripType, setTripType] = useState<"ONE_WAY" | "ROUND_TRIP">("ONE_WAY");
   const [returnDate, setReturnDate] = useState("");
+  // Privado va en vehículo exclusivo: el cliente elige cualquier hora,
+  // no un horario precargado como en compartido
+  const [time, setTime] = useState("");
+  const [returnTime, setReturnTime] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -34,15 +38,23 @@ export default function BookingSearch() {
   const canRoundTrip = !!reverse;
   const isRoundTrip = canRoundTrip && tripType === "ROUND_TRIP";
 
+  const isPrivate = type === "PRIVATE";
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!route || !date) return;
     if (isRoundTrip && !returnDate) return;
+    if (isPrivate && !time) return;
+    if (isPrivate && isRoundTrip && !returnTime) return;
 
     const params = new URLSearchParams({ route, date, passengers, type });
     if (isRoundTrip) {
       params.set("tripType", "ROUND_TRIP");
       params.set("returnDate", returnDate);
+    }
+    if (isPrivate) {
+      params.set("time", time);
+      if (isRoundTrip) params.set("returnTime", returnTime);
     }
     router.push(`/book?${params}`);
   }
@@ -178,6 +190,19 @@ export default function BookingSearch() {
             />
           </div>
 
+          {isPrivate && (
+            <div>
+              <label style={labelStyle}>Pickup time</label>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                style={inputStyle}
+                required
+              />
+            </div>
+          )}
+
           {isRoundTrip && (
             <div>
               <label style={labelStyle}>Return</label>
@@ -187,6 +212,19 @@ export default function BookingSearch() {
                 // El regreso nunca puede ser antes de la ida
                 min={date || today}
                 onChange={(e) => setReturnDate(e.target.value)}
+                style={inputStyle}
+                required
+              />
+            </div>
+          )}
+
+          {isPrivate && isRoundTrip && (
+            <div>
+              <label style={labelStyle}>Return pickup time</label>
+              <input
+                type="time"
+                value={returnTime}
+                onChange={(e) => setReturnTime(e.target.value)}
                 style={inputStyle}
                 required
               />

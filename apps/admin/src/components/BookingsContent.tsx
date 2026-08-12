@@ -25,6 +25,10 @@ type Booking = {
   totalAmount: number;
   createdAt: string;
   notes?: string;
+  flightNumber?: string;
+  pickupAddress?: string;
+  agreementSignedName?: string;
+  agreementSignedAt?: string;
   user: { id: string; name: string; email: string; phone?: string };
   legs: Leg[];
   payment?: { externalId?: string; paidAt?: string; amount: number };
@@ -186,6 +190,19 @@ export default function BookingsContent() {
               <Row label="Phone" value={selected.user?.phone || "-"} />
             </Section>
 
+            {/* Lo que necesita el conductor para el pickup */}
+            {(selected.pickupAddress || selected.flightNumber || selected.notes) && (
+              <Section title="Pickup details">
+                {selected.pickupAddress && (
+                  <Row label="Hotel / address" value={selected.pickupAddress} />
+                )}
+                {selected.flightNumber && (
+                  <Row label="Flight number" value={selected.flightNumber} />
+                )}
+                {selected.notes && <Row label="Notes" value={selected.notes} />}
+              </Section>
+            )}
+
             {/* Un tramo por salida: en ida y vuelta el despacho necesita ver
                 las dos, porque son dos vehiculos en dos dias distintos */}
             {selected.legs?.map((leg) => (
@@ -232,8 +249,21 @@ export default function BookingsContent() {
                   year: "numeric",
                 })}
               />
-              {selected.notes && <Row label="Notes" value={selected.notes} />}
             </Section>
+
+            {selected.agreementSignedName && (
+              <Section title="Service agreement">
+                <Row label="Signed by" value={selected.agreementSignedName} />
+                <Row
+                  label="Signed at"
+                  value={
+                    selected.agreementSignedAt
+                      ? new Date(selected.agreementSignedAt).toLocaleString("en-US")
+                      : "-"
+                  }
+                />
+              </Section>
+            )}
 
             {selected.payment && (
               <Section title="Payment">

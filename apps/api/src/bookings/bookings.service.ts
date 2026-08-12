@@ -157,27 +157,99 @@ export class BookingsService {
     }
 
     const amount = isPrivate
-      ? Number(trip.pricePrivate)
+      ? Number(trip.route.pricePrivate)
       : Number(trip.priceShared) * dto.passengers;
 
     return { trip, seats, amount };
   }
 
+  /**
+   * SHARED elige un horario ya precargado: llega con tripId.
+   * PRIVATE elige cualquier hora: llega con routeSlug + departureAt, y acá
+   * se busca o se crea al vuelo el Trip puntual para esa salida (nadie más
+   * la va a compartir, es un vehículo exclusivo).
+   */
+  private async resolveTripId(
+    tx: Prisma.TransactionClient,
+    type: CreateBookingDto['type'],
+    tripId: string | undefined,
+    routeSlug: string | undefined,
+    departureAt: string | undefined,
+    label: string,
+  ): Promise<string> {
+    if (type === 'SHARED') {
+      if (!tripId) throw new BadRequestException(`Falta el viaje (${label})`);
+      return tripId;
+    }
+
+    if (!routeSlug || !departureAt) {
+      throw new BadRequestException(
+        `Falta la ruta o la hora del transfer privado (${label})`,
+      );
+    }
+
+    const route = await tx.route.findUnique({ where: { slug: routeSlug } });
+    if (!route) throw new NotFoundException(`Ruta no encontrada (${label})`);
+
+    const parsedDepartureAt = new Date(departureAt);
+    const existing = await tx.trip.findFirst({
+      where: { routeId: route.id, departureAt: parsedDepartureAt },
+    });
+    if (existing) return existing.id;
+
+    const created = await tx.trip.create({
+      data: {
+        routeId: route.id,
+        departureAt: parsedDepartureAt,
+        // priceShared no aplica a un privado ad-hoc, pero la columna es NOT NULL
+        priceShared: 0,
+        // No debe aparecer en la lista de compartido: es un vehiculo
+        // exclusivo de esta reserva, a una hora que nadie mas eligio
+        source: 'ON_DEMAND',
+      },
+    });
+    return created.id;
+  }
+
   async create(userId: string, dto: CreateBookingDto) {
     return this.prisma.$transaction(async (tx) => {
-      const isRoundTrip = !!dto.returnTripId;
+      const tripId = await this.resolveTripId(
+        tx,
+        dto.type,
+        dto.tripId,
+        dto.routeSlug,
+        dto.departureAt,
+        'ida',
+      );
 
-      if (isRoundTrip && dto.returnTripId === dto.tripId) {
-        throw new BadRequestException(
-          'El regreso no puede ser la misma salida que la ida',
+      const isRoundTrip =
+        dto.type === 'PRIVATE'
+          ? !!(dto.returnRouteSlug && dto.returnDepartureAt)
+          : !!dto.returnTripId;
+
+      let returnTripId: string | undefined;
+      if (isRoundTrip) {
+        returnTripId = await this.resolveTripId(
+          tx,
+          dto.type,
+          dto.returnTripId,
+          dto.returnRouteSlug,
+          dto.returnDepartureAt,
+          'regreso',
         );
+
+        if (returnTripId === tripId) {
+          throw new BadRequestException(
+            'El regreso no puede ser la misma salida que la ida',
+          );
+        }
       }
 
-      const outbound = await this.priceLeg(tx, dto.tripId, dto, 'ida');
+      const outbound = await this.priceLeg(tx, tripId, dto, 'ida');
 
       let inbound: Awaited<ReturnType<typeof this.priceLeg>> | null = null;
       if (isRoundTrip) {
-        inbound = await this.priceLeg(tx, dto.returnTripId!, dto, 'regreso');
+        inbound = await this.priceLeg(tx, returnTripId!, dto, 'regreso');
 
         if (inbound.trip.departureAt <= outbound.trip.departureAt) {
           throw new BadRequestException(
@@ -207,11 +279,15 @@ export class BookingsService {
           totalAmount,
           heldUntil,
           notes: dto.notes,
+          flightNumber: dto.flightNumber,
+          pickupAddress: dto.pickupAddress,
+          agreementSignedName: dto.agreementSignedName,
+          agreementSignedAt: new Date(),
           status: 'PENDING',
           legs: {
             create: [
               {
-                tripId: dto.tripId,
+                tripId,
                 direction: 'OUTBOUND',
                 passengers: outbound.seats,
                 amount: outbound.amount,
@@ -219,7 +295,7 @@ export class BookingsService {
               ...(inbound
                 ? [
                     {
-                      tripId: dto.returnTripId!,
+                      tripId: returnTripId!,
                       direction: 'RETURN' as const,
                       passengers: inbound.seats,
                       amount: inbound.amount,
@@ -232,8 +308,8 @@ export class BookingsService {
         include: RESERVATION_INCLUDE,
       });
 
-      await this.syncBookedSeats(tx, dto.tripId);
-      if (isRoundTrip) await this.syncBookedSeats(tx, dto.returnTripId!);
+      await this.syncBookedSeats(tx, tripId);
+      if (isRoundTrip) await this.syncBookedSeats(tx, returnTripId!);
 
       return {
         ...reservation,

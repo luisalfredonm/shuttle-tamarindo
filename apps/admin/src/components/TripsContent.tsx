@@ -11,7 +11,6 @@ type Trip = {
   capacity: number;
   bookedSeats: number;
   priceShared: number;
-  pricePrivate: number;
   status: string;
   route: Route;
 };
@@ -21,7 +20,6 @@ const emptyForm = {
   departureAt: "",
   capacity: "10",
   priceShared: "",
-  pricePrivate: "",
 };
 
 const STATUSES = ["SCHEDULED", "CONFIRMED", "CANCELLED", "COMPLETED"];
@@ -71,7 +69,6 @@ export default function TripsContent() {
       departureAt: localStr,
       capacity: String(t.capacity),
       priceShared: String(t.priceShared),
-      pricePrivate: String(t.pricePrivate),
     });
     setError("");
     setShowForm(true);
@@ -86,7 +83,6 @@ export default function TripsContent() {
         ...form,
         capacity: Number(form.capacity),
         priceShared: Number(form.priceShared),
-        pricePrivate: Number(form.pricePrivate),
       };
       if (editing) {
         const { routeId, ...updateBody } = body;
@@ -177,7 +173,6 @@ export default function TripsContent() {
               {[
                 { label: "Capacity", key: "capacity", placeholder: "10" },
                 { label: "Price Shared ($)", key: "priceShared", placeholder: "30" },
-                { label: "Price Private ($)", key: "pricePrivate", placeholder: "120" },
               ].map(({ label, key, placeholder }) => (
                 <div key={key}>
                   <label style={labelStyle}>{label}</label>
@@ -198,8 +193,8 @@ export default function TripsContent() {
 
       {/* Table */}
       <div style={{ background: "var(--surface)", borderRadius: "16px", border: "1px solid var(--border-strong)", overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 100px 100px 100px 130px 80px", padding: "0.875rem 1.5rem", borderBottom: "1px solid var(--border-soft)", fontSize: "0.75rem", color: "var(--brand-gray)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-          <span>Route</span><span>Departure</span><span>Seats</span><span>Shared $</span><span>Private $</span><span>Status</span><span></span>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 100px 100px 130px 80px", padding: "0.875rem 1.5rem", borderBottom: "1px solid var(--border-soft)", fontSize: "0.75rem", color: "var(--brand-gray)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <span>Route</span><span>Departure</span><span>Seats</span><span>Shared $</span><span>Status</span><span></span>
         </div>
 
         {loading && <div style={{ padding: "2rem", textAlign: "center", color: "var(--brand-gray)", fontSize: "0.875rem" }}>Loading trips...</div>}
@@ -210,7 +205,7 @@ export default function TripsContent() {
           const available = t.capacity - t.bookedSeats;
           const occupancy = Math.round((t.bookedSeats / t.capacity) * 100);
           return (
-            <div key={t.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 100px 100px 100px 130px 80px", padding: "0.875rem 1.5rem", alignItems: "center", borderBottom: i < trips.length - 1 ? "1px solid var(--border-soft)" : "none", fontSize: "0.875rem" }}>
+            <div key={t.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 100px 100px 130px 80px", padding: "0.875rem 1.5rem", alignItems: "center", borderBottom: i < trips.length - 1 ? "1px solid var(--border-soft)" : "none", fontSize: "0.875rem" }}>
               <div>
                 <div style={{ fontWeight: 500, marginBottom: "2px" }}>{t.route?.origin} → {t.route?.destination}</div>
                 <div style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}>{t.id.slice(0, 8).toUpperCase()}</div>
@@ -229,7 +224,6 @@ export default function TripsContent() {
                 </div>
               </div>
               <span style={{ color: "var(--brand-green)", fontWeight: 600 }}>${t.priceShared}</span>
-              <span style={{ color: "var(--brand-gray)" }}>${t.pricePrivate}</span>
               <select value={t.status} onChange={(e) => handleStatusChange(t, e.target.value)} style={{ ...selectStyle, fontSize: "0.75rem", padding: "3px 8px", color: statusColor(t.status), background: statusBg(t.status), border: "none", borderRadius: "100px", fontWeight: 500 }}>
                 {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
               </select>

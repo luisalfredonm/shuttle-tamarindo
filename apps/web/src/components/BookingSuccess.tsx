@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { authFetch, outboundTrip } from '@/lib/api';
+import BookingLegs from './BookingLegs';
 
 export default function BookingSuccess() {
   const params    = useSearchParams();
@@ -38,6 +39,7 @@ export default function BookingSuccess() {
   );
 
   const dep = new Date(outboundTrip(booking).departureAt);
+  const isRoundTrip = booking.tripType === 'ROUND_TRIP';
 
   return (
     <div style={{ maxWidth: '540px', width: '100%' }}>
@@ -75,12 +77,15 @@ export default function BookingSuccess() {
         }}>
           <div>
             <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-              Your Transfer
+              {isRoundTrip ? 'Your Round Trip' : 'Your Transfer'}
             </div>
             <div style={{ color: '#fff', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1rem' }}>
               {outboundTrip(booking).route.origin}
             </div>
-            <div style={{ color: 'var(--brand-gold)', fontSize: '1.1rem', margin: '2px 0' }}>↓</div>
+            {/* La doble flecha avisa que hay regreso; el detalle va abajo */}
+            <div style={{ color: 'var(--brand-gold)', fontSize: '1.1rem', margin: '2px 0' }}>
+              {isRoundTrip ? '⇅' : '↓'}
+            </div>
             <div style={{ color: '#fff', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1rem' }}>
               {outboundTrip(booking).route.destination}
             </div>
@@ -96,6 +101,11 @@ export default function BookingSuccess() {
               {dep.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </div>
           </div>
+        </div>
+
+        {/* Cada salida por separado: el cliente tiene que ver las dos fechas */}
+        <div style={{ padding: '1.5rem 1.5rem 0' }}>
+          <BookingLegs legs={booking.legs} showAmount={false} />
         </div>
 
         {/* Details grid */}

@@ -21,6 +21,14 @@ enum TripStatus {
   COMPLETED
 }
 
+enum TripSource {
+  /// Horario fijo cargado por el admin: elegible para compartido
+  SCHEDULED
+  /// Creado al vuelo para un privado a hora libre: no debe listarse
+  /// como opcion de compartido, es un vehiculo exclusivo de esa reserva
+  ON_DEMAND
+}
+
 enum BookingType {
   SHARED
   PRIVATE
@@ -63,30 +71,33 @@ model User {
 }
 
 model Route {
-  id          String   @id @default(uuid())
-  slug        String   @unique
-  origin      String
-  destination String
-  durationMin Int
-  distanceKm  Int
-  imageUrl    String?
-  isActive    Boolean  @default(true)
-  trips       Trip[]
-  createdAt   DateTime @default(now())
+  id           String   @id @default(uuid())
+  slug         String   @unique
+  origin       String
+  destination  String
+  durationMin  Int
+  distanceKm   Int
+  imageUrl     String?
+  /// Privado va en un vehiculo exclusivo a la hora que el cliente elija, asi
+  /// que no tiene sentido por Trip: es un precio fijo por ruta.
+  pricePrivate Decimal  @db.Decimal(10, 2)
+  isActive     Boolean  @default(true)
+  trips        Trip[]
+  createdAt    DateTime @default(now())
 }
 
 model Trip {
-  id           String     @id @default(uuid())
-  route        Route      @relation(fields: [routeId], references: [id])
-  routeId      String
-  departureAt  DateTime
-  capacity     Int        @default(10)
-  bookedSeats  Int        @default(0)
-  priceShared  Decimal    @db.Decimal(10, 2)
-  pricePrivate Decimal    @db.Decimal(10, 2)
-  status       TripStatus @default(SCHEDULED)
-  bookings     Booking[]
-  createdAt    DateTime   @default(now())
+  id          String     @id @default(uuid())
+  route       Route      @relation(fields: [routeId], references: [id])
+  routeId     String
+  departureAt DateTime
+  capacity    Int        @default(10)
+  bookedSeats Int        @default(0)
+  priceShared Decimal    @db.Decimal(10, 2)
+  status      TripStatus @default(SCHEDULED)
+  source      TripSource @default(SCHEDULED)
+  bookings    Booking[]
+  createdAt   DateTime   @default(now())
 }
 
 /// Una compra. Agrupa 1 tramo (ida) o 2 (ida y vuelta).
@@ -103,6 +114,15 @@ model Reservation {
   status      BookingStatus @default(PENDING)
   heldUntil   DateTime?
   notes       String?
+  /// Numero de vuelo: solo aplica a rutas que tocan el aeropuerto
+  flightNumber  String?
+  /// Hotel o direccion exacta de pickup/dropoff puerta a puerta
+  pickupAddress String?
+  /// Firma tipeada de la politica de cancelacion. La fecha la pone el
+  /// servidor al crear la reserva, no el cliente, para que quede como
+  /// respaldo confiable de cuando se acepto.
+  agreementSignedName String?
+  agreementSignedAt   DateTime?
   legs        Booking[]
   payment     Payment?
   createdAt   DateTime      @default(now())

@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { BRAND_LOGO } from "@/lib/brand";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
@@ -19,6 +20,14 @@ export default function Navbar() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  /**
+   * La barra solo puede ser transparente sobre el hero de la home, que es
+   * oscuro. En el resto de las páginas el fondo es crema y el texto blanco
+   * de la barra quedaba invisible.
+   */
+  const overHero = pathname === "/";
+  const solid = scrolled || !overHero;
 
   function handleLogout() {
     logout();
@@ -39,9 +48,9 @@ export default function Navbar() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          background: scrolled ? "rgba(13,31,23,0.97)" : "transparent",
-          backdropFilter: scrolled ? "blur(12px)" : "none",
-          borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "none",
+          background: solid ? "rgba(13,31,23,0.97)" : "transparent",
+          backdropFilter: solid ? "blur(12px)" : "none",
+          borderBottom: solid ? "1px solid rgba(255,255,255,0.06)" : "none",
           transition: "background 0.3s, border 0.3s",
         }}
       >

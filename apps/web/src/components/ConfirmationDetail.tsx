@@ -3,7 +3,8 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { authFetch, outboundTrip } from "@/lib/api";
+import { authFetch } from "@/lib/api";
+import BookingLegs from "./BookingLegs";
 
 export default function ConfirmationDetail() {
   const params = useSearchParams();
@@ -49,7 +50,7 @@ export default function ConfirmationDetail() {
       <p style={{ fontFamily: "DM Sans, sans-serif" }}>Booking not found.</p>
     );
 
-  const dep = new Date(outboundTrip(booking).departureAt);
+  const isRoundTrip = booking.tripType === "ROUND_TRIP";
 
   return (
     <div style={{ maxWidth: "520px", width: "100%" }}>
@@ -93,6 +94,44 @@ export default function ConfirmationDetail() {
           marginBottom: "1.5rem",
         }}
       >
+        {/* Un bloque por salida: en ida y vuelta son dos vehículos */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div
+            style={{
+              fontSize: "0.7rem",
+              color: "var(--brand-gray)",
+              fontFamily: "DM Sans, sans-serif",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: "0.6rem",
+            }}
+          >
+            {isRoundTrip ? "Your two departures" : "Your departure"}
+          </div>
+          <BookingLegs legs={booking.legs} />
+        </div>
+
+        {(booking.pickupAddress || booking.flightNumber || booking.notes) && (
+          <div
+            style={{
+              marginBottom: "1.5rem",
+              paddingBottom: "1.5rem",
+              borderBottom: "1px solid #f5f2ec",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+            }}
+          >
+            {booking.pickupAddress && (
+              <DetailLine label="Pickup" value={booking.pickupAddress} />
+            )}
+            {booking.flightNumber && (
+              <DetailLine label="Flight" value={booking.flightNumber} />
+            )}
+            {booking.notes && <DetailLine label="Notes" value={booking.notes} />}
+          </div>
+        )}
+
         <div
           style={{
             display: "grid",
@@ -107,23 +146,8 @@ export default function ConfirmationDetail() {
             },
             { label: "Status", value: "Pending Payment" },
             {
-              label: "Route",
-              value: `${outboundTrip(booking).route.origin} → ${outboundTrip(booking).route.destination}`,
-            },
-            {
-              label: "Date",
-              value: dep.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              }),
-            },
-            {
-              label: "Time",
-              value: dep.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
+              label: "Trip type",
+              value: isRoundTrip ? "Round trip" : "One way",
             },
             { label: "Passengers", value: `${booking.passengers}` },
             { label: "Type", value: booking.type },
@@ -193,6 +217,15 @@ export default function ConfirmationDetail() {
           Cancel and go home
         </Link>
       </div>
+    </div>
+  );
+}
+
+function DetailLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "flex", gap: "6px", fontFamily: "DM Sans, sans-serif", fontSize: "0.85rem" }}>
+      <span style={{ color: "var(--brand-gray)" }}>{label}:</span>
+      <span style={{ color: "var(--brand-dark)" }}>{value}</span>
     </div>
   );
 }

@@ -12,6 +12,8 @@ export default function BookingSuccessPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        // 68px: la barra fija no debe tapar el contenido
+        paddingTop: "calc(68px + 2rem)",
         padding: "2rem",
       }}
     >

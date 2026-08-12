@@ -7,6 +7,8 @@ export interface Route {
   destination: string;
   durationMin: number;
   distanceKm: number;
+  /** Precio fijo del privado en esta ruta: vehículo exclusivo, cualquier hora */
+  pricePrivate: number;
 }
 
 export interface Trip {
@@ -16,7 +18,6 @@ export interface Trip {
   capacity: number;
   bookedSeats: number;
   priceShared: number;
-  pricePrivate: number;
   status: string;
   availableSeats: number;
   isFull: boolean;
@@ -53,6 +54,11 @@ export interface Booking {
   status: string;
   heldUntil: string;
   minutesToPay: number;
+  notes?: string;
+  flightNumber?: string;
+  pickupAddress?: string;
+  agreementSignedName?: string;
+  agreementSignedAt?: string;
   legs: BookingLeg[];
 }
 
@@ -122,12 +128,27 @@ export async function getRoutes(): Promise<Route[]> {
   return res.json();
 }
 
+export async function getRouteBySlug(slug: string): Promise<Route> {
+  const res = await fetch(`${API_URL}/routes/${slug}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch route");
+  return res.json();
+}
+
 export async function createBooking(data: {
-  tripId: string;
-  /** Solo en ida y vuelta: la salida del regreso */
+  /** SHARED: la salida elegida de la lista */
+  tripId?: string;
   returnTripId?: string;
+  /** PRIVATE: ruta + hora libre elegida por el cliente */
+  routeSlug?: string;
+  departureAt?: string;
+  returnRouteSlug?: string;
+  returnDepartureAt?: string;
   type: "SHARED" | "PRIVATE";
   passengers: number;
+  notes?: string;
+  flightNumber?: string;
+  pickupAddress?: string;
+  agreementSignedName: string;
 }): Promise<Booking> {
   // El userId ya no se envía: el backend lo toma del JWT
   const token = localStorage.getItem("shuttle_token");

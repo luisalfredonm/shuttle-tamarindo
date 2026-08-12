@@ -57,6 +57,7 @@ export class RoutesService {
         destination: 'Aeropuerto Liberia (LIR)',
         durationMin: 90,
         distanceKm: 78,
+        pricePrivate: 120,
       },
       {
         slug: 'liberia-airport-tamarindo',
@@ -64,6 +65,7 @@ export class RoutesService {
         destination: 'Tamarindo',
         durationMin: 90,
         distanceKm: 78,
+        pricePrivate: 120,
       },
       {
         slug: 'tamarindo-arenal',
@@ -71,6 +73,7 @@ export class RoutesService {
         destination: 'Arenal',
         durationMin: 240,
         distanceKm: 210,
+        pricePrivate: 220,
       },
       {
         slug: 'tamarindo-monteverde',
@@ -78,6 +81,7 @@ export class RoutesService {
         destination: 'Monteverde',
         durationMin: 180,
         distanceKm: 150,
+        pricePrivate: 180,
       },
       {
         slug: 'tamarindo-san-jose',
@@ -85,6 +89,7 @@ export class RoutesService {
         destination: 'San José',
         durationMin: 300,
         distanceKm: 290,
+        pricePrivate: 260,
       },
       {
         slug: 'tamarindo-nosara',
@@ -92,6 +97,7 @@ export class RoutesService {
         destination: 'Nosara',
         durationMin: 120,
         distanceKm: 95,
+        pricePrivate: 140,
       },
     ];
 

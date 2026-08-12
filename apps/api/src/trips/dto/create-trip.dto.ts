@@ -23,8 +23,4 @@ export class CreateTripDto {
   @IsNumber()
   @Type(() => Number)
   priceShared: number;
-
-  @IsNumber()
-  @Type(() => Number)
-  pricePrivate: number;
 }

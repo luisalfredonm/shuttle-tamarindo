@@ -1,4 +1,5 @@
-import { IsString, IsInt, IsOptional, IsBoolean, Min } from 'class-validator';
+import { IsString, IsInt, IsNumber, IsOptional, IsBoolean, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateRouteDto {
   @IsOptional()
@@ -18,6 +19,11 @@ export class UpdateRouteDto {
   @IsInt()
   @Min(1)
   distanceKm?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  pricePrivate?: number;
 
   @IsOptional()
   @IsString()

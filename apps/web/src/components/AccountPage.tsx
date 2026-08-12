@@ -13,7 +13,6 @@ interface Leg {
   trip: {
     departureAt: string;
     priceShared: number;
-    pricePrivate: number;
     route: { origin: string; destination: string; durationMin: number };
   };
 }
@@ -137,6 +136,12 @@ function BookingCard({ booking }: { booking: Booking }) {
   const router = useRouter();
   const dep = new Date(outboundTrip(booking).departureAt);
   const isPast = dep < new Date();
+  const isRound = booking.tripType === 'ROUND_TRIP';
+  const ret = booking.legs?.find(l => l.direction === 'RETURN');
+
+  const fmt = (d: Date) =>
+    `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+
   const status = STATUS_STYLES[booking.status] || STATUS_STYLES.PENDING;
 
   return (
@@ -165,8 +170,9 @@ function BookingCard({ booking }: { booking: Booking }) {
       <div style={{ padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
           {[
-            { label: 'Date', value: dep.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) },
-            { label: 'Time', value: dep.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) },
+            { label: isRound ? 'Outbound' : 'Date', value: fmt(dep) },
+            // Sin esto la tarjeta de un ida y vuelta se ve igual que la de una ida
+            ...(isRound && ret ? [{ label: 'Return', value: fmt(new Date(ret.trip.departureAt)) }] : []),
             { label: 'Type', value: booking.type === 'SHARED' ? 'Shared' : 'Private' },
             { label: 'Passengers', value: `${booking.passengers}` },
           ].map(item => (

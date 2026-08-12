@@ -3,7 +3,8 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { authFetch, outboundTrip } from "@/lib/api";
+import { authFetch } from "@/lib/api";
+import BookingLegs from "./BookingLegs";
 
 export default function PaymentForm() {
   const params = useSearchParams();
@@ -14,7 +15,10 @@ export default function PaymentForm() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
-  const [timeLeft, setTimeLeft] = useState(0);
+  // null = todavía no se calculó. Distinto de 0 (vencido de verdad): si
+  // arrancara en 0, hay un instante entre que llega el booking y el primer
+  // tick del interval (hasta 1s) donde se pintaría "expiró" por error.
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   // Cargar booking
   useEffect(() => {
@@ -30,13 +34,21 @@ export default function PaymentForm() {
   // Countdown del hold
   useEffect(() => {
     if (!booking?.heldUntil) return;
-    const interval = setInterval(() => {
+
+    const tick = () => {
       const diff = Math.max(
         0,
         Math.floor((new Date(booking.heldUntil).getTime() - Date.now()) / 1000),
       );
       setTimeLeft(diff);
-      if (diff === 0) clearInterval(interval);
+      return diff;
+    };
+
+    // Se calcula ya mismo: no esperar el primer tick del interval
+    if (tick() === 0) return;
+
+    const interval = setInterval(() => {
+      if (tick() === 0) clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
   }, [booking]);
@@ -56,8 +68,8 @@ export default function PaymentForm() {
     }
   }
 
-  const mins = String(Math.floor(timeLeft / 60)).padStart(2, "0");
-  const secs = String(timeLeft % 60).padStart(2, "0");
+  const mins = String(Math.floor((timeLeft ?? 0) / 60)).padStart(2, "0");
+  const secs = String((timeLeft ?? 0) % 60).padStart(2, "0");
 
   if (loading)
     return (
@@ -68,7 +80,7 @@ export default function PaymentForm() {
       <p style={{ fontFamily: "DM Sans, sans-serif" }}>Booking not found.</p>
     );
 
-  const dep = new Date(outboundTrip(booking).departureAt);
+  const isRoundTrip = booking.tripType === "ROUND_TRIP";
 
   return (
     <div style={{ maxWidth: "480px", width: "100%" }}>
@@ -100,7 +112,7 @@ export default function PaymentForm() {
       </p>
 
       {/* Countdown */}
-      {timeLeft > 0 && (
+      {timeLeft !== null && timeLeft > 0 && (
         <div
           style={{
             background: timeLeft < 120 ? "#fff5e6" : "#f0faf5",
@@ -136,6 +148,7 @@ export default function PaymentForm() {
       )}
 
       {timeLeft === 0 && booking.status === "PENDING" && (
+        // Acá timeLeft ya se calculó de verdad (no es el default): 0 significa vencido
         <div
           style={{
             background: "#fff0f0",
@@ -175,25 +188,17 @@ export default function PaymentForm() {
         >
           Booking Summary
         </h3>
+
+        {/* Los tramos que se están pagando. Con ida y vuelta el total cubre
+            dos salidas y hay que verlas antes de pagar */}
+        <div style={{ marginBottom: "1rem" }}>
+          <BookingLegs legs={booking.legs} />
+        </div>
+
         {[
           {
-            label: "Route",
-            value: `${outboundTrip(booking).route.origin} → ${outboundTrip(booking).route.destination}`,
-          },
-          {
-            label: "Date",
-            value: dep.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            }),
-          },
-          {
-            label: "Time",
-            value: dep.toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
+            label: "Trip type",
+            value: isRoundTrip ? "Round trip" : "One way",
           },
           { label: "Type", value: booking.type },
           { label: "Passengers", value: `${booking.passengers}` },

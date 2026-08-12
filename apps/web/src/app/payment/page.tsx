@@ -13,6 +13,8 @@ export default function PaymentPage() {
         alignItems: "center",
         justifyContent: "center",
         padding: "2rem",
+        // 68px: la barra fija no debe tapar el contenido
+        paddingTop: "calc(68px + 2rem)",
       }}
     >
       <Suspense

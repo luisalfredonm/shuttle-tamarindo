@@ -38,7 +38,9 @@ export class TripsService {
   }
 
   async findAll(query: QueryTripsDto) {
-    const where: any = {};
+    // Los Trips ad-hoc de un privado no son una opcion de compartido:
+    // son el vehiculo exclusivo de una reserva puntual, no un horario
+    const where: any = { source: 'SCHEDULED' };
 
     if (query.routeId) {
       where.routeId = query.routeId;
@@ -114,7 +116,6 @@ export class TripsService {
         departureAt: new Date(dto.departureAt),
         capacity: dto.capacity || 10,
         priceShared: dto.priceShared,
-        pricePrivate: dto.pricePrivate,
       },
       include: { route: true },
     });
@@ -149,13 +150,15 @@ export class TripsService {
       throw new BadRequestException('Primero ejecuta el seed de rutas');
     }
 
-    const prices: Record<string, { shared: number; private: number }> = {
-      'tamarindo-liberia-airport': { shared: 30, private: 120 },
-      'liberia-airport-tamarindo': { shared: 30, private: 120 },
-      'tamarindo-arenal': { shared: 55, private: 220 },
-      'tamarindo-monteverde': { shared: 45, private: 180 },
-      'tamarindo-san-jose': { shared: 65, private: 260 },
-      'tamarindo-nosara': { shared: 35, private: 140 },
+    // Solo compartido: privado ya no tiene horarios precargados, el cliente
+    // elige cualquier hora y el precio sale de route.pricePrivate
+    const pricesShared: Record<string, number> = {
+      'tamarindo-liberia-airport': 30,
+      'liberia-airport-tamarindo': 30,
+      'tamarindo-arenal': 55,
+      'tamarindo-monteverde': 45,
+      'tamarindo-san-jose': 65,
+      'tamarindo-nosara': 35,
     };
 
     const hours = [9, 14, 18];
@@ -163,7 +166,7 @@ export class TripsService {
     let created = 0;
 
     for (const route of routes) {
-      const price = prices[route.slug] || { shared: 35, private: 140 };
+      const priceShared = pricesShared[route.slug] || 35;
 
       for (let day = 1; day <= daysAhead; day++) {
         for (const hour of hours) {
@@ -181,8 +184,7 @@ export class TripsService {
                 routeId: route.id,
                 departureAt,
                 capacity: 10,
-                priceShared: price.shared,
-                pricePrivate: price.private,
+                priceShared,
               },
             });
             created++;

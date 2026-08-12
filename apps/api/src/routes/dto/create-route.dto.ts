@@ -1,4 +1,5 @@
-import { IsString, IsInt, IsOptional, IsBoolean, Min } from 'class-validator';
+import { IsString, IsInt, IsNumber, IsOptional, IsBoolean, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateRouteDto {
   @IsString()
@@ -17,6 +18,11 @@ export class CreateRouteDto {
   @IsInt()
   @Min(1)
   distanceKm: number;
+
+  /** Precio fijo del transfer privado en esta ruta (vehículo exclusivo, cualquier hora) */
+  @IsNumber()
+  @Type(() => Number)
+  pricePrivate: number;
 
   @IsOptional()
   @IsString()

@@ -11,10 +11,11 @@ type Route = {
   destination: string;
   durationMin: number;
   distanceKm: number;
+  pricePrivate: number;
   isActive: boolean;
 };
 
-const emptyForm = { slug: "", origin: "", destination: "", durationMin: "", distanceKm: "" };
+const emptyForm = { slug: "", origin: "", destination: "", durationMin: "", distanceKm: "", pricePrivate: "" };
 
 export default function RoutesContent() {
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -48,6 +49,7 @@ export default function RoutesContent() {
       destination: r.destination,
       durationMin: String(r.durationMin),
       distanceKm: String(r.distanceKm),
+      pricePrivate: String(r.pricePrivate),
     });
     setError("");
     setShowForm(true);
@@ -59,9 +61,14 @@ export default function RoutesContent() {
     setError("");
     try {
       const { slug, ...editFields } = form;
+      const numericFields = {
+        durationMin: Number(form.durationMin),
+        distanceKm: Number(form.distanceKm),
+        pricePrivate: Number(form.pricePrivate),
+      };
       const body = editing
-        ? { ...editFields, durationMin: Number(form.durationMin), distanceKm: Number(form.distanceKm) }
-        : { ...form, durationMin: Number(form.durationMin), distanceKm: Number(form.distanceKm) };
+        ? { ...editFields, ...numericFields }
+        : { ...form, ...numericFields };
       if (editing) {
         const updated = await apiFetch(`/routes/${editing.id}`, { method: "PATCH", body: JSON.stringify(body) });
         setRoutes((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
@@ -124,6 +131,7 @@ export default function RoutesContent() {
                 { label: "Destination", key: "destination", placeholder: "Aeropuerto Liberia (LIR)" },
                 { label: "Duration (min)", key: "durationMin", placeholder: "90" },
                 { label: "Distance (km)", key: "distanceKm", placeholder: "78" },
+                { label: "Private price ($)", key: "pricePrivate", placeholder: "120" },
               ].filter(({ key }) => !editing || key !== "slug").map(({ label, key, placeholder }) => (
                 <div key={key}>
                   <label style={{ fontSize: "0.8rem", fontWeight: 500, display: "block", marginBottom: "4px" }}>{label}</label>
@@ -166,6 +174,7 @@ export default function RoutesContent() {
             <div style={{ display: "flex", gap: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-soft)", fontSize: "0.8rem", color: "var(--brand-gray)" }}>
               <span>{Math.floor(r.durationMin / 60)}h {r.durationMin % 60 > 0 ? (r.durationMin % 60) + "m" : ""}</span>
               <span>{r.distanceKm} km</span>
+              <span>Private ${r.pricePrivate}</span>
               <span style={{ fontFamily: "monospace", fontSize: "0.75rem", flex: 1 }}>{r.slug}</span>
               <button onClick={() => openEdit(r)} style={iconBtn}><PenLine size={14} /></button>
               <button onClick={() => handleDelete(r)} style={iconBtn}><Trash2 size={14} /></button>
