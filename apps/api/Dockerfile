@@ -14,6 +14,7 @@ FROM node:20-alpine AS runner
 WORKDIR /repo
 ENV NODE_ENV=production
 
+COPY --from=build /repo/package.json ./package.json
 COPY --from=build /repo/node_modules ./node_modules
 COPY --from=build /repo/apps/api/dist ./apps/api/dist
 COPY --from=build /repo/apps/api/package.json ./apps/api/package.json
@@ -22,5 +23,6 @@ COPY --from=build /repo/packages/database ./packages/database
 EXPOSE 4000
 
 # migrate deploy solo aplica migraciones pendientes: seguro de correr en cada arranque
-# se llama al binario directo (no via npx) porque npx no resuelve bien el .bin local aqui
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=packages/database/prisma/schema.prisma && node apps/api/dist/main.js"]
+# se usa "npm run --workspace" (igual que en el build, donde si encuentra el binario)
+# en vez de una ruta fija, porque npm workspaces no siempre deja prisma en node_modules/.bin raiz
+CMD ["sh", "-c", "npm run db:deploy --workspace=packages/database && node apps/api/dist/main.js"]
