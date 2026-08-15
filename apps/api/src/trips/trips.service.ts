@@ -161,7 +161,9 @@ export class TripsService {
       'tamarindo-nosara': 35,
     };
 
+    // Horas en hora local de Costa Rica (UTC-6, sin horario de verano)
     const hours = [9, 14, 18];
+    const CR_UTC_OFFSET = 6;
     const daysAhead = 30;
     let created = 0;
 
@@ -172,7 +174,7 @@ export class TripsService {
         for (const hour of hours) {
           const departureAt = new Date();
           departureAt.setDate(departureAt.getDate() + day);
-          departureAt.setUTCHours(hour, 0, 0, 0);
+          departureAt.setUTCHours(hour + CR_UTC_OFFSET, 0, 0, 0);
 
           const exists = await this.prisma.trip.findFirst({
             where: { routeId: route.id, departureAt },
