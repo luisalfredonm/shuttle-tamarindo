@@ -89,10 +89,13 @@ export default function Hero() {
         <span
           style={{
             display: "inline-block",
-            background: "rgba(201,151,58,0.15)",
+            // Mas opaco que antes: con blur bajo, un brillo de la foto detras
+            // podia asomarse a traves de la pildora y comerse el texto
+            background: "rgba(20,15,8,0.42)",
             border: "1px solid rgba(201,151,58,0.45)",
             backdropFilter: "blur(6px)",
             color: "var(--brand-gold)",
+            textShadow: "0 1px 4px rgba(0,0,0,0.5)",
             padding: "6px 18px",
             borderRadius: "100px",
             fontSize: "0.75rem",

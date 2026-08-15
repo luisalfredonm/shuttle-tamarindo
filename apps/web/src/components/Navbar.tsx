@@ -121,6 +121,7 @@ export default function Navbar() {
                 fontFamily: "DM Sans, sans-serif",
                 fontSize: "0.9rem",
                 textDecoration: "none",
+                textShadow: "0 1px 3px rgba(0,0,0,0.5)",
               }}
             >
               {link.label}
@@ -239,6 +240,8 @@ export default function Navbar() {
                 fontFamily: "DM Sans, sans-serif",
                 fontSize: "0.9rem",
                 textDecoration: "none",
+                textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+                whiteSpace: "nowrap",
               }}
             >
               Sign in
@@ -256,6 +259,7 @@ export default function Navbar() {
               fontWeight: 500,
               fontSize: "0.9rem",
               textDecoration: "none",
+              whiteSpace: "nowrap",
             }}
           >
             Book Now
