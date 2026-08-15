@@ -22,4 +22,5 @@ COPY --from=build /repo/packages/database ./packages/database
 EXPOSE 4000
 
 # migrate deploy solo aplica migraciones pendientes: seguro de correr en cada arranque
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma && node apps/api/dist/main.js"]
+# se llama al binario directo (no via npx) porque npx no resuelve bien el .bin local aqui
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=packages/database/prisma/schema.prisma && node apps/api/dist/main.js"]
