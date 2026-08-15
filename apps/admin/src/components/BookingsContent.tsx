@@ -108,7 +108,9 @@ export default function BookingsContent() {
               border: "1px solid var(--border-strong)",
               fontSize: "0.875rem",
               background: "var(--surface)",
-              width: "260px",
+              width: "100%",
+              maxWidth: "260px",
+              flex: "1 1 220px",
             }}
           />
           <div style={{ display: "flex", gap: "4px" }}>
@@ -145,13 +147,14 @@ export default function BookingsContent() {
             alignItems: "center",
             justifyContent: "center",
             zIndex: 100,
+            padding: "1rem",
           }}
         >
           <div
             style={{
               background: "var(--surface)",
               borderRadius: "16px",
-              padding: "2rem",
+              padding: "1.5rem",
               width: "100%",
               maxWidth: "500px",
               boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
@@ -302,142 +305,186 @@ export default function BookingsContent() {
         </div>
       )}
 
-      <div
-        style={{
-          background: "var(--surface)",
-          borderRadius: "16px",
-          border: "1px solid var(--border-strong)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.5fr 1.2fr 1fr 80px 80px 90px 100px 40px",
-            padding: "0.875rem 1.5rem",
-            borderBottom: "1px solid var(--border-soft)",
-            fontSize: "0.75rem",
-            color: "var(--brand-gray)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-          }}
-        >
-          <span>Route</span>
-          <span>Customer</span>
-          <span>Departure</span>
-          <span>Type</span>
-          <span>Pax</span>
-          <span>Amount</span>
-          <span>Status</span>
-          <span />
-        </div>
+      {loading && <div style={emptyBoxStyle}>Loading bookings...</div>}
+      {!loading && filtered.length === 0 && (
+        <div style={emptyBoxStyle}>No bookings found</div>
+      )}
 
-        {loading && (
+      {!loading && filtered.length > 0 && (
+        <>
+          {/* Tabla: desde tablet para arriba */}
           <div
+            className="hide-mobile"
             style={{
-              padding: "2rem",
-              textAlign: "center",
-              color: "var(--brand-gray)",
-              fontSize: "0.875rem",
+              background: "var(--surface)",
+              borderRadius: "16px",
+              border: "1px solid var(--border-strong)",
+              overflow: "hidden",
             }}
           >
-            Loading bookings...
-          </div>
-        )}
-        {!loading && filtered.length === 0 && (
-          <div
-            style={{
-              padding: "2rem",
-              textAlign: "center",
-              color: "var(--brand-gray)",
-              fontSize: "0.875rem",
-            }}
-          >
-            No bookings found
-          </div>
-        )}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.5fr 1.2fr 1fr 80px 80px 90px 100px 40px",
+                padding: "0.875rem 1.5rem",
+                borderBottom: "1px solid var(--border-soft)",
+                fontSize: "0.75rem",
+                color: "var(--brand-gray)",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+              }}
+            >
+              <span>Route</span>
+              <span>Customer</span>
+              <span>Departure</span>
+              <span>Type</span>
+              <span>Pax</span>
+              <span>Amount</span>
+              <span>Status</span>
+              <span />
+            </div>
 
-        {!loading &&
-          filtered.map((b, i) => {
-            const dep = new Date(outbound(b)?.trip?.departureAt);
-            const s = statusStyle(b.status);
-            return (
-              <div
-                key={b.id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1.5fr 1.2fr 1fr 80px 80px 90px 100px 40px",
-                  padding: "0.875rem 1.5rem",
-                  alignItems: "center",
-                  borderBottom:
-                    i < filtered.length - 1 ? "1px solid var(--border-soft)" : "none",
-                  fontSize: "0.875rem",
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 500, marginBottom: "2px" }}>
-                    {outbound(b)?.trip?.route?.origin} -&gt; {outbound(b)?.trip?.route?.destination}
-                  </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}>
-                    {b.id.slice(0, 8).toUpperCase()}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ marginBottom: "2px" }}>{b.user?.name}</div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}>
-                    {b.user?.email}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ marginBottom: "2px" }}>
-                    {dep.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}>
-                    {dep.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                </div>
-                <span style={{ fontSize: "0.8rem", color: "var(--brand-gray)" }}>
-                  {b.type}
-                </span>
-                <span>{b.passengers}</span>
-                <span style={{ fontWeight: 600, color: "var(--brand-green)" }}>
-                  ${b.totalAmount}
-                </span>
-                <span
+            {filtered.map((b, i) => {
+              const dep = new Date(outbound(b)?.trip?.departureAt);
+              const s = statusStyle(b.status);
+              return (
+                <div
+                  key={b.id}
                   style={{
-                    background: s.bg,
-                    color: s.color,
-                    padding: "3px 10px",
-                    borderRadius: "100px",
-                    fontSize: "0.75rem",
-                    fontWeight: 500,
-                    display: "inline-block",
+                    display: "grid",
+                    gridTemplateColumns: "1.5fr 1.2fr 1fr 80px 80px 90px 100px 40px",
+                    padding: "0.875rem 1.5rem",
+                    alignItems: "center",
+                    borderBottom:
+                      i < filtered.length - 1 ? "1px solid var(--border-soft)" : "none",
+                    fontSize: "0.875rem",
                   }}
                 >
-                  {b.status.charAt(0) + b.status.slice(1).toLowerCase()}
-                </span>
+                  <div>
+                    <div style={{ fontWeight: 500, marginBottom: "2px" }}>
+                      {outbound(b)?.trip?.route?.origin} -&gt; {outbound(b)?.trip?.route?.destination}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}>
+                      {b.id.slice(0, 8).toUpperCase()}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ marginBottom: "2px" }}>{b.user?.name}</div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}>
+                      {b.user?.email}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ marginBottom: "2px" }}>
+                      {dep.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}>
+                      {dep.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "0.8rem", color: "var(--brand-gray)" }}>
+                    {b.type}
+                  </span>
+                  <span>{b.passengers}</span>
+                  <span style={{ fontWeight: 600, color: "var(--brand-green)" }}>
+                    ${b.totalAmount}
+                  </span>
+                  <span
+                    style={{
+                      background: s.bg,
+                      color: s.color,
+                      padding: "3px 10px",
+                      borderRadius: "100px",
+                      fontSize: "0.75rem",
+                      fontWeight: 500,
+                      display: "inline-block",
+                    }}
+                  >
+                    {b.status.charAt(0) + b.status.slice(1).toLowerCase()}
+                  </span>
+                  <button
+                    onClick={() => setSelected(b)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "var(--brand-gray)",
+                      display: "inline-flex",
+                    }}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Tarjetas: solo telefono */}
+          <div className="hide-desktop" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {filtered.map((b) => {
+              const dep = new Date(outbound(b)?.trip?.departureAt);
+              const s = statusStyle(b.status);
+              return (
                 <button
+                  key={b.id}
                   onClick={() => setSelected(b)}
                   style={{
-                    background: "none",
-                    border: "none",
+                    textAlign: "left",
+                    background: "var(--surface)",
+                    borderRadius: "14px",
+                    border: "1px solid var(--border-strong)",
+                    padding: "1rem",
                     cursor: "pointer",
-                    color: "var(--brand-gray)",
-                    display: "inline-flex",
+                    font: "inherit",
+                    color: "inherit",
                   }}
                 >
-                  <ChevronRight size={16} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem", marginBottom: "0.6rem" }}>
+                    <div>
+                      <div style={{ fontWeight: 500, fontSize: "0.9rem", marginBottom: "2px" }}>
+                        {outbound(b)?.trip?.route?.origin} &rarr; {outbound(b)?.trip?.route?.destination}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--brand-gray)" }}>
+                        {b.id.slice(0, 8).toUpperCase()} &middot; {b.user?.name}
+                      </div>
+                    </div>
+                    <ChevronRight size={16} color="var(--brand-gray)" style={{ flexShrink: 0, marginTop: "2px" }} />
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+                      <span
+                        style={{
+                          background: s.bg,
+                          color: s.color,
+                          padding: "3px 10px",
+                          borderRadius: "100px",
+                          fontSize: "0.72rem",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {b.status.charAt(0) + b.status.slice(1).toLowerCase()}
+                      </span>
+                      <span style={{ fontSize: "0.78rem", color: "var(--brand-gray)" }}>
+                        {dep.toLocaleDateString("en-US", { month: "short", day: "numeric" })} &middot; {b.type}
+                      </span>
+                    </div>
+                    <span style={{ fontWeight: 600, color: "var(--brand-green)", fontSize: "0.9rem" }}>
+                      ${b.totalAmount}
+                    </span>
+                  </div>
                 </button>
-              </div>
-            );
-          })}
-      </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -483,6 +530,16 @@ function Row({ label, value, green }: { label: string; value: string; green?: bo
     </div>
   );
 }
+
+const emptyBoxStyle: React.CSSProperties = {
+  padding: "2rem",
+  textAlign: "center",
+  color: "var(--brand-gray)",
+  fontSize: "0.875rem",
+  background: "var(--surface)",
+  borderRadius: "16px",
+  border: "1px solid var(--border-strong)",
+};
 
 const statusStyle = (s: string) =>
   ({

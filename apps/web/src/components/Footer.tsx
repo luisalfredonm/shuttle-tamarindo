@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { MessageCircle } from 'lucide-react';
 import { ROUTES_DATA } from "@/lib/routes-data";
 import { BRAND_LOGO, BRAND_FOUNDED } from "@/lib/brand";
 
@@ -24,10 +25,18 @@ const SUPPORT = [
 export default function Footer() {
   return (
     <footer style={{
+      position: 'relative',
       background: 'var(--brand-dark)',
       color: 'rgba(255,255,255,0.6)',
       padding: '4rem 2rem 2rem',
     }}>
+      {/* Filo dorado apenas visible: cierra la pagina con la misma firma de
+          color del Hero en vez de un corte plano */}
+      <div aria-hidden="true" style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+        background: 'linear-gradient(to right, transparent, rgba(201,151,58,0.5) 50%, transparent)',
+      }} />
+
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
 
         {/* Top grid */}
@@ -82,6 +91,7 @@ export default function Footer() {
               href="https://wa.me/50688888888"
               target="_blank"
               rel="noopener noreferrer"
+              className="footer-whatsapp"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 background: '#25D366', color: '#fff',
@@ -90,6 +100,7 @@ export default function Footer() {
                 fontWeight: 500, textDecoration: 'none',
               }}
             >
+              <MessageCircle size={16} strokeWidth={2} />
               WhatsApp Us
             </a>
           </div>
@@ -107,7 +118,7 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {ROUTES.map(r => (
                 <li key={r.href}>
-                  <Link href={r.href} style={{
+                  <Link href={r.href} className="footer-link" style={{
                     color: 'rgba(255,255,255,0.5)',
                     fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem',
                     textDecoration: 'none',
@@ -132,7 +143,7 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {COMPANY.map(r => (
                 <li key={r.href}>
-                  <Link href={r.href} style={{
+                  <Link href={r.href} className="footer-link" style={{
                     color: 'rgba(255,255,255,0.5)',
                     fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem',
                     textDecoration: 'none',
@@ -157,7 +168,7 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {SUPPORT.map(r => (
                 <li key={r.href}>
-                  <Link href={r.href} style={{
+                  <Link href={r.href} className="footer-link" style={{
                     color: 'rgba(255,255,255,0.5)',
                     fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem',
                     textDecoration: 'none',
@@ -174,13 +185,23 @@ export default function Footer() {
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)' }}>
             © {new Date().getFullYear()} Retana Services Tamarindo. All rights reserved.
+            {' '}Site by{' '}
+            <a
+              href="https://321solutions.net/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-link"
+              style={{ color: 'rgba(255,255,255,0.42)', textDecoration: 'none' }}
+            >
+              321 Solutions
+            </a>
           </p>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
             {[
               { label: 'Privacy Policy', href: '/privacy' },
               { label: 'Terms of Service', href: '/terms' },
             ].map(r => (
-              <Link key={r.href} href={r.href} style={{
+              <Link key={r.href} href={r.href} className="footer-link" style={{
                 color: 'rgba(255,255,255,0.3)',
                 fontFamily: 'DM Sans, sans-serif', fontSize: '0.8rem',
                 textDecoration: 'none',
@@ -192,6 +213,13 @@ export default function Footer() {
         </div>
 
       </div>
+
+      <style>{`
+        .footer-link { transition: color 0.2s; }
+        .footer-link:hover { color: var(--brand-gold) !important; }
+        .footer-whatsapp { transition: transform 0.15s, box-shadow 0.15s; }
+        .footer-whatsapp:hover { transform: translateY(-1px); box-shadow: 0 6px 16px -4px rgba(37,211,102,0.5); }
+      `}</style>
     </footer>
   );
 }

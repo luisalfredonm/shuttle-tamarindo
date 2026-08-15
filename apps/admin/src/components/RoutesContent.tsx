@@ -202,6 +202,7 @@ const input: React.CSSProperties = {
 const overlay: React.CSSProperties = {
   position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
   display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
+  padding: "1rem",
 };
 const modal: React.CSSProperties = {
   background: "var(--surface)", borderRadius: "16px", padding: "2rem",

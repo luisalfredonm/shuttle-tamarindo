@@ -25,7 +25,7 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 30,
     pricePrivate: 120,
     departureHours: ["9:00 AM", "2:00 PM", "6:00 PM"],
-    heroImage: "",
+    heroImage: "https://picsum.photos/seed/retana-route-lir-tamarindo/1200/900",
     metaTitle: "Tamarindo to Liberia Airport Shuttle — $30/person",
     metaDescription:
       "Shared shuttle from Tamarindo to Liberia Airport (LIR) from $30/person. Guaranteed daily departures at 9 AM, 2 PM and 6 PM. Book online in 2 minutes.",
@@ -68,7 +68,7 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 30,
     pricePrivate: 120,
     departureHours: ["10:00 AM", "3:00 PM", "7:00 PM"],
-    heroImage: "",
+    heroImage: "https://picsum.photos/seed/retana-route-tamarindo-lir/1200/900",
     metaTitle: "Liberia Airport to Tamarindo Shuttle — $30/person",
     metaDescription:
       "Shared shuttle from Liberia Airport (LIR) to Tamarindo from $30/person. Meet & greet service, flight tracking, guaranteed departures. Book online.",
@@ -107,7 +107,7 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 55,
     pricePrivate: 220,
     departureHours: ["7:00 AM", "9:00 AM"],
-    heroImage: "",
+    heroImage: "https://picsum.photos/seed/retana-route-arenal/1200/900",
     metaTitle: "Tamarindo to Arenal Shuttle — $55/person",
     metaDescription:
       "Shared shuttle from Tamarindo to Arenal Volcano from $55/person. Scenic 4-hour journey through Costa Rica. Daily departures, guaranteed service.",
@@ -146,7 +146,7 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 45,
     pricePrivate: 180,
     departureHours: ["7:00 AM", "10:00 AM"],
-    heroImage: "",
+    heroImage: "https://picsum.photos/seed/retana-route-monteverde/1200/900",
     metaTitle: "Tamarindo to Monteverde Shuttle — $45/person",
     metaDescription:
       "Shared shuttle from Tamarindo to Monteverde Cloud Forest from $45/person. 3-hour scenic journey. Daily departures, door-to-door service.",
@@ -185,7 +185,7 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 65,
     pricePrivate: 260,
     departureHours: ["6:00 AM", "8:00 AM"],
-    heroImage: "",
+    heroImage: "https://picsum.photos/seed/retana-route-san-jose/1200/900",
     metaTitle: "Tamarindo to San José Shuttle — $65/person",
     metaDescription:
       "Shared shuttle from Tamarindo to San José from $65/person. 5-hour direct service. Daily early morning departures. Book online.",
@@ -220,7 +220,7 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 35,
     pricePrivate: 140,
     departureHours: ["9:00 AM", "2:00 PM"],
-    heroImage: "",
+    heroImage: "https://picsum.photos/seed/retana-route-nosara/1200/900",
     metaTitle: "Tamarindo to Nosara Shuttle — $35/person",
     metaDescription:
       "Shared shuttle from Tamarindo to Nosara from $35/person. 2-hour coastal route. Daily departures, direct to your hotel.",
