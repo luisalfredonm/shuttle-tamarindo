@@ -9,7 +9,7 @@ import { decodeJwt } from 'jose';
  * autoriza de verdad en cada request (JwtAuthGuard + RolesGuard). Acá basta
  * con evitar renderizar el panel a quien no trae sesión.
  */
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const token = req.cookies.get('admin_token')?.value;
   const isLoginPage = req.nextUrl.pathname === '/login';
 
