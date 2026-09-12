@@ -24,7 +24,7 @@ export class RoutesService {
       include: {
         schedules: {
           where: { isActive: true },
-          select: { departureTime: true },
+          select: { departureTime: true, priceShared: true },
           orderBy: { departureTime: 'asc' },
         },
       },
@@ -32,8 +32,7 @@ export class RoutesService {
 
     return routes.map(({ schedules, ...route }) => ({
       ...route,
-      sharedEnabled: schedules.length > 0,
-      departureTimes: schedules.map((s) => s.departureTime),
+      ...summarizeSchedules(schedules),
     }));
   }
 
@@ -49,11 +48,18 @@ export class RoutesService {
           orderBy: { departureAt: 'asc' },
           take: 10,
         },
+        schedules: {
+          where: { isActive: true },
+          select: { departureTime: true, priceShared: true },
+          orderBy: { departureTime: 'asc' },
+        },
       },
     });
 
     if (!route) throw new NotFoundException(`Ruta "${slug}" no encontrada`);
-    return route;
+
+    const { schedules, ...rest } = route;
+    return { ...rest, ...summarizeSchedules(schedules) };
   }
 
   async create(dto: CreateRouteDto) {
@@ -135,4 +141,23 @@ export class RoutesService {
 
     return { message: `${routes.length} rutas creadas correctamente` };
   }
+}
+
+/**
+ * Resumen de los horarios de una ruta para quien la consuma.
+ *
+ * priceShared es el mas barato de las salidas: es el "desde" que la web
+ * muestra en la tarjeta de la ruta. Va null cuando no hay compartido, para que
+ * el llamador no confunda "gratis" con "no se vende por asiento".
+ */
+function summarizeSchedules(
+  schedules: { departureTime: string; priceShared: unknown }[],
+) {
+  const prices = schedules.map((s) => Number(s.priceShared));
+
+  return {
+    sharedEnabled: schedules.length > 0,
+    departureTimes: schedules.map((s) => s.departureTime),
+    priceShared: prices.length > 0 ? Math.min(...prices) : null,
+  };
 }

@@ -12,6 +12,8 @@ export interface Route {
   isActive?: boolean;
   /** true si la ruta tiene horarios: se puede vender compartido, no solo privado */
   sharedEnabled?: boolean;
+  /** Precio por asiento mas barato entre sus horarios. null si no hay compartido */
+  priceShared?: number | null;
   /** Horas de salida del compartido, en hora local ("08:00") */
   departureTimes?: string[];
 }

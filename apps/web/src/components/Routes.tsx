@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight, Clock } from "lucide-react";
-import { ROUTES_DATA, RouteData } from "@/lib/routes-data";
+import type { RouteView } from "@/lib/route-view";
 
 const formatDuration = (minutes: number) => {
   if (minutes < 60) return `${minutes} mins`;
@@ -13,9 +13,13 @@ const formatDuration = (minutes: number) => {
   return `${hasFraction ? hours.toFixed(1) : hours} hrs`;
 };
 
-export default function Routes() {
+export default function Routes({ routes = [] }: { routes?: RouteView[] }) {
   const reduceMotion = useReducedMotion();
-  const [featured, ...rest] = ROUTES_DATA;
+  const [featured, ...rest] = routes;
+
+  // Sin rutas cargadas la seccion no tiene nada que mostrar: se omite entera
+  // en vez de dejar un encabezado colgando sobre una grilla vacia.
+  if (!featured) return null;
 
   return (
     <section id="routes" style={{ background: "var(--brand-cream)", padding: "5.5rem 2rem" }}>
@@ -78,7 +82,7 @@ function FeaturedRouteCard({
   route: r,
   reduceMotion,
 }: {
-  route: RouteData;
+  route: RouteView;
   reduceMotion: boolean;
 }) {
   return (
@@ -212,7 +216,7 @@ function RouteCard({
   index,
   reduceMotion,
 }: {
-  route: RouteData;
+  route: RouteView;
   index: number;
   reduceMotion: boolean;
 }) {

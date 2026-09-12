@@ -1,13 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { MessageCircle } from 'lucide-react';
-import { ROUTES_DATA } from "@/lib/routes-data";
+import { getActiveRoutes } from "@/lib/api";
 import { BRAND_LOGO, BRAND_FOUNDED } from "@/lib/brand";
 
-const ROUTES = ROUTES_DATA.slice(0, 6).map((route) => ({
-  label: `${route.origin} -> ${route.destination}`,
-  href: `/routes/${route.slug}`,
-}));
 const COMPANY = [
   { label: 'About Us',     href: '/about' },
   { label: 'How It Works', href: '/#how-it-works' },
@@ -22,7 +18,14 @@ const SUPPORT = [
   { label: 'WhatsApp Support', href: 'https://wa.me/50688888888' },
 ];
 
-export default function Footer() {
+export default async function Footer() {
+  // Las rutas del pie salen de la base: un link a una ruta dada de baja es un
+  // 404 servido desde todas las paginas del sitio.
+  const ROUTES = (await getActiveRoutes()).slice(0, 6).map((route) => ({
+    label: `${route.origin} -> ${route.destination}`,
+    href: `/routes/${route.slug}`,
+  }));
+
   return (
     <footer style={{
       position: 'relative',

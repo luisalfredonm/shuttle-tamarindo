@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ROUTES_DATA } from "@/lib/routes-data";
+import { getActiveRoutes } from "@/lib/api";
+import { buildRouteView } from "@/lib/route-view";
 
 export const metadata: Metadata = {
   title: "All Shuttle Routes in Guanacaste, Costa Rica",
@@ -8,7 +9,11 @@ export const metadata: Metadata = {
     "Browse all available shuttle routes from Tamarindo. Daily departures to Liberia Airport, Arenal, Monteverde, San José and more. Guaranteed service.",
 };
 
-export default function RoutesIndexPage() {
+export default async function RoutesIndexPage() {
+  // El listado sale de la base: lo que se da de alta en el panel aparece solo,
+  // y lo que se da de baja deja de ofrecerse sin tocar codigo.
+  const routes = (await getActiveRoutes()).map(buildRouteView);
+
   return (
     <main
       style={{
@@ -55,7 +60,7 @@ export default function RoutesIndexPage() {
             gap: "1.5rem",
           }}
         >
-          {ROUTES_DATA.map((route) => (
+          {routes.map((route) => (
             <Link
               key={route.slug}
               href={"/routes/" + route.slug}

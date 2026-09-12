@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RouteData } from "@/lib/routes-data";
+import type { RouteView } from "@/lib/route-view";
 
 interface Props {
-  route: RouteData;
+  route: RouteView;
 }
 
 export default function RouteDetail({ route }: Props) {
@@ -14,7 +14,10 @@ export default function RouteDetail({ route }: Props) {
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState("");
   const [passengers, setPass] = useState("1");
-  const [type, setType] = useState<"SHARED" | "PRIVATE">("SHARED");
+  // Sin horarios no hay compartido que ofrecer: la pagina abre en privado
+  const [type, setType] = useState<"SHARED" | "PRIVATE">(
+    route.sharedEnabled ? "SHARED" : "PRIVATE",
+  );
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -43,7 +46,7 @@ export default function RouteDetail({ route }: Props) {
             },
             offers: {
               "@type": "Offer",
-              price: route.priceShared,
+              price: route.sharedEnabled ? route.priceShared : route.pricePrivate,
               priceCurrency: "USD",
             },
             areaServed: "Costa Rica",
@@ -97,7 +100,9 @@ export default function RouteDetail({ route }: Props) {
                   letterSpacing: "0.08em",
                 }}
               >
-                Shared from ${route.priceShared}/person
+                {route.sharedEnabled
+                  ? `Shared from $${route.priceShared}/person`
+                  : `Private from $${route.pricePrivate}/vehicle`}
               </span>
             </div>
 
@@ -127,8 +132,10 @@ export default function RouteDetail({ route }: Props) {
             >
               {Math.floor(route.durationMin / 60)}h
               {route.durationMin % 60 > 0 ? ` ${route.durationMin % 60}m` : ""}{" "}
-              · {route.distanceKm} km · Departures at{" "}
-              {route.departureHours.join(", ")}
+              · {route.distanceKm} km
+              {route.sharedEnabled
+                ? ` · Departures at ${route.departureHours.join(", ")}`
+                : " · Private transfer at the time you choose"}
             </p>
 
             {/* Stats row */}
@@ -141,12 +148,16 @@ export default function RouteDetail({ route }: Props) {
               }}
             >
               {[
-                { label: "Shared price", value: `$${route.priceShared}` },
+                ...(route.sharedEnabled
+                  ? [
+                      { label: "Shared price", value: `$${route.priceShared}` },
+                      {
+                        label: "Daily departures",
+                        value: `${route.departureHours.length}`,
+                      },
+                    ]
+                  : []),
                 { label: "Private price", value: `$${route.pricePrivate}` },
-                {
-                  label: "Daily departures",
-                  value: `${route.departureHours.length}`,
-                },
               ].map((s) => (
                 <div key={s.label} style={{ textAlign: "center" }}>
                   <div
@@ -202,7 +213,10 @@ export default function RouteDetail({ route }: Props) {
                 marginBottom: "1.5rem",
               }}
             >
-              {(["SHARED", "PRIVATE"] as const).map((t) => (
+              {(route.sharedEnabled
+                ? (["SHARED", "PRIVATE"] as const)
+                : (["PRIVATE"] as const)
+              ).map((t) => (
                 <button
                   key={t}
                   onClick={() => setType(t)}
@@ -215,8 +229,11 @@ export default function RouteDetail({ route }: Props) {
                     cursor: "pointer",
                     fontFamily: "DM Sans, sans-serif",
                     fontSize: "0.9rem",
-                    borderRadius:
-                      t === "SHARED" ? "8px 0 0 8px" : "0 8px 8px 0",
+                    borderRadius: !route.sharedEnabled
+                      ? "8px"
+                      : t === "SHARED"
+                        ? "8px 0 0 8px"
+                        : "0 8px 8px 0",
                     fontWeight: 500,
                   }}
                 >
@@ -321,187 +338,195 @@ export default function RouteDetail({ route }: Props) {
             }}
           >
             {/* Highlights */}
-            <div
-              style={{
-                background: "#fff",
-                borderRadius: "16px",
-                padding: "2rem",
-                border: "1px solid #e8e4dc",
-              }}
-            >
-              <h3 style={{ fontSize: "1.2rem", marginBottom: "1.25rem" }}>
-                What's Included
-              </h3>
-              <ul
-                style={{
-                  listStyle: "none",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.75rem",
-                }}
-              >
-                {route.highlights.map((h) => (
-                  <li
-                    key={h}
-                    style={{
-                      display: "flex",
-                      gap: "10px",
-                      alignItems: "flex-start",
-                      fontFamily: "DM Sans, sans-serif",
-                      fontSize: "0.9rem",
-                      color: "var(--brand-dark)",
-                    }}
-                  >
-                    <span
-                      style={{
-                        color: "var(--brand-green)",
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >
-                      ✓
-                    </span>
-                    {h}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Departures */}
-            <div
-              style={{
-                background: "var(--brand-dark)",
-                borderRadius: "16px",
-                padding: "2rem",
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: "1.2rem",
-                  marginBottom: "1.25rem",
-                  color: "#fff",
-                }}
-              >
-                Daily Departures
-              </h3>
+            {route.highlights.length > 0 && (
               <div
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.75rem",
+                  background: "#fff",
+                  borderRadius: "16px",
+                  padding: "2rem",
+                  border: "1px solid #e8e4dc",
                 }}
               >
-                {route.departureHours.map((h) => (
-                  <div
-                    key={h}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: "10px",
-                      padding: "12px 16px",
-                    }}
-                  >
-                    <span
+                <h3 style={{ fontSize: "1.2rem", marginBottom: "1.25rem" }}>
+                  What's Included
+                </h3>
+                <ul
+                  style={{
+                    listStyle: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.75rem",
+                  }}
+                >
+                  {route.highlights.map((h) => (
+                    <li
+                      key={h}
                       style={{
-                        fontFamily: "Playfair Display, serif",
-                        fontSize: "1.2rem",
-                        fontWeight: 700,
-                        color: "#fff",
-                      }}
-                    >
-                      {h}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--brand-gold)",
+                        display: "flex",
+                        gap: "10px",
+                        alignItems: "flex-start",
                         fontFamily: "DM Sans, sans-serif",
-                        background: "rgba(201,151,58,0.15)",
-                        padding: "3px 10px",
-                        borderRadius: "100px",
+                        fontSize: "0.9rem",
+                        color: "var(--brand-dark)",
                       }}
                     >
-                      Guaranteed
-                    </span>
-                  </div>
-                ))}
+                      <span
+                        style={{
+                          color: "var(--brand-green)",
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        ✓
+                      </span>
+                      {h}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p
+            )}
+
+            {/* Departures */}
+            {route.sharedEnabled && (
+              <div
                 style={{
-                  marginTop: "1rem",
-                  fontSize: "0.8rem",
-                  color: "rgba(255,255,255,0.4)",
-                  fontFamily: "DM Sans, sans-serif",
-                  lineHeight: 1.5,
+                  background: "var(--brand-dark)",
+                  borderRadius: "16px",
+                  padding: "2rem",
                 }}
               >
-                All departures are guaranteed regardless of passenger count.
-              </p>
-            </div>
+                <h3
+                  style={{
+                    fontSize: "1.2rem",
+                    marginBottom: "1.25rem",
+                    color: "#fff",
+                  }}
+                >
+                  Daily Departures
+                </h3>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.75rem",
+                  }}
+                >
+                  {route.departureHours.map((h) => (
+                    <div
+                      key={h}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        borderRadius: "10px",
+                        padding: "12px 16px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "Playfair Display, serif",
+                          fontSize: "1.2rem",
+                          fontWeight: 700,
+                          color: "#fff",
+                        }}
+                      >
+                        {h}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "var(--brand-gold)",
+                          fontFamily: "DM Sans, sans-serif",
+                          background: "rgba(201,151,58,0.15)",
+                          padding: "3px 10px",
+                          borderRadius: "100px",
+                        }}
+                      >
+                        Guaranteed
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p
+                  style={{
+                    marginTop: "1rem",
+                    fontSize: "0.8rem",
+                    color: "rgba(255,255,255,0.4)",
+                    fontFamily: "DM Sans, sans-serif",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  All departures are guaranteed regardless of passenger count.
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
         {/* FAQ */}
         <section style={{ background: "#fff", padding: "4rem 2rem" }}>
-          <div style={{ maxWidth: "700px", margin: "0 auto" }}>
-            <h2
-              style={{
-                fontSize: "1.8rem",
-                marginBottom: "2rem",
-                textAlign: "center",
-              }}
-            >
-              Frequently Asked Questions
-            </h2>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
-            >
-              {route.faqs.map((faq, i) => (
-                <FaqItem key={i} q={faq.q} a={faq.a} />
-              ))}
+          {route.faqs.length > 0 && (
+            <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+              <h2
+                style={{
+                  fontSize: "1.8rem",
+                  marginBottom: "2rem",
+                  textAlign: "center",
+                }}
+              >
+                Frequently Asked Questions
+              </h2>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+              >
+                {route.faqs.map((faq, i) => (
+                  <FaqItem key={i} q={faq.q} a={faq.a} />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* Nearby */}
         <section
           style={{ background: "var(--brand-cream)", padding: "3rem 2rem" }}
         >
-          <div
-            style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center" }}
-          >
-            <h3 style={{ fontSize: "1.3rem", marginBottom: "1.5rem" }}>
-              Nearby Attractions at {route.destination.split("(")[0].trim()}
-            </h3>
+          {route.nearbyAttractions.length > 0 && (
             <div
-              style={{
-                display: "flex",
-                gap: "0.75rem",
-                justifyContent: "center",
-                flexWrap: "wrap",
-              }}
+              style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center" }}
             >
-              {route.nearbyAttractions.map((a) => (
-                <span
-                  key={a}
-                  style={{
-                    background: "#fff",
-                    border: "1px solid #e8e4dc",
-                    borderRadius: "100px",
-                    padding: "8px 16px",
-                    fontFamily: "DM Sans, sans-serif",
-                    fontSize: "0.875rem",
-                    color: "var(--brand-dark)",
-                  }}
-                >
-                  {a}
-                </span>
-              ))}
+              <h3 style={{ fontSize: "1.3rem", marginBottom: "1.5rem" }}>
+                Nearby Attractions at {route.destination.split("(")[0].trim()}
+              </h3>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.75rem",
+                  justifyContent: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                {route.nearbyAttractions.map((a) => (
+                  <span
+                    key={a}
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #e8e4dc",
+                      borderRadius: "100px",
+                      padding: "8px 16px",
+                      fontFamily: "DM Sans, sans-serif",
+                      fontSize: "0.875rem",
+                      color: "var(--brand-dark)",
+                    }}
+                  >
+                    {a}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* CTA final */}

@@ -15,6 +15,17 @@ export interface RouteData {
   nearbyAttractions: string[];
 }
 
+/**
+ * Contenido editorial de cada ruta, indexado por slug.
+ *
+ * IMPORTANTE: aca no van precios, horarios ni disponibilidad. Eso vive en la
+ * base y lo agrega buildRouteView al armar la pagina. Si se escriben tambien
+ * aca quedan viejos y la pagina termina contradiciendose sola, que es lo que
+ * pasaba con los horarios de 9 AM, 2 PM y 6 PM contra los reales de la base.
+ *
+ * Que una ruta no este aca no rompe nada: se publica con los datos de la base
+ * y sin las secciones editoriales.
+ */
 export const ROUTES_DATA: RouteData[] = [
   {
     slug: "tamarindo-liberia-airport",
@@ -26,9 +37,9 @@ export const ROUTES_DATA: RouteData[] = [
     pricePrivate: 120,
     departureHours: ["9:00 AM", "2:00 PM", "6:00 PM"],
     heroImage: "https://picsum.photos/seed/retana-route-lir-tamarindo/1200/900",
-    metaTitle: "Tamarindo to Liberia Airport Shuttle — $30/person",
+    metaTitle: "Tamarindo to Liberia Airport Shuttle",
     metaDescription:
-      "Shared shuttle from Tamarindo to Liberia Airport (LIR) from $30/person. Guaranteed daily departures at 9 AM, 2 PM and 6 PM. Book online in 2 minutes.",
+      "Shared shuttle and private transfers from Tamarindo to Liberia Airport (LIR). Door-to-door pickup, flight tracking and air-conditioned vehicles. Book online in 2 minutes.",
     highlights: [
       "Door-to-door pickup in Tamarindo",
       "Flight tracking included",
@@ -69,9 +80,9 @@ export const ROUTES_DATA: RouteData[] = [
     pricePrivate: 120,
     departureHours: ["10:00 AM", "3:00 PM", "7:00 PM"],
     heroImage: "https://picsum.photos/seed/retana-route-tamarindo-lir/1200/900",
-    metaTitle: "Liberia Airport to Tamarindo Shuttle — $30/person",
+    metaTitle: "Liberia Airport to Tamarindo Shuttle",
     metaDescription:
-      "Shared shuttle from Liberia Airport (LIR) to Tamarindo from $30/person. Meet & greet service, flight tracking, guaranteed departures. Book online.",
+      "Shared shuttle and private transfers from Liberia Airport (LIR) to Tamarindo. Your driver meets you at arrivals and tracks your flight. Book online in 2 minutes.",
     highlights: [
       "Meet & greet at arrivals",
       "Flight tracking — we wait for you",
@@ -108,9 +119,9 @@ export const ROUTES_DATA: RouteData[] = [
     pricePrivate: 220,
     departureHours: ["7:00 AM", "9:00 AM"],
     heroImage: "https://picsum.photos/seed/retana-route-arenal/1200/900",
-    metaTitle: "Tamarindo to Arenal Shuttle — $55/person",
+    metaTitle: "Tamarindo to Arenal Shuttle",
     metaDescription:
-      "Shared shuttle from Tamarindo to Arenal Volcano from $55/person. Scenic 4-hour journey through Costa Rica. Daily departures, guaranteed service.",
+      "Shuttle from Tamarindo to Arenal and La Fortuna. Door-to-door service across Guanacaste with air-conditioned vehicles. Book online in 2 minutes.",
     highlights: [
       "Scenic route through Guanacaste",
       "Drop-off at your hotel in La Fortuna",
@@ -147,9 +158,9 @@ export const ROUTES_DATA: RouteData[] = [
     pricePrivate: 180,
     departureHours: ["7:00 AM", "10:00 AM"],
     heroImage: "https://picsum.photos/seed/retana-route-monteverde/1200/900",
-    metaTitle: "Tamarindo to Monteverde Shuttle — $45/person",
+    metaTitle: "Tamarindo to Monteverde Shuttle",
     metaDescription:
-      "Shared shuttle from Tamarindo to Monteverde Cloud Forest from $45/person. 3-hour scenic journey. Daily departures, door-to-door service.",
+      "Shuttle from Tamarindo to Monteverde cloud forest. Door-to-door service with air-conditioned vehicles and experienced drivers. Book online in 2 minutes.",
     highlights: [
       "Scenic 3-hour mountain journey",
       "Drop-off at your hotel in Monteverde",
@@ -186,9 +197,9 @@ export const ROUTES_DATA: RouteData[] = [
     pricePrivate: 260,
     departureHours: ["6:00 AM", "8:00 AM"],
     heroImage: "https://picsum.photos/seed/retana-route-san-jose/1200/900",
-    metaTitle: "Tamarindo to San José Shuttle — $65/person",
+    metaTitle: "Tamarindo to San José Shuttle",
     metaDescription:
-      "Shared shuttle from Tamarindo to San José from $65/person. 5-hour direct service. Daily early morning departures. Book online.",
+      "Shuttle from Tamarindo to San Jose and SJO airport. Door-to-door service with flight tracking and air-conditioned vehicles. Book online in 2 minutes.",
     highlights: [
       "Direct to San José city center",
       "Connections to SJO airport available",
@@ -221,9 +232,9 @@ export const ROUTES_DATA: RouteData[] = [
     pricePrivate: 140,
     departureHours: ["9:00 AM", "2:00 PM"],
     heroImage: "https://picsum.photos/seed/retana-route-nosara/1200/900",
-    metaTitle: "Tamarindo to Nosara Shuttle — $35/person",
+    metaTitle: "Tamarindo to Nosara Shuttle",
     metaDescription:
-      "Shared shuttle from Tamarindo to Nosara from $35/person. 2-hour coastal route. Daily departures, direct to your hotel.",
+      "Shuttle from Tamarindo to Nosara. Door-to-door service along the Guanacaste coast with air-conditioned vehicles. Book online in 2 minutes.",
     highlights: [
       "Scenic coastal route",
       "Drop-off at Nosara, Playa Guiones or Playa Pelada",

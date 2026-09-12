@@ -1,18 +1,27 @@
 import { MetadataRoute } from "next";
 import { BLOG_POSTS } from "@/app/blog/posts";
-import { ROUTES_DATA } from "@/lib/routes-data";
+import { getActiveRoutes } from "@/lib/api";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://shuttletamarindo.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+/**
+ * El sitemap sale de la base, no de una lista fija.
+ *
+ * Antes se armaba con ROUTES_DATA, asi que le pedia a Google que indexara
+ * rutas dadas de baja y se salteaba las nuevas. Ahora se publica exactamente
+ * lo que se puede vender.
+ */
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const routes = await getActiveRoutes();
+
   const staticPages = [
     { url: BASE_URL, lastModified: new Date(), priority: 1.0 },
     { url: BASE_URL + "/routes", lastModified: new Date(), priority: 0.9 },
     { url: BASE_URL + "/blog", lastModified: new Date(), priority: 0.8 },
   ];
 
-  const routePages = ROUTES_DATA.map((r) => ({
+  const routePages = routes.map((r) => ({
     url: `${BASE_URL}/routes/${r.slug}`,
     lastModified: new Date(),
     priority: 0.9,
