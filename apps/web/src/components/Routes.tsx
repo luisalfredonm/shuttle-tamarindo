@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight, Clock } from "lucide-react";
-import type { RouteView } from "@/lib/route-view";
+import { displayPrice, type RouteView } from "@/lib/route-view";
 
 const formatDuration = (minutes: number) => {
   if (minutes < 60) return `${minutes} mins`;
@@ -191,10 +191,10 @@ function FeaturedRouteCard({
                     fontFamily: "Playfair Display, serif",
                   }}
                 >
-                  ${r.priceShared}
+                  ${displayPrice(r).amount}
                 </span>
                 <span style={{ fontSize: "0.78rem", color: "var(--brand-gray)", fontFamily: "DM Sans, sans-serif" }}>
-                  /person
+                  {displayPrice(r).unit}
                 </span>
               </div>
             </div>
@@ -313,9 +313,9 @@ function RouteCard({
                   color: "var(--brand-gold)",
                 }}
               >
-                ${r.priceShared}
+                ${displayPrice(r).amount}
                 <span style={{ fontFamily: "DM Sans, sans-serif", fontSize: "0.7rem", color: "rgba(255,255,255,0.6)" }}>
-                  {" "}/person
+                  {" "}{displayPrice(r).unit}
                 </span>
               </span>
             </div>

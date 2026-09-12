@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getActiveRoutes } from "@/lib/api";
-import { buildRouteView } from "@/lib/route-view";
+import { buildRouteView, displayPrice } from "@/lib/route-view";
 
 export const metadata: Metadata = {
   title: "All Shuttle Routes in Guanacaste, Costa Rica",
@@ -182,7 +182,7 @@ export default async function RoutesIndexPage() {
                         fontFamily: "Playfair Display, serif",
                       }}
                     >
-                      ${route.priceShared}
+                      ${displayPrice(route).amount}
                     </span>
                     <span
                       style={{
@@ -191,7 +191,7 @@ export default async function RoutesIndexPage() {
                         fontFamily: "DM Sans, sans-serif",
                       }}
                     >
-                      /person
+                      {displayPrice(route).unit}
                     </span>
                   </div>
                 </div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { RouteView } from "@/lib/route-view";
+import { displayPrice, type RouteView } from "@/lib/route-view";
 
 interface Props {
   route: RouteView;
@@ -565,7 +565,8 @@ export default function RouteDetail({ route }: Props) {
               textDecoration: "none",
             }}
           >
-            Book Now — from ${route.priceShared}/person
+            Book Now — from ${displayPrice(route).amount}
+            {displayPrice(route).unit}
           </Link>
         </section>
       </main>

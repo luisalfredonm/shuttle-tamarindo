@@ -128,3 +128,19 @@ function defaultDescription(
     ? `Shared shuttle from ${route.origin} to ${route.destination} from $${priceShared} per person. Daily departures at ${hours}. About ${duration} hours door to door. Book online in minutes.`
     : `Private transfer from ${route.origin} to ${route.destination} from $${Number(route.pricePrivate)} per vehicle, at the time you choose. About ${duration} hours door to door. Book online in minutes.`;
 }
+
+/**
+ * Precio y unidad que muestra una tarjeta de ruta.
+ *
+ * Sin compartido no hay precio por asiento: mostrar el priceShared daria "$0",
+ * que se lee como gratis. En ese caso la tarjeta anuncia el privado, que es lo
+ * que de verdad se vende en esa ruta.
+ */
+export function displayPrice(route: RouteView): {
+  amount: number;
+  unit: string;
+} {
+  return route.sharedEnabled
+    ? { amount: route.priceShared, unit: "/person" }
+    : { amount: route.pricePrivate, unit: "/vehicle" };
+}
