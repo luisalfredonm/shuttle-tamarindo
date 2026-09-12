@@ -9,6 +9,11 @@ export interface Route {
   distanceKm: number;
   /** Precio fijo del privado en esta ruta: vehículo exclusivo, cualquier hora */
   pricePrivate: number;
+  isActive?: boolean;
+  /** true si la ruta tiene horarios: se puede vender compartido, no solo privado */
+  sharedEnabled?: boolean;
+  /** Horas de salida del compartido, en hora local ("08:00") */
+  departureTimes?: string[];
 }
 
 export interface Trip {
@@ -126,6 +131,27 @@ export async function getRoutes(): Promise<Route[]> {
   const res = await fetch(`${API_URL}/routes`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch routes");
   return res.json();
+}
+
+/**
+ * Rutas activas para el buscador, desde el servidor.
+ *
+ * Se revalida cada 5 minutos en vez de pedirlas en cada visita: la home sigue
+ * siendo estática (que es de lo que vive el SEO) y una ruta nueva del panel
+ * aparece sola en ese plazo. Si la API no responde devuelve una lista vacía en
+ * lugar de tirar la home abajo: el buscador avisa y el resto del sitio sigue en
+ * pie, que es preferible a una landing caída.
+ */
+export async function getActiveRoutes(): Promise<Route[]> {
+  try {
+    const res = await fetch(`${API_URL}/routes?active=true`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
 }
 
 export async function getRouteBySlug(slug: string): Promise<Route> {

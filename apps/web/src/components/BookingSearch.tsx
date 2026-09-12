@@ -1,26 +1,29 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import { MapPin, CalendarDays, Clock, Users, Search } from "lucide-react";
-import { getReverseRoute } from "@/lib/routes-data";
+import type { Route } from "@/lib/api";
 
-const ROUTES = [
-  {
-    value: "tamarindo-liberia-airport",
-    label: "Tamarindo → Liberia Airport (LIR)",
-  },
-  {
-    value: "liberia-airport-tamarindo",
-    label: "Liberia Airport (LIR) → Tamarindo",
-  },
-  { value: "tamarindo-arenal", label: "Tamarindo → Arenal" },
-  { value: "tamarindo-monteverde", label: "Tamarindo → Monteverde" },
-  { value: "tamarindo-san-jose", label: "Tamarindo → San José" },
-  { value: "tamarindo-nosara", label: "Tamarindo → Nosara" },
-];
+/**
+ * Ruta que deshace el camino de la dada, si esta cargada.
+ *
+ * Se calcula sobre las rutas de la base y no sobre una lista fija: dar de alta
+ * el regreso en el panel alcanza para que aparezca el ida y vuelta.
+ */
+function findReverse(routes: Route[], slug: string): Route | undefined {
+  const route = routes.find((r) => r.slug === slug);
+  if (!route) return undefined;
 
-export default function BookingSearch() {
+  return routes.find(
+    (r) =>
+      r.slug !== route.slug &&
+      r.origin === route.destination &&
+      r.destination === route.origin,
+  );
+}
+
+export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [route, setRoute] = useState("");
@@ -36,12 +39,32 @@ export default function BookingSearch() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Solo hay ida y vuelta donde existe la ruta inversa cargada
-  const reverse = route ? getReverseRoute(route) : undefined;
+  const isPrivate = type === "PRIVATE";
+
+  /**
+   * Qué rutas se pueden elegir en cada modo.
+   *
+   * Privado va en vehículo exclusivo a la hora que el cliente pida, así que
+   * sirve cualquier ruta activa. Compartido necesita salidas ya publicadas, y
+   * esas sólo existen donde la ruta tiene horarios cargados.
+   */
+  const availableRoutes = useMemo(
+    () => (isPrivate ? routes : routes.filter((r) => r.sharedEnabled)),
+    [routes, isPrivate],
+  );
+
+  // Al cambiar de modo, la ruta elegida puede dejar de ofrecerse: se limpia
+  // para no mandar a buscar algo que no se vende de esa forma.
+  useEffect(() => {
+    if (route && !availableRoutes.some((r) => r.slug === route)) {
+      setRoute("");
+    }
+  }, [availableRoutes, route]);
+
+  // Solo hay ida y vuelta donde el regreso también está disponible en este modo
+  const reverse = route ? findReverse(availableRoutes, route) : undefined;
   const canRoundTrip = !!reverse;
   const isRoundTrip = canRoundTrip && tripType === "ROUND_TRIP";
-
-  const isPrivate = type === "PRIVATE";
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -128,6 +151,16 @@ export default function BookingSearch() {
             </div>
           </div>
 
+          {/* Un modo sin rutas no deja al visitante frente a un desplegable
+              muerto: se le dice por qué y adónde ir */}
+          {availableRoutes.length === 0 && (
+            <p style={emptyNoticeStyle}>
+              {routes.length === 0
+                ? "Routes are unavailable right now. Please try again in a moment."
+                : "No shared departures are scheduled at the moment. Switch to Private Transfer to book a vehicle at the time you need."}
+            </p>
+          )}
+
           {/* Ida / ida y vuelta. Se muestra solo cuando la ruta inversa existe */}
           {canRoundTrip && (
             <div style={{ display: "flex", justifyContent: "center", marginBottom: "2rem" }}>
@@ -171,11 +204,18 @@ export default function BookingSearch() {
                 style={inputStyle}
                 className="rst-field"
                 required
+                disabled={availableRoutes.length === 0}
               >
-                <option value="">Select route...</option>
-                {ROUTES.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
+                <option value="">
+                  {availableRoutes.length === 0
+                    ? isPrivate
+                      ? "No routes available"
+                      : "No shared routes right now"
+                    : "Select route..."}
+                </option>
+                {availableRoutes.map((r) => (
+                  <option key={r.slug} value={r.slug}>
+                    {r.origin} → {r.destination}
                   </option>
                 ))}
               </select>
@@ -304,6 +344,20 @@ const labelStyle: React.CSSProperties = {
   textTransform: "uppercase",
   letterSpacing: "0.06em",
   fontFamily: "DM Sans, sans-serif",
+};
+
+const emptyNoticeStyle: React.CSSProperties = {
+  textAlign: "center",
+  margin: "0 auto 1.5rem",
+  maxWidth: "46ch",
+  padding: "0.75rem 1rem",
+  borderRadius: "10px",
+  background: "#fdf6e8",
+  border: "1px solid #f0e2c4",
+  color: "#7a5c14",
+  fontFamily: "DM Sans, sans-serif",
+  fontSize: "0.85rem",
+  lineHeight: 1.5,
 };
 
 const inputStyle: React.CSSProperties = {

@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { RoutesService } from './routes.service';
@@ -19,10 +20,12 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class RoutesController {
   constructor(private readonly routesService: RoutesService) {}
 
-  // Lectura pública: la web muestra las rutas sin sesión
+  // Lectura pública: la web muestra las rutas sin sesión.
+  // ?active=true deja fuera las rutas apagadas; sin el parámetro vienen todas,
+  // que es lo que necesita el panel para poder reactivarlas.
   @Get()
-  findAll() {
-    return this.routesService.findAll();
+  findAll(@Query('active') active?: string) {
+    return this.routesService.findAll(active === 'true');
   }
 
   @Get(':slug')

@@ -7,10 +7,34 @@ import { UpdateRouteDto } from './dto/update-route.dto';
 export class RoutesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
-    return this.prisma.route.findMany({
+  /**
+   * Rutas para la web y para el panel.
+   *
+   * Cada ruta viene con sharedEnabled, que dice si tiene horarios activos: es
+   * lo que separa "se vende compartido" de "solo privado". El privado no
+   * depende de esto, alcanza con que la ruta exista y este activa.
+   *
+   * activeOnly lo usa la web, que no debe ofrecer rutas apagadas. El panel
+   * llama sin el filtro porque necesita verlas para poder reactivarlas.
+   */
+  async findAll(activeOnly = false) {
+    const routes = await this.prisma.route.findMany({
+      where: activeOnly ? { isActive: true } : {},
       orderBy: { origin: 'asc' },
+      include: {
+        schedules: {
+          where: { isActive: true },
+          select: { departureTime: true },
+          orderBy: { departureTime: 'asc' },
+        },
+      },
     });
+
+    return routes.map(({ schedules, ...route }) => ({
+      ...route,
+      sharedEnabled: schedules.length > 0,
+      departureTimes: schedules.map((s) => s.departureTime),
+    }));
   }
 
   async findBySlug(slug: string) {
