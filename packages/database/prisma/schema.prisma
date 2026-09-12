@@ -83,7 +83,36 @@ model Route {
   pricePrivate Decimal  @db.Decimal(10, 2)
   isActive     Boolean  @default(true)
   trips        Trip[]
+  schedules    RouteSchedule[]
   createdAt    DateTime @default(now())
+}
+
+model RouteSchedule {
+  id      String @id @default(uuid())
+  route   Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  routeId String
+
+  /// Hora de salida en hora local de Costa Rica, formato "HH:MM" de 24h.
+  ///
+  /// Se guarda como texto y NO como DateTime a proposito: una plantilla no es
+  /// un instante, es "todos los dias a las 8". Guardar un DateTime obliga a
+  /// elegir un dia cualquiera como portador de la hora, que es justo de donde
+  /// salio el bug de los viajes a las 3am. La conversion a UTC la hace el
+  /// generador, usando que Costa Rica es UTC-6 fijo (no tiene horario de verano).
+  departureTime String
+
+  priceShared Decimal @db.Decimal(10, 2)
+  capacity    Int     @default(10)
+
+  /// Apagar el horario deja de generar salidas nuevas pero no toca las ya
+  /// generadas: para sacar una salida puntual de circulacion se cancela el Trip.
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Una ruta no puede tener dos veces la misma hora
+  @@unique([routeId, departureTime])
 }
 
 model Trip {

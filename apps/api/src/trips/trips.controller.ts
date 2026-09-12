@@ -29,13 +29,6 @@ export class TripsController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  @Post('seed')
-  seed() {
-    return this.tripsService.seed();
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
   @Post()
   create(@Body() dto: CreateTripDto) {
     return this.tripsService.create(dto);

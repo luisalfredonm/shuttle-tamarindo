@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
@@ -139,64 +135,5 @@ export class TripsService {
     if (!trip) throw new NotFoundException(`Viaje no encontrado`);
     await this.prisma.trip.delete({ where: { id } });
     return { message: 'Viaje eliminado' };
-  }
-
-  async seed() {
-    const routes = await this.prisma.route.findMany({
-      where: { isActive: true },
-    });
-
-    if (routes.length === 0) {
-      throw new BadRequestException('Primero ejecuta el seed de rutas');
-    }
-
-    // Solo compartido: privado ya no tiene horarios precargados, el cliente
-    // elige cualquier hora y el precio sale de route.pricePrivate
-    const pricesShared: Record<string, number> = {
-      'tamarindo-liberia-airport': 30,
-      'liberia-airport-tamarindo': 30,
-      'tamarindo-arenal': 55,
-      'tamarindo-monteverde': 45,
-      'tamarindo-san-jose': 65,
-      'tamarindo-nosara': 35,
-    };
-
-    // Horas en hora local de Costa Rica (UTC-6, sin horario de verano)
-    const hours = [9, 14, 18];
-    const CR_UTC_OFFSET = 6;
-    const daysAhead = 30;
-    let created = 0;
-
-    for (const route of routes) {
-      const priceShared = pricesShared[route.slug] || 35;
-
-      for (let day = 1; day <= daysAhead; day++) {
-        for (const hour of hours) {
-          const departureAt = new Date();
-          departureAt.setDate(departureAt.getDate() + day);
-          departureAt.setUTCHours(hour + CR_UTC_OFFSET, 0, 0, 0);
-
-          const exists = await this.prisma.trip.findFirst({
-            where: { routeId: route.id, departureAt },
-          });
-
-          if (!exists) {
-            await this.prisma.trip.create({
-              data: {
-                routeId: route.id,
-                departureAt,
-                capacity: 10,
-                priceShared,
-              },
-            });
-            created++;
-          }
-        }
-      }
-    }
-
-    return {
-      message: `${created} viajes creados para los próximos ${daysAhead} días`,
-    };
   }
 }
