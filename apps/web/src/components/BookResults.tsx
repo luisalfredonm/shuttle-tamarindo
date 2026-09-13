@@ -85,17 +85,45 @@ export default function BookResults() {
 
     // Lo elegido puede dejar de alcanzar con el nuevo número: se suelta la
     // selección en vez de mandar a pagar algo que la API va a rechazar
-    setPickedOut((prev) =>
-      prev && prev.availableSeats < next ? null : prev,
-    );
+    setPickedOut((prev) => (prev && prev.availableSeats < next ? null : prev));
     setPickedIn((prev) => (prev && prev.availableSeats < next ? null : prev));
   }
 
-  /** Reserva el mínimo para poner en marcha una salida que todavía no arrancó */
-  function openDeparture(trip: Trip, pick: (t: Trip) => void) {
-    changePassengers(trip.sharedMinPassengers);
-    pick(trip);
-  }
+  /** Esta salida todavía no arranca y el grupo no alcanza para ponerla en marcha */
+  const needsOpening = (trip: Trip) =>
+    type === "SHARED" &&
+    !trip.sharedOpen &&
+    passengers < trip.sharedMinPassengers;
+
+  /**
+   * Asientos que hay que pagar en una salida concreta.
+   *
+   * Es propio de cada salida y no un estado de la página: la que ya está en
+   * marcha cobra lo que viaja el grupo, y la que no arrancó cobra el mínimo
+   * que la pone en marcha. Cuando esto vivía en el contador de pasajeros,
+   * tocar una salida sin arrancar le cambiaba el precio a todas las demás y no
+   * habia forma de volver atrás.
+   */
+  const seatsFor = (trip: Trip | null) => {
+    if (!trip || isPrivate) return passengers;
+    return needsOpening(trip) ? trip.sharedMinPassengers : passengers;
+  };
+
+  /**
+   * Asientos de la reserva completa.
+   *
+   * La API cobra un solo número para todos los tramos, asi que si un tramo
+   * necesita el mínimo, manda ese. Se calcula sobre lo elegido, no sobre la
+   * lista entera.
+   */
+  const seatsToBook = Math.max(
+    passengers,
+    seatsFor(pickedOut),
+    seatsFor(pickedIn),
+  );
+
+  /** true cuando se paga más asientos que viajeros, para poder explicarlo */
+  const payingForMinimum = !isPrivate && seatsToBook > passengers;
 
   // Ninguna salida del día llegó al mínimo: el visitante necesita saber que
   // igual puede viajar, y con qué números
@@ -182,12 +210,16 @@ export default function BookResults() {
       .finally(() => setLoading(false));
   }, [routeSlug, date, returnSlug, returnDate, isRoundTrip, isPrivate]);
 
-  const legPrice = (trip: Trip) => Number(trip.priceShared) * passengers;
+  /** Lo que cuesta esta salida en particular, con sus propios asientos */
+  const legPrice = (trip: Trip) => Number(trip.priceShared) * seatsFor(trip);
 
+  // El total va con seatsToBook, que es lo que la API va a cobrar en ambos
+  // tramos, y no con los asientos de cada tarjeta por separado
   const total = isPrivate
     ? (outboundRoute ? Number(outboundRoute.pricePrivate) : 0) +
       (isRoundTrip && inboundRoute ? Number(inboundRoute.pricePrivate) : 0)
-    : (pickedOut ? legPrice(pickedOut) : 0) + (pickedIn ? legPrice(pickedIn) : 0);
+    : (pickedOut ? Number(pickedOut.priceShared) * seatsToBook : 0) +
+      (pickedIn ? Number(pickedIn.priceShared) * seatsToBook : 0);
 
   const ready =
     !!pickupAddress.trim() &&
@@ -237,7 +269,9 @@ export default function BookResults() {
             tripId: pickedOut!.id,
             returnTripId: isRoundTrip && pickedIn ? pickedIn.id : undefined,
             type,
-            passengers,
+            // Los asientos que corresponden a lo elegido, que son más que los
+            // viajeros cuando hay que poner en marcha la salida
+            passengers: seatsToBook,
             ...tripDetails,
           });
       router.push(`/confirmation?bookingId=${b.id}`);
@@ -287,36 +321,23 @@ export default function BookResults() {
                 { hour: "2-digit", minute: "2-digit", hour12: true },
               );
               const isSelected = picked?.id === trip.id;
-              const isFull =
+
+              // Los asientos que pide esta salida: el grupo, o el mínimo si
+              // hay que ponerla en marcha
+              const seats = seatsFor(trip);
+              const starting = needsOpening(trip);
+
+              // Solo se bloquea por falta de lugar real en el vehículo
+              const blocked =
                 type === "SHARED"
-                  ? trip.availableSeats < passengers
+                  ? trip.availableSeats < seats
                   : trip.bookedSeats > 0;
-
-              // Con menos del mínimo confirmado, un grupo chico no puede sumarse:
-              // tiene que abrir la salida reservando el mínimo
-              const needsToOpen =
-                type === "SHARED" &&
-                !trip.sharedOpen &&
-                passengers < trip.sharedMinPassengers;
-
-              // Abrirla es una opción real mientras el vehículo tenga lugar:
-              // se ofrece con su precio en vez de dejar la tarjeta muerta
-              const canOpen =
-                needsToOpen && trip.availableSeats >= trip.sharedMinPassengers;
-              const openPrice =
-                Number(trip.priceShared) * trip.sharedMinPassengers;
-
-              const blocked = isFull || (needsToOpen && !canOpen);
 
               return (
                 <button
                   key={trip.id}
                   type="button"
-                  onClick={() => {
-                    if (blocked) return;
-                    if (canOpen) return openDeparture(trip, pick);
-                    pick(trip);
-                  }}
+                  onClick={() => !blocked && pick(trip)}
                   disabled={blocked}
                   style={{
                     textAlign: "left",
@@ -397,24 +418,24 @@ export default function BookResults() {
                         color: "var(--brand-green)",
                       }}
                     >
-                      ${canOpen && !isSelected ? openPrice : legPrice(trip)}
+                      ${legPrice(trip)}
                     </div>
                     <div
                       style={{
                         fontSize: "0.75rem",
-                        color: canOpen && !isSelected
+                        color: starting
                           ? "var(--brand-green)"
                           : "var(--brand-gray)",
                         fontFamily: "DM Sans, sans-serif",
-                        fontWeight: canOpen && !isSelected ? 600 : 400,
+                        fontWeight: starting ? 600 : 400,
                       }}
                     >
-                      {isSelected
-                        ? "Selected"
-                        : canOpen
-                          ? `Start it — ${trip.sharedMinPassengers} seats`
-                          : blocked
-                            ? "Not available"
+                      {blocked
+                        ? "Not available"
+                        : starting
+                          ? `${seats} seats · starts it`
+                          : isSelected
+                            ? "Selected"
                             : "Select"}
                     </div>
                   </div>
@@ -826,6 +847,20 @@ export default function BookResults() {
               >
                 ${total}
               </div>
+              {/* Se cobran más asientos que viajeros: hay que decirlo acá,
+                  que es donde el cliente mira el número antes de pagar */}
+              {payingForMinimum && (
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "var(--brand-gold)",
+                    fontFamily: "DM Sans, sans-serif",
+                    marginTop: "2px",
+                  }}
+                >
+                  {seatsToBook} seats — the minimum that starts this departure
+                </div>
+              )}
               {isRoundTrip && (
                 <div
                   style={{
