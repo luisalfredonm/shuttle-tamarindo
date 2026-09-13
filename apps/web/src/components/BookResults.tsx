@@ -333,6 +333,8 @@ export default function BookResults() {
                   ? trip.availableSeats < seats
                   : trip.bookedSeats > 0;
 
+              const status = departureStatus(trip, seats);
+
               return (
                 <button
                   key={trip.id}
@@ -383,14 +385,10 @@ export default function BookResults() {
                             fontFamily: "DM Sans, sans-serif",
                             fontSize: "0.9rem",
                             fontWeight: 500,
-                            color: trip.sharedOpen
-                              ? "var(--brand-green)"
-                              : "#b06d1e",
+                            color: status.color,
                           }}
                         >
-                          {trip.sharedOpen
-                            ? `${trip.confirmedSeats} confirmed · join in`
-                            : `Not running yet · ${trip.sharedMinPassengers} seats start it`}
+                          {status.label}
                         </div>
                       </div>
                     )}
@@ -937,6 +935,42 @@ const noticeStyle: React.CSSProperties = {
   fontSize: "0.85rem",
   lineHeight: 1.6,
 };
+
+/**
+ * Estado de una salida compartida, en un solo lugar y por prioridad.
+ *
+ * El orden importa: primero lo que impide viajar y después lo que invita a
+ * hacerlo. Cuando esto vivía repartido en la tarjeta, una salida sin un solo
+ * asiento libre seguía diciendo "join in" al lado de un "0 / 10".
+ */
+function departureStatus(
+  trip: Trip,
+  seats: number,
+): { label: string; color: string } {
+  if (trip.availableSeats <= 0) {
+    return { label: "Fully booked", color: "#a8443a" };
+  }
+
+  if (trip.availableSeats < seats) {
+    const left = trip.availableSeats;
+    return {
+      label: `Only ${left} seat${left === 1 ? "" : "s"} left`,
+      color: "#b06d1e",
+    };
+  }
+
+  if (trip.sharedOpen) {
+    return {
+      label: `${trip.confirmedSeats} confirmed · join in`,
+      color: "var(--brand-green)",
+    };
+  }
+
+  return {
+    label: `Not running yet · ${trip.sharedMinPassengers} seats start it`,
+    color: "#b06d1e",
+  };
+}
 
 /** Las dos salidas posibles cuando ninguna salida arrancó: abrir una, o privado */
 const compareStyle: React.CSSProperties = {
