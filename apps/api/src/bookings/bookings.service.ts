@@ -192,11 +192,16 @@ export class BookingsService {
     if (!route) throw new NotFoundException(`Ruta no encontrada (${label})`);
 
     const parsedDepartureAt = new Date(departureAt);
-    const existing = await tx.trip.findFirst({
-      where: { routeId: route.id, departureAt: parsedDepartureAt },
-    });
-    if (existing) return existing.id;
 
+    // Cada privado estrena su propio Trip, sin reutilizar ninguno existente.
+    //
+    // Antes se buscaba cualquier viaje a esa hora y se tomaba entero, con dos
+    // efectos malos. Si coincidia con una salida compartida, el privado la
+    // ocupaba y esa salida desaparecia del inventario publico: se vendia un
+    // vehiculo y se perdian los asientos de todo un horario. Y si ya habia
+    // otro privado a la misma hora, el segundo cliente chocaba con el vehiculo
+    // del primero y la reserva fallaba, cuando en realidad son dos vehiculos
+    // distintos y la venta era posible.
     const created = await tx.trip.create({
       data: {
         routeId: route.id,

@@ -90,6 +90,27 @@ export function returnLeg(booking: any): any {
   return booking?.legs?.find((l: any) => l.direction === "RETURN");
 }
 
+/** Mensaje único para la sesión vencida, para que todas las pantallas digan lo mismo */
+export const SESSION_EXPIRED =
+  "Your session expired. Sign in again to finish your booking.";
+
+/**
+ * Cierra la sesión vencida y manda al login.
+ *
+ * El token dura 7 días y vence en silencio: sin esto, el visitante se queda en
+ * el formulario lleno con un error que no explica nada y abandona la reserva.
+ * Se guarda a dónde volver para que pueda retomarla donde la dejó.
+ */
+export function handleExpiredSession() {
+  if (typeof window === "undefined") return;
+
+  localStorage.removeItem("shuttle_token");
+  localStorage.removeItem("shuttle_user");
+
+  const back = window.location.pathname + window.location.search;
+  window.location.href = `/login?expired=1&returnTo=${encodeURIComponent(back)}`;
+}
+
 /**
  * fetch con el JWT del usuario. Los endpoints de reservas y pagos exigen
  * sesión y solo devuelven lo que le pertenece a quien consulta.
@@ -109,6 +130,10 @@ export async function authFetch(path: string, options?: RequestInit) {
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      handleExpiredSession();
+      throw new Error(SESSION_EXPIRED);
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Request failed");
   }
@@ -191,7 +216,13 @@ export async function createBooking(data: {
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    const err = await res.json();
+    // Reservar es el paso que más duele perder: si la sesión venció, se avisa
+    // y se vuelve acá después de entrar, en vez de dejar un error suelto.
+    if (res.status === 401) {
+      handleExpiredSession();
+      throw new Error(SESSION_EXPIRED);
+    }
+    const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Booking failed");
   }
   return res.json();

@@ -17,6 +17,10 @@ export default function LoginForm() {
       ? rawReturnTo
       : "/account";
 
+  // La sesion se vencio mientras usaba el sitio: se explica, en vez de
+  // devolverlo al login sin decir nada
+  const expired = params.get("expired") === "1";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -83,6 +87,24 @@ export default function LoginForm() {
           border: "1px solid #e8e4dc",
         }}
       >
+        {expired && !error && (
+          <div
+            style={{
+              background: "#fdf6e8",
+              border: "1px solid #f0e2c4",
+              borderRadius: "8px",
+              padding: "10px 14px",
+              marginBottom: "1.25rem",
+              color: "#7a5c14",
+              fontFamily: "DM Sans, sans-serif",
+              fontSize: "0.875rem",
+            }}
+          >
+            Your session expired. Sign in again and we&apos;ll take you back to
+            where you left off.
+          </div>
+        )}
+
         {error && (
           <div
             style={{
