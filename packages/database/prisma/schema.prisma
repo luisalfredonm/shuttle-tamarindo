@@ -176,12 +176,48 @@ model Booking {
   @@index([tripId])
 }
 
+enum PaymentProvider {
+  PAYPAL
+  BAC_CREDOMATIC
+}
+
+/// Configuracion de un metodo de pago. Aca NO van secretos.
+///
+/// El client secret y las api keys viven en variables de entorno del servidor
+/// y nunca pasan por el navegador ni por la base: un dump, un backup o un XSS
+/// en el panel no deben poder llevarse las llaves del dinero. Lo que se guarda
+/// aca es lo que el admin necesita cambiar sin redeploy, y el clientId, que en
+/// PayPal es publico por diseno porque viaja en el SDK del navegador.
+model PaymentMethodConfig {
+  id       String          @id @default(uuid())
+  provider PaymentProvider @unique
+
+  /// Si esta apagado el metodo no se ofrece al cliente
+  isEnabled Boolean @default(false)
+
+  /// true = sandbox. Se separa del secreto para poder alternar sin redeploy.
+  isSandbox Boolean @default(true)
+
+  /// Identificador publico (clientId de PayPal). Nunca un secreto.
+  publicKey String?
+
+  /// Orden en que se muestran los metodos al cliente
+  sortOrder Int @default(0)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
 model Payment {
   id            String       @id @default(uuid())
   reservation   Reservation  @relation(fields: [reservationId], references: [id])
   reservationId String       @unique
-  provider   String        @default("BAC_CREDOMATIC")
+  provider   String        @default("PAYPAL")
+  /// Id de la transaccion capturada en el proveedor
   externalId String?
+  /// Id de la orden creada antes de cobrar. Unico: evita capturar dos veces
+  /// la misma orden si el cliente hace doble clic o el webhook llega repetido.
+  orderId    String?       @unique
   amount     Decimal       @db.Decimal(10, 2)
   currency   String        @default("USD")
   status     PaymentStatus @default(PENDING)

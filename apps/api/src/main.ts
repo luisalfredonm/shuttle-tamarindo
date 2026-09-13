@@ -3,7 +3,10 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: la firma del webhook de PayPal se calcula sobre el cuerpo tal
+  // como llego. Si solo tuvieramos el JSON ya parseado y vuelto a serializar,
+  // cualquier diferencia de formato invalidaria firmas legitimas.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.useGlobalPipes(
     new ValidationPipe({

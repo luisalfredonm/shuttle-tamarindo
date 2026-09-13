@@ -1,60 +1,325 @@
 import {
-  Injectable,
-  NotFoundException,
   BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
 import { EmailService } from '../email/email.service';
 import { AdminService } from '../admin/admin.service';
 import { RequestUser, assertOwnerOrAdmin } from '../auth/request-user';
+import { PayPalProvider } from './providers/paypal.provider';
+import { PaymentProvider } from './providers/payment-provider.interface';
 
 const NOT_YOURS = 'No tienes acceso a esta reserva';
 
-interface PaymentResult {
-  success: boolean;
-  transactionId?: string;
-  error?: string;
-}
+/** Margen para diferencias de redondeo al comparar importes */
+const AMOUNT_TOLERANCE = 0.01;
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     private prisma: PrismaService,
     private email: EmailService,
     private adminService: AdminService,
+    private paypal: PayPalProvider,
   ) {}
 
-  private get isMock(): boolean {
-    return process.env.PAYMENT_MODE !== 'live';
+  private providerFor(name: string): PaymentProvider {
+    if (name === 'PAYPAL') return this.paypal;
+    // BAC entra aca cuando se implemente; hasta entonces no se puede prender
+    throw new ServiceUnavailableException(
+      `El metodo de pago ${name} todavia no esta disponible`,
+    );
   }
 
-  async processPayment(dto: CreatePaymentDto, user: RequestUser) {
-    // Un round trip son dos tramos y un solo cobro: el pago vive en la reserva
-    const booking = await this.prisma.reservation.findUnique({
-      where: { id: dto.bookingId },
+  /** Metodos que el cliente puede usar: prendidos en el panel y con credenciales */
+  async availableMethods() {
+    const configs = await this.prisma.paymentMethodConfig.findMany({
+      where: { isEnabled: true },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    return configs
+      .filter((c) => {
+        try {
+          return this.providerFor(c.provider).isConfigured();
+        } catch {
+          return false;
+        }
+      })
+      .map((c) => ({
+        provider: c.provider,
+        isSandbox: c.isSandbox,
+        // El clientId es publico: el SDK de PayPal lo necesita en el navegador
+        publicKey: c.publicKey,
+      }));
+  }
+
+  /**
+   * Paso 1: reserva el cobro en la pasarela.
+   *
+   * El importe sale de la reserva en la base, nunca del cliente: si viniera del
+   * navegador, cualquiera podria pagar $1 por un traslado de $180.
+   */
+  async createOrder(reservationId: string, user: RequestUser) {
+    const reservation = await this.loadPayable(reservationId, user);
+
+    const enabled = await this.availableMethods();
+    const method = enabled.find((m) => m.provider === 'PAYPAL');
+    if (!method) {
+      throw new ServiceUnavailableException(
+        'No hay ningun metodo de pago disponible en este momento',
+      );
+    }
+
+    const provider = this.providerFor(method.provider);
+    const amount = Number(reservation.totalAmount);
+    const outbound = reservation.legs.find((l) => l.direction === 'OUTBOUND')!;
+    const description = `${outbound.trip.route.origin} - ${outbound.trip.route.destination}`;
+
+    const order = await provider.createOrder({
+      amount,
+      currency: 'USD',
+      reservationId: reservation.id,
+      description,
+    });
+
+    // El Payment nace PENDING con la orden. El unique de orderId es lo que
+    // impide que dos intentos simultaneos terminen en dos cobros.
+    await this.prisma.payment.upsert({
+      where: { reservationId: reservation.id },
+      create: {
+        reservationId: reservation.id,
+        provider: provider.name,
+        orderId: order.orderId,
+        amount: reservation.totalAmount,
+        currency: 'USD',
+        status: 'PENDING',
+      },
+      update: { provider: provider.name, orderId: order.orderId },
+    });
+
+    return {
+      orderId: order.orderId,
+      approveUrl: order.approveUrl,
+      amount,
+      currency: 'USD',
+    };
+  }
+
+  /**
+   * Paso 2: cobra la orden que el cliente aprobo.
+   *
+   * Lo que dice el navegador no alcanza: la reserva se confirma solo despues de
+   * que la pasarela confirma el cobro contra su propia API.
+   */
+  async captureOrder(orderId: string, user: RequestUser) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { orderId },
+      include: { reservation: { select: { id: true, userId: true } } },
+    });
+
+    if (!payment) throw new NotFoundException('Orden de pago no encontrada');
+    assertOwnerOrAdmin(payment.reservation.userId, user, NOT_YOURS);
+
+    if (payment.status === 'PAID') {
+      // Doble clic o reintento: se responde el resultado que ya existe
+      return this.paidResponse(payment.reservationId);
+    }
+
+    const provider = this.providerFor(payment.provider);
+    const result = await provider.captureOrder(orderId);
+
+    if (!result.success) {
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: 'FAILED' },
+      });
+      throw new BadRequestException(result.error || 'El pago fue rechazado');
+    }
+
+    // Se cobro algo distinto de lo que la reserva vale: no se confirma sola.
+    // Puede ser manipulacion del monto o un error de moneda, y en los dos casos
+    // hace falta que una persona lo mire antes de dar el viaje por pagado.
+    const expected = Number(payment.amount);
+    if (
+      result.amount === undefined ||
+      Math.abs(result.amount - expected) > AMOUNT_TOLERANCE ||
+      (result.currency && result.currency !== payment.currency)
+    ) {
+      this.logger.error(
+        `Importe capturado distinto al esperado en la reserva ${payment.reservationId}: ` +
+          `esperado ${expected} ${payment.currency}, cobrado ${result.amount} ${result.currency}`,
+      );
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: 'FAILED', externalId: result.transactionId },
+      });
+      throw new ConflictException(
+        'El importe cobrado no coincide con la reserva. Contactanos para resolverlo.',
+      );
+    }
+
+    await this.confirmPaid(payment.reservationId, result.transactionId!);
+    return this.paidResponse(payment.reservationId);
+  }
+
+  /**
+   * Respaldo cuando el cliente cierra la ventana justo despues de aprobar.
+   *
+   * La firma se verifica siempre: sin eso este endpoint publico seria una via
+   * para marcar cualquier reserva como pagada.
+   */
+  async handleWebhook(headers: Record<string, unknown>, rawBody: string) {
+    const valid = await this.paypal.verifyWebhook(headers, rawBody);
+    if (!valid) {
+      this.logger.warn('Webhook con firma invalida: descartado');
+      return { received: false };
+    }
+
+    const event = JSON.parse(rawBody) as {
+      event_type?: string;
+      resource?: {
+        id?: string;
+        supplementary_data?: { related_ids?: { order_id?: string } };
+        amount?: { value?: string; currency_code?: string };
+      };
+    };
+
+    if (event.event_type !== 'PAYMENT.CAPTURE.COMPLETED') {
+      return { received: true, ignored: event.event_type };
+    }
+
+    const orderId = event.resource?.supplementary_data?.related_ids?.order_id;
+    if (!orderId) return { received: true, ignored: 'sin order_id' };
+
+    const payment = await this.prisma.payment.findUnique({ where: { orderId } });
+    if (!payment || payment.status === 'PAID') {
+      // Ya estaba cobrado por la captura del paso 2: nada que hacer
+      return { received: true };
+    }
+
+    const captured = Number(event.resource?.amount?.value);
+    if (Math.abs(captured - Number(payment.amount)) > AMOUNT_TOLERANCE) {
+      this.logger.error(
+        `Webhook con importe distinto para la reserva ${payment.reservationId}`,
+      );
+      return { received: true, mismatch: true };
+    }
+
+    await this.confirmPaid(payment.reservationId, event.resource!.id!);
+    return { received: true, confirmed: true };
+  }
+
+  /** Marca la reserva pagada y avisa. Idempotente: si ya estaba, no hace nada. */
+  private async confirmPaid(reservationId: string, transactionId: string) {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const current = await tx.payment.findUnique({
+        where: { reservationId },
+      });
+      if (!current || current.status === 'PAID') return false;
+
+      await tx.payment.update({
+        where: { reservationId },
+        data: {
+          status: 'PAID',
+          externalId: transactionId,
+          paidAt: new Date(),
+        },
+      });
+      await tx.reservation.update({
+        where: { id: reservationId },
+        data: { status: 'CONFIRMED', heldUntil: null },
+      });
+      return true;
+    });
+
+    if (!updated) return;
+
+    // El correo va fuera de la transaccion: que falle el envio no puede
+    // deshacer un cobro que la pasarela ya acepto.
+    await this.notify(reservationId, transactionId);
+  }
+
+  private async notify(reservationId: string, transactionId: string) {
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id: reservationId },
       include: {
         legs: { include: { trip: { include: { route: true } } } },
-        payment: true,
         user: true,
       },
     });
+    if (!reservation) return;
 
-    if (!booking) throw new NotFoundException('Booking no encontrado');
+    const outbound = reservation.legs.find((l) => l.direction === 'OUTBOUND');
+    if (!outbound) return;
 
-    // Solo el dueño de la reserva puede pagarla (o un ADMIN, para cobros manuales)
-    assertOwnerOrAdmin(booking.userId, user, NOT_YOURS);
+    const route =
+      `${outbound.trip.route.origin} → ${outbound.trip.route.destination}` +
+      (reservation.tripType === 'ROUND_TRIP' ? ' (ida y vuelta)' : '');
 
-    if (booking.status === 'CONFIRMED') {
-      throw new BadRequestException('Este booking ya fue pagado');
+    try {
+      await this.email.sendBookingConfirmation(reservation.user.email, {
+        name: reservation.user.name,
+        bookingId: reservation.id,
+        route,
+        departure: outbound.trip.departureAt,
+        passengers: reservation.passengers,
+        type: reservation.type,
+        amount: Number(reservation.totalAmount),
+        transactionId,
+      });
+
+      const adminProfile = this.adminService.getProfile();
+      if (adminProfile.email) {
+        await this.email.sendNewBookingAlert(adminProfile.email, {
+          adminName: adminProfile.name,
+          bookingId: reservation.id,
+          customerName: reservation.user.name,
+          customerEmail: reservation.user.email,
+          route,
+          departure: outbound.trip.departureAt,
+          passengers: reservation.passengers,
+          type: reservation.type,
+          amount: Number(reservation.totalAmount),
+        });
+      }
+    } catch (error) {
+      this.logger.error(
+        `Pago confirmado pero fallo el aviso por correo de ${reservationId}: ` +
+          (error instanceof Error ? error.message : 'error desconocido'),
+      );
     }
-    if (booking.status === 'CANCELLED') {
-      throw new BadRequestException('Este booking fue cancelado');
+  }
+
+  /** Reserva que se puede pagar, o el motivo por el que no */
+  private async loadPayable(reservationId: string, user: RequestUser) {
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: {
+        legs: { include: { trip: { include: { route: true } } } },
+        payment: true,
+      },
+    });
+
+    if (!reservation) throw new NotFoundException('Reserva no encontrada');
+    assertOwnerOrAdmin(reservation.userId, user, NOT_YOURS);
+
+    if (reservation.status === 'CONFIRMED') {
+      throw new BadRequestException('Esta reserva ya fue pagada');
+    }
+    if (reservation.status === 'CANCELLED') {
+      throw new BadRequestException('Esta reserva fue cancelada');
     }
 
-    if (booking.heldUntil && new Date() > new Date(booking.heldUntil)) {
+    if (reservation.heldUntil && new Date() > new Date(reservation.heldUntil)) {
       await this.prisma.reservation.update({
-        where: { id: dto.bookingId },
+        where: { id: reservationId },
         data: { status: 'CANCELLED' },
       });
       throw new BadRequestException(
@@ -62,103 +327,22 @@ export class PaymentsService {
       );
     }
 
-    const paymentResult: PaymentResult = this.isMock
-      ? await this.mockPayment()
-      : await this.bacPayment(dto.cardToken);
+    return reservation;
+  }
 
-    if (!paymentResult.success) {
-      throw new BadRequestException(
-        paymentResult.error || 'El pago fue rechazado',
-      );
-    }
-
-    await this.prisma.$transaction([
-      this.prisma.reservation.update({
-        where: { id: dto.bookingId },
-        data: { status: 'CONFIRMED', heldUntil: null },
-      }),
-      this.prisma.payment.create({
-        data: {
-          reservationId: dto.bookingId,
-          provider: this.isMock ? 'MOCK' : 'BAC_CREDOMATIC',
-          externalId: paymentResult.transactionId,
-          amount: booking.totalAmount,
-          currency: 'USD',
-          status: 'PAID',
-          paidAt: new Date(),
-        },
-      }),
-    ]);
-
-    const outbound = booking.legs.find((l) => l.direction === 'OUTBOUND')!;
-    const isRoundTrip = booking.tripType === 'ROUND_TRIP';
-    const route =
-      `${outbound.trip.route.origin} → ${outbound.trip.route.destination}` +
-      (isRoundTrip ? ' (ida y vuelta)' : '');
-
-    await this.email.sendBookingConfirmation(booking.user.email, {
-      name: booking.user.name,
-      bookingId: booking.id,
-      route,
-      departure: outbound.trip.departureAt,
-      passengers: booking.passengers,
-      type: booking.type,
-      amount: Number(booking.totalAmount),
-      transactionId: paymentResult.transactionId!,
+  private async paidResponse(reservationId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { reservationId },
     });
 
-    const adminProfile = this.adminService.getProfile();
-    if (adminProfile.email) {
-      await this.email.sendNewBookingAlert(adminProfile.email, {
-        adminName: adminProfile.name,
-        bookingId: booking.id,
-        customerName: booking.user.name,
-        customerEmail: booking.user.email,
-        route,
-        departure: outbound.trip.departureAt,
-        passengers: booking.passengers,
-        type: booking.type,
-        amount: Number(booking.totalAmount),
-      });
-    }
-
     return {
       success: true,
-      bookingId: booking.id,
-      transactionId: paymentResult.transactionId,
-      amount: booking.totalAmount,
-      currency: 'USD',
-      status: 'PAID',
-      mode: this.isMock ? 'SIMULATED' : 'LIVE',
-      booking: {
-        id: booking.id,
-        route,
-        departure: outbound.trip.departureAt,
-        passengers: booking.passengers,
-        type: booking.type,
-      },
+      bookingId: reservationId,
+      transactionId: payment?.externalId,
+      amount: payment?.amount,
+      currency: payment?.currency,
+      status: payment?.status,
     };
-  }
-
-  private async mockPayment(): Promise<PaymentResult> {
-    await new Promise((r) => setTimeout(r, 800));
-    return {
-      success: true,
-      transactionId: `MOCK-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-    };
-  }
-
-  private async bacPayment(cardToken?: string): Promise<PaymentResult> {
-    const apiKey = process.env.BAC_API_KEY;
-    const merchantId = process.env.BAC_MERCHANT_ID;
-    const apiUrl = process.env.BAC_API_URL;
-
-    if (!apiKey || !merchantId || !apiUrl) {
-      return { success: false, error: 'BAC Credomatic no está configurado' };
-    }
-
-    // TODO: implementar integración real con BAC
-    return { success: false, error: 'Integración BAC pendiente de configuración' };
   }
 
   async getPaymentByBooking(reservationId: string, user: RequestUser) {
