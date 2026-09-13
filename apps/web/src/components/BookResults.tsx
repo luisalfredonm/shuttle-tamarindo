@@ -47,9 +47,6 @@ export default function BookResults() {
   const returnDate = params.get("returnDate") || "";
   const isRoundTrip = params.get("tripType") === "ROUND_TRIP" && !!returnDate;
   const isPrivate = type === "PRIVATE";
-  // Privado: hora exacta elegida por el cliente, no un horario de la lista
-  const time = params.get("time") || "";
-  const returnTime = params.get("returnTime") || "";
 
   const returnSlug = isRoundTrip ? getReverseRoute(routeSlug)?.slug : undefined;
 
@@ -71,6 +68,21 @@ export default function BookResults() {
     const n = parseInt(params.get("passengers") || "1");
     return Number.isFinite(n) && n > 0 ? n : 1;
   });
+
+  /**
+   * Hora de pickup del privado, editable acá.
+   *
+   * Llega de la URL cuando el buscador la pidió, pero se edita en esta página
+   * porque es el dato que define la salida y sin él la reserva no se puede
+   * armar. Antes se leía fija de la URL: entrando desde la landing de una ruta,
+   * que no la preguntaba, la pantalla mostraba "Pickup time —" sin manera de
+   * completarla y al confirmar reventaba con un "Booking failed" que no decía
+   * nada.
+   */
+  const [time, setTime] = useState(() => params.get("time") || "");
+  const [returnTime, setReturnTime] = useState(
+    () => params.get("returnTime") || "",
+  );
 
   const [pickedOut, setPickedOut] = useState<Trip | null>(null);
   const [pickedIn, setPickedIn] = useState<Trip | null>(null);
@@ -139,8 +151,7 @@ export default function BookResults() {
   const privateHref = (() => {
     const qs = new URLSearchParams(params.toString());
     qs.set("type", "PRIVATE");
-    // El privado necesita una hora concreta; sin ella el formulario la pide
-    if (!qs.get("time")) qs.set("time", "09:00");
+    // Sin hora no se inventa un default: la pantalla del privado la pide
     return `/book?${qs.toString()}`;
   })();
 
@@ -454,14 +465,8 @@ export default function BookResults() {
     day: string,
     pickupTime: string,
     routeData: Route | null,
+    onTimeChange: (value: string) => void,
   ) {
-    const depLabel = pickupTime
-      ? new Date(`${day}T${pickupTime}`).toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        })
-      : "";
 
     return (
       <section style={{ marginBottom: "2.5rem" }}>
@@ -496,16 +501,37 @@ export default function BookResults() {
         >
           <div>
             <div style={eyebrowStyle}>Pickup time</div>
-            <div
+            <input
+              type="time"
+              value={pickupTime}
+              onChange={(e) => onTimeChange(e.target.value)}
+              required
+              aria-label={`Pickup time — ${heading}`}
               style={{
-                fontSize: "1.4rem",
+                fontSize: "1.25rem",
                 fontFamily: "Playfair Display, serif",
                 fontWeight: 600,
                 color: "var(--brand-dark)",
+                border: pickupTime
+                  ? "1px solid #e8e4dc"
+                  : "1px solid var(--brand-gold)",
+                borderRadius: "8px",
+                padding: "4px 10px",
+                background: "#fff",
               }}
-            >
-              {depLabel || "—"}
-            </div>
+            />
+            {!pickupTime && (
+              <div
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#b06d1e",
+                  fontFamily: "DM Sans, sans-serif",
+                  marginTop: "4px",
+                }}
+              >
+                Choose the time you want to be picked up
+              </div>
+            )}
           </div>
 
           <div
@@ -647,6 +673,7 @@ export default function BookResults() {
                 date,
                 time,
                 outboundRoute,
+                setTime,
               )}
 
               {isRoundTrip &&
@@ -657,6 +684,7 @@ export default function BookResults() {
                   returnDate,
                   returnTime,
                   inboundRoute,
+                  setReturnTime,
                 )}
             </>
           ) : (

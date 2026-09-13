@@ -13,6 +13,7 @@ export default function RouteDetail({ route }: Props) {
   const router = useRouter();
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [passengers, setPass] = useState("1");
   // Sin horarios no hay compartido que ofrecer: la pagina abre en privado
   const [type, setType] = useState<"SHARED" | "PRIVATE">(
@@ -22,9 +23,18 @@ export default function RouteDetail({ route }: Props) {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!date) return;
-    router.push(
-      `/book?route=${route.slug}&date=${date}&passengers=${passengers}&type=${type}`,
-    );
+    if (type === "PRIVATE" && !time) return;
+
+    const qs = new URLSearchParams({
+      route: route.slug,
+      date,
+      passengers,
+      type,
+    });
+    // La hora viaja con la reserva: es lo que define la salida del privado
+    if (type === "PRIVATE") qs.set("time", time);
+
+    router.push(`/book?${qs.toString()}`);
   }
 
   const price = type === "SHARED" ? route.priceShared : route.pricePrivate;
@@ -264,6 +274,21 @@ export default function RouteDetail({ route }: Props) {
                   required
                 />
               </div>
+
+              {/* El privado sale a la hora que pida el cliente, asi que hay
+                  que preguntarla acá: sin ella la reserva no se puede armar */}
+              {type === "PRIVATE" && (
+                <div>
+                  <label style={labelStyle}>Pickup time</label>
+                  <input
+                    type="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    style={inputStyle}
+                    required
+                  />
+                </div>
+              )}
 
               {type === "SHARED" && (
                 <div>
