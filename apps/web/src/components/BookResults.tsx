@@ -43,7 +43,6 @@ export default function BookResults() {
 
   const routeSlug = params.get("route") || "";
   const date = params.get("date") || "";
-  const passengers = parseInt(params.get("passengers") || "1");
   const type = (params.get("type") || "SHARED") as "SHARED" | "PRIVATE";
   const returnDate = params.get("returnDate") || "";
   const isRoundTrip = params.get("tripType") === "ROUND_TRIP" && !!returnDate;
@@ -62,8 +61,60 @@ export default function BookResults() {
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState("");
 
+  /**
+   * Cuántos viajan, editable acá mismo.
+   *
+   * Antes venía fijo de la URL y no se podía cambiar sin volver al buscador:
+   * la salida decía "reservá 3 para abrirla" y no había dónde poner ese 3.
+   */
+  const [passengers, setPassengers] = useState(() => {
+    const n = parseInt(params.get("passengers") || "1");
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  });
+
   const [pickedOut, setPickedOut] = useState<Trip | null>(null);
   const [pickedIn, setPickedIn] = useState<Trip | null>(null);
+
+  /** Cambia el número de viajeros y lo refleja en la URL, para que el enlace siga sirviendo */
+  function changePassengers(next: number) {
+    setPassengers(next);
+
+    const qs = new URLSearchParams(params.toString());
+    qs.set("passengers", String(next));
+    router.replace(`/book?${qs.toString()}`, { scroll: false });
+
+    // Lo elegido puede dejar de alcanzar con el nuevo número: se suelta la
+    // selección en vez de mandar a pagar algo que la API va a rechazar
+    setPickedOut((prev) =>
+      prev && prev.availableSeats < next ? null : prev,
+    );
+    setPickedIn((prev) => (prev && prev.availableSeats < next ? null : prev));
+  }
+
+  /** Reserva el mínimo para poner en marcha una salida que todavía no arrancó */
+  function openDeparture(trip: Trip, pick: (t: Trip) => void) {
+    changePassengers(trip.sharedMinPassengers);
+    pick(trip);
+  }
+
+  // Ninguna salida del día llegó al mínimo: el visitante necesita saber que
+  // igual puede viajar, y con qué números
+  const noneRunning =
+    type === "SHARED" &&
+    outbound.length > 0 &&
+    !outbound.some((t) => t.sharedOpen);
+  const sharedMin = outbound[0]?.sharedMinPassengers ?? 3;
+  const startPrice = outbound[0]
+    ? Number(outbound[0].priceShared) * sharedMin
+    : 0;
+
+  const privateHref = (() => {
+    const qs = new URLSearchParams(params.toString());
+    qs.set("type", "PRIVATE");
+    // El privado necesita una hora concreta; sin ella el formulario la pide
+    if (!qs.get("time")) qs.set("time", "09:00");
+    return `/book?${qs.toString()}`;
+  })();
 
   // Datos operativos del viaje: el conductor los necesita para el pickup
   const [pickupAddress, setPickupAddress] = useState("");
@@ -248,13 +299,24 @@ export default function BookResults() {
                 !trip.sharedOpen &&
                 passengers < trip.sharedMinPassengers;
 
-              const blocked = isFull || needsToOpen;
+              // Abrirla es una opción real mientras el vehículo tenga lugar:
+              // se ofrece con su precio en vez de dejar la tarjeta muerta
+              const canOpen =
+                needsToOpen && trip.availableSeats >= trip.sharedMinPassengers;
+              const openPrice =
+                Number(trip.priceShared) * trip.sharedMinPassengers;
+
+              const blocked = isFull || (needsToOpen && !canOpen);
 
               return (
                 <button
                   key={trip.id}
                   type="button"
-                  onClick={() => !blocked && pick(trip)}
+                  onClick={() => {
+                    if (blocked) return;
+                    if (canOpen) return openDeparture(trip, pick);
+                    pick(trip);
+                  }}
                   disabled={blocked}
                   style={{
                     textAlign: "left",
@@ -307,7 +369,7 @@ export default function BookResults() {
                         >
                           {trip.sharedOpen
                             ? `${trip.confirmedSeats} confirmed · join in`
-                            : `Needs ${trip.sharedMinPassengers} to open`}
+                            : `Not running yet · ${trip.sharedMinPassengers} seats start it`}
                         </div>
                       </div>
                     )}
@@ -335,22 +397,25 @@ export default function BookResults() {
                         color: "var(--brand-green)",
                       }}
                     >
-                      ${legPrice(trip)}
+                      ${canOpen && !isSelected ? openPrice : legPrice(trip)}
                     </div>
                     <div
                       style={{
                         fontSize: "0.75rem",
-                        color: "var(--brand-gray)",
+                        color: canOpen && !isSelected
+                          ? "var(--brand-green)"
+                          : "var(--brand-gray)",
                         fontFamily: "DM Sans, sans-serif",
+                        fontWeight: canOpen && !isSelected ? 600 : 400,
                       }}
                     >
                       {isSelected
                         ? "Selected"
-                        : blocked
-                          ? needsToOpen
-                            ? `Book ${trip.sharedMinPassengers} to open`
-                            : "Not available"
-                          : "Select"}
+                        : canOpen
+                          ? `Start it — ${trip.sharedMinPassengers} seats`
+                          : blocked
+                            ? "Not available"
+                            : "Select"}
                     </div>
                   </div>
                 </button>
@@ -462,23 +527,61 @@ export default function BookResults() {
             ? "Choose both departures"
             : "Choose your departure"}
       </h1>
-      <p
-        style={{
-          color: "var(--brand-gray)",
-          fontFamily: "DM Sans, sans-serif",
-          marginBottom: "2rem",
-        }}
-      >
-        {type === "SHARED"
-          ? `${passengers} passenger${passengers > 1 ? "s" : ""} · Shared shuttle`
-          : "Private transfer · full vehicle"}
-      </p>
+      {type === "SHARED" ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.6rem",
+            flexWrap: "wrap",
+            marginBottom: "1.5rem",
+            fontFamily: "DM Sans, sans-serif",
+            color: "var(--brand-gray)",
+          }}
+        >
+          {/* Editable acá: al pedir 3 para arrancar una salida, este es el
+              lugar donde ponerlo sin volver al buscador */}
+          <label htmlFor="pax" style={{ fontSize: "0.9rem" }}>
+            Travelling
+          </label>
+          <select
+            id="pax"
+            value={passengers}
+            onChange={(e) => changePassengers(Number(e.target.value))}
+            style={{
+              padding: "6px 10px",
+              borderRadius: "8px",
+              border: "1px solid #d9d3c7",
+              fontFamily: "DM Sans, sans-serif",
+              fontSize: "0.9rem",
+              background: "#fff",
+            }}
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+              <option key={n} value={n}>
+                {n} passenger{n > 1 ? "s" : ""}
+              </option>
+            ))}
+          </select>
+          <span style={{ fontSize: "0.9rem" }}>· Shared shuttle</span>
+        </div>
+      ) : (
+        <p
+          style={{
+            color: "var(--brand-gray)",
+            fontFamily: "DM Sans, sans-serif",
+            marginBottom: "2rem",
+          }}
+        >
+          Private transfer · full vehicle
+        </p>
+      )}
 
       {type === "SHARED" && (
         <div style={noticeStyle}>
-          Shared departures open with 3 passengers. Once a departure is open,
-          anyone can join it on their own — and we never cancel a departure that
-          is already running.
+          A departure starts running once 3 seats are booked. After that anyone
+          can join it alone, and we never cancel a departure that is already
+          running. Booking 3 seats starts one yourself.
         </div>
       )}
 
@@ -486,6 +589,26 @@ export default function BookResults() {
         <div style={noticeStyle}>
           Private transfers use an exclusive vehicle at the exact time you
           requested — no shared schedule, no minimum passengers.
+        </div>
+      )}
+
+      {/* Ninguna salida en marcha todavía: en vez de dejar una lista apagada,
+          se ponen las dos alternativas con su precio */}
+      {!loading && type === "SHARED" && noneRunning && (
+        <div style={compareStyle}>
+          <strong style={{ display: "block", marginBottom: "0.35rem" }}>
+            No departure is running on this date yet.
+          </strong>
+          You can start one by booking {sharedMin} seats
+          {startPrice ? ` for $${startPrice}` : ""}, or take a private transfer
+          at the time you choose
+          {outboundRoute ? ` for $${Number(outboundRoute.pricePrivate)}` : ""}.{" "}
+          <Link
+            href={privateHref}
+            style={{ color: "var(--brand-green)", fontWeight: 600 }}
+          >
+            See the private option →
+          </Link>
         </div>
       )}
 
@@ -778,6 +901,19 @@ const noticeStyle: React.CSSProperties = {
   fontFamily: "DM Sans, sans-serif",
   fontSize: "0.85rem",
   lineHeight: 1.6,
+};
+
+/** Las dos salidas posibles cuando ninguna salida arrancó: abrir una, o privado */
+const compareStyle: React.CSSProperties = {
+  background: "#f2f7f4",
+  border: "1px solid #cfe3d7",
+  borderRadius: "10px",
+  padding: "0.95rem 1.1rem",
+  marginBottom: "1.75rem",
+  color: "var(--brand-dark)",
+  fontFamily: "DM Sans, sans-serif",
+  fontSize: "0.88rem",
+  lineHeight: 1.65,
 };
 
 const errorStyle: React.CSSProperties = {

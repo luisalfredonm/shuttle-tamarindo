@@ -23,6 +23,9 @@ function findReverse(routes: Route[], slug: string): Route | undefined {
   );
 }
 
+/** Debe coincidir con SHARED_MIN_PASSENGERS del API */
+const SHARED_MIN_PASSENGERS = 3;
+
 export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
@@ -296,6 +299,17 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
               Search Trips
             </button>
           </form>
+
+          {/* La regla del mínimo se explica acá, que es donde se elige cuántos
+              viajan. Enterarse recién en los resultados llega tarde. */}
+          {type === "SHARED" && Number(passengers) < SHARED_MIN_PASSENGERS && (
+            <p style={minNoticeStyle}>
+              Travelling with fewer than {SHARED_MIN_PASSENGERS}? You can join
+              any departure that is already running. If none is running that
+              day, booking {SHARED_MIN_PASSENGERS} seats starts one — or take a
+              private transfer at any time.
+            </p>
+          )}
         </motion.div>
       </div>
 
@@ -344,6 +358,18 @@ const labelStyle: React.CSSProperties = {
   textTransform: "uppercase",
   letterSpacing: "0.06em",
   fontFamily: "DM Sans, sans-serif",
+};
+
+const minNoticeStyle: React.CSSProperties = {
+  marginTop: "1.1rem",
+  textAlign: "center",
+  fontFamily: "DM Sans, sans-serif",
+  fontSize: "0.82rem",
+  lineHeight: 1.6,
+  color: "var(--brand-gray)",
+  maxWidth: "58ch",
+  marginLeft: "auto",
+  marginRight: "auto",
 };
 
 const emptyNoticeStyle: React.CSSProperties = {
