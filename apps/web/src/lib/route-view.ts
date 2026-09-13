@@ -1,5 +1,6 @@
 import { getRouteBySlug as getRouteContent, type RouteData } from "./routes-data";
 import type { Route } from "./api";
+import { BRAND_HERO_IMAGE } from "./brand";
 
 /**
  * Une los datos operativos de la base con el contenido editorial del archivo.
@@ -18,6 +19,8 @@ export type RouteView = RouteData & {
   /** false cuando la ruta todavia no tiene contenido escrito en el archivo */
   hasEditorialContent: boolean;
   sharedEnabled: boolean;
+  /** Siempre resuelta: la propia de la ruta o la general del servicio */
+  heroImage: string;
 };
 
 /** "08:00" -> "8:00 AM", que es como se muestra al visitante */
@@ -50,9 +53,10 @@ export function buildRouteView(route: Route): RouteView {
     sharedEnabled,
     hasEditorialContent: !!content,
 
-    heroImage:
-      content?.heroImage ??
-      `https://picsum.photos/seed/${route.slug}/1200/900`,
+    // Foto propia mientras no haya una por ruta. Antes caia en picsum, que
+    // devuelve una imagen aleatoria sin relacion con Costa Rica: no sirve ni
+    // para la pagina ni para lo que se ve al compartir el enlace.
+    heroImage: content?.heroImage ?? BRAND_HERO_IMAGE,
 
     // El texto lo escribe una persona y el precio lo pone la base: asi el copy
     // se mantiene y el dato nunca queda viejo. Antes el precio y los horarios

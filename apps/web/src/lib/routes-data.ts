@@ -7,7 +7,8 @@ export interface RouteData {
   priceShared: number;
   pricePrivate: number;
   departureHours: string[];
-  heroImage: string;
+  /** Foto propia de la ruta. Sin ella se usa la foto general del servicio. */
+  heroImage?: string;
   metaTitle: string;
   metaDescription: string;
   highlights: string[];
@@ -36,7 +37,6 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 30,
     pricePrivate: 120,
     departureHours: ["9:00 AM", "2:00 PM", "6:00 PM"],
-    heroImage: "https://picsum.photos/seed/retana-route-lir-tamarindo/1200/900",
     metaTitle: "Tamarindo to Liberia Airport Shuttle",
     metaDescription:
       "Shared shuttle and private transfers from Tamarindo to Liberia Airport (LIR). Door-to-door pickup, flight tracking and air-conditioned vehicles. Book online in 2 minutes.",
@@ -79,7 +79,6 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 30,
     pricePrivate: 120,
     departureHours: ["10:00 AM", "3:00 PM", "7:00 PM"],
-    heroImage: "https://picsum.photos/seed/retana-route-tamarindo-lir/1200/900",
     metaTitle: "Liberia Airport to Tamarindo Shuttle",
     metaDescription:
       "Shared shuttle and private transfers from Liberia Airport (LIR) to Tamarindo. Your driver meets you at arrivals and tracks your flight. Book online in 2 minutes.",
@@ -118,7 +117,6 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 55,
     pricePrivate: 220,
     departureHours: ["7:00 AM", "9:00 AM"],
-    heroImage: "https://picsum.photos/seed/retana-route-arenal/1200/900",
     metaTitle: "Tamarindo to Arenal Shuttle",
     metaDescription:
       "Shuttle from Tamarindo to Arenal and La Fortuna. Door-to-door service across Guanacaste with air-conditioned vehicles. Book online in 2 minutes.",
@@ -157,7 +155,6 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 45,
     pricePrivate: 180,
     departureHours: ["7:00 AM", "10:00 AM"],
-    heroImage: "https://picsum.photos/seed/retana-route-monteverde/1200/900",
     metaTitle: "Tamarindo to Monteverde Shuttle",
     metaDescription:
       "Shuttle from Tamarindo to Monteverde cloud forest. Door-to-door service with air-conditioned vehicles and experienced drivers. Book online in 2 minutes.",
@@ -196,7 +193,6 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 65,
     pricePrivate: 260,
     departureHours: ["6:00 AM", "8:00 AM"],
-    heroImage: "https://picsum.photos/seed/retana-route-san-jose/1200/900",
     metaTitle: "Tamarindo to San José Shuttle",
     metaDescription:
       "Shuttle from Tamarindo to San Jose and SJO airport. Door-to-door service with flight tracking and air-conditioned vehicles. Book online in 2 minutes.",
@@ -231,7 +227,6 @@ export const ROUTES_DATA: RouteData[] = [
     priceShared: 35,
     pricePrivate: 140,
     departureHours: ["9:00 AM", "2:00 PM"],
-    heroImage: "https://picsum.photos/seed/retana-route-nosara/1200/900",
     metaTitle: "Tamarindo to Nosara Shuttle",
     metaDescription:
       "Shuttle from Tamarindo to Nosara. Door-to-door service along the Guanacaste coast with air-conditioned vehicles. Book online in 2 minutes.",

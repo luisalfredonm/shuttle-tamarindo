@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import Analytics from "@/components/Analytics";
+import { BRAND_HERO_IMAGE, BRAND_LOGO } from "@/lib/brand";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://shuttletamarindo.com";
@@ -59,7 +60,9 @@ export const metadata: Metadata = {
       "Shared shuttles and private transfers from Tamarindo to Liberia Airport. Guaranteed departures, no minimum passengers. Book online in 2 minutes.",
     images: [
       {
-        url: BASE_URL + "/og-image.jpg",
+        // Foto real del servicio. Antes apuntaba a /og-image.jpg, que no
+        // existe: cada enlace compartido salia con la imagen rota.
+        url: BASE_URL + BRAND_HERO_IMAGE,
         width: 1200,
         height: 630,
         alt: "Retana Services Tamarindo — Guaranteed Transfers in Guanacaste",
@@ -71,7 +74,7 @@ export const metadata: Metadata = {
     title: "Retana Services Tamarindo | Guaranteed Transfers in Guanacaste",
     description:
       "Shared shuttles and private transfers in Guanacaste. From $30/person. Guaranteed departures.",
-    images: [BASE_URL + "/og-image.jpg"],
+    images: [BASE_URL + BRAND_HERO_IMAGE],
   },
   alternates: {
     canonical: BASE_URL,
@@ -89,8 +92,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* Apuntan al logo, que existe: /favicon.ico y /apple-touch-icon.png
+            estaban referenciados pero nunca se subieron, y devolvian 404 en
+            cada carga. Conviene generar los tamanos propios mas adelante. */}
+        <link rel="icon" href={BRAND_LOGO} type="image/png" />
+        <link rel="apple-touch-icon" href={BRAND_LOGO} />
         <link rel="manifest" href="/manifest.json" />
       </head>
       {/* suppressHydrationWarning: extensiones del navegador (ColorZilla, Grammarly)

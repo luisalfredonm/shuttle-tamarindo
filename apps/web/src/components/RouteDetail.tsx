@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { displayPrice, type RouteView } from "@/lib/route-view";
 
@@ -68,15 +69,47 @@ export default function RouteDetail({ route }: Props) {
         {/* Hero */}
         <section
           style={{
+            position: "relative",
             background:
               "linear-gradient(135deg, var(--brand-dark) 0%, var(--brand-green) 100%)",
             padding: "5rem 2rem 4rem",
             textAlign: "center",
+            overflow: "hidden",
           }}
         >
-          <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+          {/* La foto de la ruta: el campo existia y no se renderizaba en
+              ningun lado, asi que la unica imagen de la pagina era el logo.
+              Va detras del texto, con el degradado encima para que el
+              contraste del titulo no dependa de la foto. */}
+          <Image
+            src={route.heroImage}
+            alt={`Shuttle from ${route.origin} to ${route.destination}`}
+            fill
+            priority
+            sizes="100vw"
+            style={{ objectFit: "cover", zIndex: 0 }}
+          />
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 1,
+              background:
+                "linear-gradient(135deg, rgba(13,31,23,0.88) 0%, rgba(26,107,74,0.82) 100%)",
+            }}
+          />
+
+          <div
+            style={{
+              maxWidth: "700px",
+              margin: "0 auto",
+              position: "relative",
+              zIndex: 2,
+            }}
+          >
             <Link
-              href="/"
+              href="/routes"
               style={{
                 color: "rgba(255,255,255,0.55)",
                 fontFamily: "DM Sans, sans-serif",
@@ -507,7 +540,7 @@ export default function RouteDetail({ route }: Props) {
                 style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
               >
                 {route.faqs.map((faq, i) => (
-                  <FaqItem key={i} q={faq.q} a={faq.a} />
+                  <FaqItem key={i} id={String(i)} q={faq.q} a={faq.a} />
                 ))}
               </div>
             </div>
@@ -599,8 +632,22 @@ export default function RouteDetail({ route }: Props) {
   );
 }
 
-function FaqItem({ q, a }: { q: string; a: string }) {
+/**
+ * Pregunta del FAQ.
+ *
+ * La respuesta se renderiza siempre y se colapsa con CSS. Antes se montaba
+ * recien al hacer clic, asi que el HTML servido tenia las preguntas y ninguna
+ * respuesta: un buscador o un motor de IA que no ejecuta JavaScript veia una
+ * pagina que preguntaba cuatro cosas y no contestaba ninguna, justo el
+ * contenido con mas posibilidades de ser citado.
+ *
+ * La pregunta va en un h3 porque los encabezados en forma de pregunta son lo
+ * que usan los extractores para trocear la pagina en respuestas citables.
+ */
+function FaqItem({ q, a, id }: { q: string; a: string; id: string }) {
   const [open, setOpen] = useState(false);
+  const panelId = `faq-panel-${id}`;
+
   return (
     <div
       style={{
@@ -609,57 +656,68 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         overflow: "hidden",
       }}
     >
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          width: "100%",
-          textAlign: "left",
-          padding: "1.1rem 1.25rem",
-          background: open ? "var(--brand-cream)" : "#fff",
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "1rem",
-        }}
-      >
-        <span
+      <h3 style={{ margin: 0 }}>
+        <button
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          aria-controls={panelId}
           style={{
+            width: "100%",
+            textAlign: "left",
+            padding: "1.1rem 1.25rem",
+            background: open ? "var(--brand-cream)" : "#fff",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "1rem",
             fontFamily: "DM Sans, sans-serif",
             fontWeight: 500,
             fontSize: "0.95rem",
             color: "var(--brand-dark)",
           }}
         >
-          {q}
-        </span>
-        <span
-          style={{
-            color: "var(--brand-green)",
-            fontSize: "1.2rem",
-            flexShrink: 0,
-            transform: open ? "rotate(45deg)" : "none",
-            transition: "transform 0.2s",
-          }}
-        >
-          +
-        </span>
-      </button>
-      {open && (
-        <div
-          style={{
-            padding: "0 1.25rem 1.1rem",
-            fontFamily: "DM Sans, sans-serif",
-            fontSize: "0.9rem",
-            color: "var(--brand-gray)",
-            lineHeight: 1.7,
-            background: "var(--brand-cream)",
-          }}
-        >
-          {a}
+          <span>{q}</span>
+          <span
+            aria-hidden="true"
+            style={{
+              color: "var(--brand-green)",
+              fontSize: "1.2rem",
+              flexShrink: 0,
+              transform: open ? "rotate(45deg)" : "none",
+              transition: "transform 0.2s",
+            }}
+          >
+            +
+          </span>
+        </button>
+      </h3>
+
+      {/* grid 0fr -> 1fr colapsa sin sacar el texto del documento */}
+      <div
+        id={panelId}
+        style={{
+          display: "grid",
+          gridTemplateRows: open ? "1fr" : "0fr",
+          transition: "grid-template-rows 0.24s ease",
+          background: "var(--brand-cream)",
+        }}
+      >
+        <div style={{ overflow: "hidden" }}>
+          <div
+            style={{
+              padding: "0 1.25rem 1.1rem",
+              fontFamily: "DM Sans, sans-serif",
+              fontSize: "0.9rem",
+              color: "var(--brand-gray)",
+              lineHeight: 1.7,
+            }}
+          >
+            {a}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
