@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpenCheck, Bus, CalendarClock, Route, UserRound, LogOut, ArrowUpRight, Menu, X } from 'lucide-react';
+import { LayoutDashboard, BookOpenCheck, Bus, CalendarClock, CreditCard, Route, UserRound, LogOut, ArrowUpRight, Menu, X } from 'lucide-react';
 
 const NAV = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const NAV = [
   { label: 'Trips',     href: '/trips',     icon: Bus },
   { label: 'Schedules', href: '/schedules', icon: CalendarClock },
   { label: 'Routes',    href: '/routes',    icon: Route },
+  { label: 'Payments',  href: '/payments',  icon: CreditCard },
   { label: 'Profile',   href: '/profile',   icon: UserRound },
 ];
 

@@ -48,6 +48,14 @@ export class PayPalProvider implements PaymentProvider {
     return !!this.clientId && !!this.clientSecret;
   }
 
+  mode(): 'sandbox' | 'live' {
+    return this.isSandbox ? 'sandbox' : 'live';
+  }
+
+  publicKey(): string | null {
+    return this.clientId ?? null;
+  }
+
   async verifyCredentials(): Promise<{ ok: boolean; detail: string }> {
     if (!this.isConfigured()) {
       return {

@@ -41,8 +41,10 @@ export class PaymentConfigService {
         label,
         sortOrder: config?.sortOrder ?? sortOrder,
         isEnabled: config?.isEnabled ?? false,
-        isSandbox: config?.isSandbox ?? true,
-        publicKey: config?.publicKey ?? null,
+        /** Del entorno: depende de que credenciales hay cargadas */
+        mode: impl ? impl.mode() : null,
+        /** clientId recortado: alcanza para reconocerlo sin copiarlo entero */
+        publicKeyHint: impl?.publicKey() ? maskKey(impl.publicKey()!) : null,
         /** false cuando el proveedor todavia no tiene implementacion */
         isSupported: !!impl,
         /** true cuando el entorno tiene las credenciales cargadas */
@@ -52,10 +54,7 @@ export class PaymentConfigService {
     });
   }
 
-  async update(
-    provider: string,
-    data: { isEnabled?: boolean; isSandbox?: boolean; publicKey?: string },
-  ) {
+  async update(provider: string, data: { isEnabled?: boolean }) {
     const known = KNOWN_PROVIDERS.find((p) => p.provider === provider);
     if (!known) throw new NotFoundException('Metodo de pago desconocido');
 
@@ -76,14 +75,10 @@ export class PaymentConfigService {
       create: {
         provider: provider as any,
         isEnabled: data.isEnabled ?? false,
-        isSandbox: data.isSandbox ?? true,
-        publicKey: data.publicKey ?? null,
         sortOrder: known.sortOrder,
       },
       update: {
         ...(data.isEnabled !== undefined && { isEnabled: data.isEnabled }),
-        ...(data.isSandbox !== undefined && { isSandbox: data.isSandbox }),
-        ...(data.publicKey !== undefined && { publicKey: data.publicKey }),
       },
     });
   }
@@ -96,4 +91,9 @@ export class PaymentConfigService {
     }
     return impl.verifyCredentials();
   }
+}
+
+/** "AQMDBOiU8YD9...fLFwfg" -> "AQMDBO…LFwfg" */
+function maskKey(key: string): string {
+  return key.length <= 12 ? key : `${key.slice(0, 6)}…${key.slice(-5)}`;
 }

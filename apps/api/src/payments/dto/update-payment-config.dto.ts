@@ -1,24 +1,14 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean } from 'class-validator';
 
 /**
- * Solo configuracion, nunca secretos.
+ * Lo unico que se cambia desde el panel: si el metodo se ofrece o no.
  *
- * El client secret y las api keys se leen de variables de entorno del
- * servidor; este DTO no las acepta a proposito, para que no exista un camino
- * por el que una credencial entre desde el navegador.
+ * Credenciales, modo sandbox/live y clientId salen de variables de entorno del
+ * servidor. No hay campo para ninguno a proposito: asi no existe un camino por
+ * el que una credencial entre desde el navegador, ni forma de que el panel
+ * diga "live" mientras el servidor tiene cargadas las de sandbox.
  */
 export class UpdatePaymentConfigDto {
-  @IsOptional()
   @IsBoolean()
-  isEnabled?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isSandbox?: boolean;
-
-  /** Identificador publico (clientId de PayPal), no un secreto */
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  publicKey?: string;
+  isEnabled: boolean;
 }

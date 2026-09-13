@@ -52,12 +52,15 @@ export class PaymentsService {
           return false;
         }
       })
-      .map((c) => ({
-        provider: c.provider,
-        isSandbox: c.isSandbox,
-        // El clientId es publico: el SDK de PayPal lo necesita en el navegador
-        publicKey: c.publicKey,
-      }));
+      .map((c) => {
+        const provider = this.providerFor(c.provider);
+        return {
+          provider: c.provider,
+          mode: provider.mode(),
+          // El clientId es publico: el SDK de PayPal lo necesita en el navegador
+          publicKey: provider.publicKey(),
+        };
+      });
   }
 
   /**
@@ -101,7 +104,11 @@ export class PaymentsService {
         currency: 'USD',
         status: 'PENDING',
       },
-      update: { provider: provider.name, orderId: order.orderId },
+      update: {
+        provider: provider.name,
+        orderId: order.orderId,
+        status: 'PENDING',
+      },
     });
 
     return {
@@ -136,11 +143,16 @@ export class PaymentsService {
     const result = await provider.captureOrder(orderId);
 
     if (!result.success) {
-      await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: 'FAILED' },
-      });
-      throw new BadRequestException(result.error || 'El pago fue rechazado');
+      // Sin aprobar todavia no es un fallo: el cliente puede volver al widget y
+      // terminar. Marcarlo FAILED ensuciaria el historial de pagos del panel.
+      const pending = result.error === 'ORDER_NOT_APPROVED';
+      if (!pending) {
+        await this.prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'FAILED' },
+        });
+      }
+      throw new BadRequestException(customerMessage(result.error));
     }
 
     // Se cobro algo distinto de lo que la reserva vale: no se confirma sola.
@@ -357,5 +369,27 @@ export class PaymentsService {
     // No devolvemos la reserva anidada: solo se cargó para validar el permiso
     const { reservation: _owner, ...rest } = payment;
     return rest;
+  }
+}
+
+/**
+ * Traduce el codigo de la pasarela a algo que el cliente pueda usar.
+ *
+ * Los codigos como INSTRUMENT_DECLINED son para el log, no para la pantalla de
+ * pago: al cliente hay que decirle que paso y que puede hacer.
+ */
+function customerMessage(code?: string): string {
+  switch (code) {
+    case 'ORDER_NOT_APPROVED':
+      return 'Your payment has not been approved yet. Please finish it in the PayPal window.';
+    case 'INSTRUMENT_DECLINED':
+    case 'PAYER_ACTION_REQUIRED':
+      return 'Your bank or PayPal declined the payment. Please try another card or account.';
+    case 'ORDER_ALREADY_CAPTURED':
+      return 'This payment has already been processed.';
+    default:
+      // No se afirma que no hubo cobro: ante un corte de red la pasarela pudo
+      // haber cobrado igual, y el webhook lo va a reconciliar.
+      return 'We could not confirm your payment. If you see a charge on your account, contact us before trying again.';
   }
 }

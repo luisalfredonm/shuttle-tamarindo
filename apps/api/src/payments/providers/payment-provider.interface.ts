@@ -34,6 +34,23 @@ export interface PaymentProvider {
   /** false cuando faltan credenciales en el entorno */
   isConfigured(): boolean;
 
+  /**
+   * Modo segun las credenciales cargadas.
+   *
+   * Sale del entorno y no de un interruptor del panel: sandbox y live usan
+   * pares de credenciales distintos, asi que marcar "live" con credenciales de
+   * sandbox solo produciria cobros fallidos.
+   */
+  mode(): 'sandbox' | 'live';
+
+  /**
+   * Identificador publico que necesita el SDK del navegador.
+   *
+   * Tambien del entorno: si se cargara aparte y no coincidiera con el secret
+   * del servidor, el boton abriria pero la orden no se podria aprobar.
+   */
+  publicKey(): string | null;
+
   /** Prueba las credenciales contra el proveedor, para el boton del panel */
   verifyCredentials(): Promise<{ ok: boolean; detail: string }>;
 
