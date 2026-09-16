@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, BookOpenCheck, Bus, CalendarClock, CreditCard, Route, UserRound, LogOut, ArrowUpRight, Menu, X } from 'lucide-react';
 
+/** Sitio publico al que apunta "View website". En produccion hay que
+ *  cargar NEXT_PUBLIC_SITE_URL: sin eso el link manda al localhost del que mira. */
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
 const NAV = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Bookings',  href: '/bookings',  icon: BookOpenCheck },
@@ -112,7 +116,7 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div style={{ padding: '0.875rem 1rem', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer"
+          <a href={SITE_URL} target="_blank" rel="noopener noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.45)', fontSize: '0.8rem', padding: '6px 4px', borderRadius: '6px', transition: 'color 0.15s' }}>
             <ArrowUpRight size={14} />
             <span className="sidebar-footer-text">View website</span>
