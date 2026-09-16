@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getPostBySlug, BLOG_POSTS } from "@/app/blog/posts";
+import { getPostBySlug, BLOG_POSTS, type BlogPost } from "@/app/blog/posts";
 import BlogPostContent from "@/components/BlogPostContent";
+import {
+  BRAND_NAME,
+  BRAND_HERO_IMAGE,
+  SITE_URL as BASE_URL,
+} from "@/lib/brand";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -16,17 +21,71 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = getPostBySlug(slug);
   if (!post) return {};
 
+  const url = `${BASE_URL}/blog/${slug}`;
+  const image = BASE_URL + BRAND_HERO_IMAGE;
+
   return {
     title: post.metaTitle,
     description: post.metaDescription,
     keywords: post.keywords,
+
+    // Sin canonical cada post heredaba el de la home (el del layout) y Google
+    // los tomaba como duplicados de la portada: mismo error que ya se corrigió
+    // en las landings de ruta.
+    alternates: { canonical: url },
+
+    // openGraph completo, no parcial: Next reemplaza el objeto entero del
+    // layout, así que lo que no se repita aquí (url, siteName, images)
+    // desaparece del enlace compartido.
     openGraph: {
       title: post.metaTitle,
       description: post.metaDescription,
       type: "article",
+      url,
+      siteName: BRAND_NAME,
       publishedTime: post.publishedAt,
+      images: [{ url: image, width: 1200, height: 630, alt: post.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.metaTitle,
+      description: post.metaDescription,
+      images: [image],
     },
   };
+}
+
+/** JSON-LD BlogPosting: habilita el resultado enriquecido de artículo en Google. */
+function ArticleSchema({ post }: { post: BlogPost }) {
+  const url = `${BASE_URL}/blog/${post.slug}`;
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "@id": url + "#article",
+    mainEntityOfPage: url,
+    headline: post.title,
+    description: post.metaDescription,
+    image: BASE_URL + BRAND_HERO_IMAGE,
+    articleSection: post.category,
+    keywords: post.keywords.join(", "),
+    datePublished: post.publishedAt,
+    dateModified: post.publishedAt,
+    inLanguage: "en",
+    author: { "@type": "Organization", name: BRAND_NAME, url: BASE_URL },
+    publisher: {
+      "@type": "Organization",
+      name: BRAND_NAME,
+      url: BASE_URL,
+      logo: { "@type": "ImageObject", url: BASE_URL + BRAND_HERO_IMAGE },
+    },
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
 }
 
 export default async function BlogPostPage({ params }: Props) {
@@ -38,5 +97,10 @@ export default async function BlogPostPage({ params }: Props) {
     (p) => p.slug !== slug && p.category === post.category,
   ).slice(0, 3);
 
-  return <BlogPostContent post={post} related={related} />;
+  return (
+    <>
+      <ArticleSchema post={post} />
+      <BlogPostContent post={post} related={related} />
+    </>
+  );
 }
