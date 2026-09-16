@@ -10,6 +10,9 @@ Plataforma de reservas de shuttles y transfers en Guanacaste, Costa Rica.
 - **Pagos:** PayPal (BAC Credomatic pendiente de implementar)
 - **Hosting:** Vercel (web y admin), Render (API), Neon (PostgreSQL)
 
+> Dónde está hospedado cada servicio, qué variable lo conecta con el siguiente
+> y qué falta para salir a producción: [INFRAESTRUCTURA.md](../INFRAESTRUCTURA.md)
+
 ## Estructura
 
 ## Requisitos
