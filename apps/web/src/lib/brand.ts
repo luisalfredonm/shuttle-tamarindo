@@ -34,3 +34,7 @@ export const BRAND_HERO_IMAGE = "/hero-shuttle-tamarindo-sunset.jpg";
  */
 export const BRAND_PHONE = "+50683183226";
 export const BRAND_WHATSAPP = "50683183226";
+
+/** Autor de los artículos del blog. Alimenta el byline visible y el schema
+ *  Person (E-E-A-T: Google valora una identidad de autor real y consistente). */
+export const BRAND_AUTHOR = "Christian Retana";

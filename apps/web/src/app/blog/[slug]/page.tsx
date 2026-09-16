@@ -5,6 +5,7 @@ import BlogPostContent from "@/components/BlogPostContent";
 import {
   BRAND_NAME,
   BRAND_HERO_IMAGE,
+  BRAND_AUTHOR,
   SITE_URL as BASE_URL,
 } from "@/lib/brand";
 
@@ -43,6 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: "article",
       url,
       siteName: BRAND_NAME,
+      authors: [BRAND_AUTHOR],
       publishedTime: post.publishedAt,
       images: [{ url: image, width: 1200, height: 630, alt: post.title }],
     },
@@ -71,9 +73,14 @@ function ArticleSchema({ post }: { post: BlogPost }) {
     datePublished: post.publishedAt,
     dateModified: post.publishedAt,
     inLanguage: "en",
-    author: { "@type": "Organization", name: BRAND_NAME, url: BASE_URL },
+    author: {
+      "@type": "Person",
+      name: BRAND_AUTHOR,
+      worksFor: { "@id": BASE_URL + "/#organization" },
+    },
     publisher: {
       "@type": "Organization",
+      "@id": BASE_URL + "/#organization",
       name: BRAND_NAME,
       url: BASE_URL,
       logo: { "@type": "ImageObject", url: BASE_URL + BRAND_HERO_IMAGE },

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BlogPost } from "@/app/blog/posts";
+import { BRAND_AUTHOR } from "@/lib/brand";
 
 interface Props {
   post: BlogPost;
@@ -129,7 +130,7 @@ export default function BlogPostContent({ post, related }: Props) {
                 fontFamily: "DM Sans, sans-serif",
               }}
             >
-              Published{" "}
+              By {BRAND_AUTHOR} · Published{" "}
               {new Date(post.publishedAt).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
