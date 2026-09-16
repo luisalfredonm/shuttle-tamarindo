@@ -7,8 +7,8 @@ Plataforma de reservas de shuttles y transfers en Guanacaste, Costa Rica.
 - **Frontend:** Next.js 14 (App Router) + Tailwind CSS
 - **Backend:** NestJS + Prisma
 - **Base de datos:** PostgreSQL
-- **Pagos:** BAC Credomatic (simulado en desarrollo)
-- **Hosting:** Contabo
+- **Pagos:** PayPal (BAC Credomatic pendiente de implementar)
+- **Hosting:** Vercel (web y admin), Render (API), Neon (PostgreSQL)
 
 ## Estructura
 

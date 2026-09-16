@@ -1,5 +1,5 @@
 # Construye desde la raiz del monorepo: Root Directory = "." y
-# Dockerfile Path = "apps/api/Dockerfile" en la config del servicio de Railway.
+# Dockerfile Path = "apps/api/Dockerfile" en la config del servicio de Render.
 # Se necesita el repo completo porque apps/api depende del workspace @shuttle/database.
 
 FROM node:20-alpine AS build

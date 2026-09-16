@@ -6,7 +6,7 @@ export class HealthController {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Sonda de salud para el orquestador (Railway, Docker, balanceador).
+   * Sonda de salud para el orquestador (Render, Docker, balanceador).
    *
    * No alcanza con responder que el proceso esta vivo: si la base no contesta
    * la API no sirve para nada, asi que hace un SELECT 1 y devuelve 503 para que
