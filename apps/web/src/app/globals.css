@@ -1,6 +1,6 @@
-/* Playfair Display se usa como display face en 14 componentes pero nunca se
-   estaba cargando: caía al serif por defecto del navegador (Times). */
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:wght@500;600;700&display=swap");
+/* DM Sans y Playfair Display se auto-hospedan vía @fontsource, importadas en
+   app/layout.tsx. Antes se cargaban con un @import a Google Fonts que bloqueaba
+   el render (peor LCP); ahora llegan self-hosted, sin request bloqueante. */
 @import "tailwindcss";
 
 

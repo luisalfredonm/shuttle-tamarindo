@@ -1,4 +1,14 @@
 ﻿import type { Metadata, Viewport } from "next";
+// Fuentes auto-hospedadas: reemplazan el @import de Google Fonts, que bloqueaba
+// el render. Solo los pesos que se usan (DM Sans 300/400/500, Playfair 500/600/700).
+// @fontsource registra las familias con su nombre real ("DM Sans", "Playfair
+// Display"), así que los estilos inline de los componentes siguen funcionando.
+import "@fontsource/dm-sans/300.css";
+import "@fontsource/dm-sans/400.css";
+import "@fontsource/dm-sans/500.css";
+import "@fontsource/playfair-display/500.css";
+import "@fontsource/playfair-display/600.css";
+import "@fontsource/playfair-display/700.css";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
