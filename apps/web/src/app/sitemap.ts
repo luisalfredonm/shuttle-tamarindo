@@ -1,9 +1,7 @@
 import { MetadataRoute } from "next";
 import { BLOG_POSTS } from "@/app/blog/posts";
 import { getActiveRoutes } from "@/lib/api";
-
-const BASE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://shuttletamarindo.com";
+import { SITE_URL as BASE_URL } from "@/lib/brand";
 
 /**
  * El sitemap sale de la base, no de una lista fija.

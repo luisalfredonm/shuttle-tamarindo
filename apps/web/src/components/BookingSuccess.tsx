@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { authFetch, outboundTrip } from '@/lib/api';
+import { BRAND_WHATSAPP } from '@/lib/brand';
 import BookingLegs from './BookingLegs';
 
 export default function BookingSuccess() {
@@ -164,7 +165,7 @@ export default function BookingSuccess() {
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <a
-          href={'https://wa.me/50688888888?text=Hi! My booking ID is ' + booking.id.slice(0,8).toUpperCase()}
+          href={`https://wa.me/${BRAND_WHATSAPP}?text=Hi! My booking ID is ` + booking.id.slice(0,8).toUpperCase()}
           target="_blank"
           rel="noopener noreferrer"
           style={{

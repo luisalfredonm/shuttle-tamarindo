@@ -4,10 +4,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import Analytics from "@/components/Analytics";
-import { BRAND_HERO_IMAGE, BRAND_LOGO } from "@/lib/brand";
-
-const BASE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://shuttletamarindo.com";
+import WhatsAppButton from "@/components/WhatsAppButton";
+import { BRAND_HERO_IMAGE, BRAND_LOGO, SITE_URL as BASE_URL } from "@/lib/brand";
 
 export const viewport: Viewport = {
   themeColor: "#1a6b4a",
@@ -107,6 +105,7 @@ export default function RootLayout({
           <Navbar />
           {children}
           <Footer />
+          <WhatsAppButton />
           <Analytics />
         </AuthProvider>
       </body>

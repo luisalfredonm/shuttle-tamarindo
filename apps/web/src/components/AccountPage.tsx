@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
 import { authFetch, outboundTrip } from '@/lib/api';
+import { BRAND_WHATSAPP } from '@/lib/brand';
 
 interface Leg {
   direction: 'OUTBOUND' | 'RETURN';
@@ -196,7 +197,7 @@ function BookingCard({ booking }: { booking: Booking }) {
           )}
 
           {booking.status === 'CONFIRMED' && !isPast && (
-            <a href={'https://wa.me/50688888888?text=My booking ID is ' + booking.id.slice(0, 8).toUpperCase()} target="_blank" rel="noopener noreferrer" style={{ background: '#25D366', color: '#fff', borderRadius: '8px', padding: '9px 18px', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.875rem', textDecoration: 'none' }}>
+            <a href={`https://wa.me/${BRAND_WHATSAPP}?text=My booking ID is ` + booking.id.slice(0, 8).toUpperCase()} target="_blank" rel="noopener noreferrer" style={{ background: '#25D366', color: '#fff', borderRadius: '8px', padding: '9px 18px', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.875rem', textDecoration: 'none' }}>
               WhatsApp
             </a>
           )}

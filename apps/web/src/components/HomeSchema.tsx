@@ -1,9 +1,9 @@
-import { BRAND_LOGO, BRAND_FOUNDED } from "@/lib/brand";
-
-// TODO(dominio): cuando se defina el dominio definitivo, cambiarlo acá y en
-// app/layout.tsx (metadataBase), app/robots.ts y app/sitemap.ts — los cuatro juntos.
-const BASE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://shuttletamarindo.com";
+import {
+  BRAND_LOGO,
+  BRAND_FOUNDED,
+  BRAND_PHONE,
+  SITE_URL as BASE_URL,
+} from "@/lib/brand";
 
 export default function HomeSchema() {
   const schema = {
@@ -21,15 +21,13 @@ export default function HomeSchema() {
         },
         contactPoint: {
           "@type": "ContactPoint",
-          telephone: "+50688888888",
+          telephone: BRAND_PHONE,
           contactType: "customer service",
           availableLanguage: ["English", "Spanish"],
         },
-        sameAs: [
-          "https://www.tripadvisor.com",
-          "https://www.facebook.com",
-          "https://www.instagram.com",
-        ],
+        // sameAs: se agregan los perfiles (Facebook, Instagram, TripAdvisor)
+        // cuando existan. Un sameAs a la raíz del dominio, sin perfil real,
+        // resta credibilidad al schema en vez de sumarla.
         areaServed: {
           "@type": "State",
           name: "Guanacaste",
@@ -46,7 +44,7 @@ export default function HomeSchema() {
         description:
           "Shared shuttles and private transfers in Guanacaste, Costa Rica.",
         url: BASE_URL,
-        telephone: "+50688888888",
+        telephone: BRAND_PHONE,
         priceRange: "$30 - $260",
         address: {
           "@type": "PostalAddress",

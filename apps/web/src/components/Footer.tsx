@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MessageCircle } from 'lucide-react';
 import { getActiveRoutes } from "@/lib/api";
-import { BRAND_LOGO, BRAND_FOUNDED } from "@/lib/brand";
+import { BRAND_LOGO, BRAND_FOUNDED, BRAND_WHATSAPP } from "@/lib/brand";
 
 const COMPANY = [
   { label: 'About Us',     href: '/about' },
@@ -15,7 +15,7 @@ const SUPPORT = [
   { label: 'My Bookings',      href: '/account' },
   { label: 'Cancellation Policy', href: '/cancellation' },
   { label: 'FAQ',              href: '/faq' },
-  { label: 'WhatsApp Support', href: 'https://wa.me/50688888888' },
+  { label: 'WhatsApp Support', href: `https://wa.me/${BRAND_WHATSAPP}` },
 ];
 
 export default async function Footer() {
@@ -91,7 +91,7 @@ export default async function Footer() {
               Guaranteed departures, no minimum passengers.
             </p>
             <a
-              href="https://wa.me/50688888888"
+              href={`https://wa.me/${BRAND_WHATSAPP}`}
               target="_blank"
               rel="noopener noreferrer"
               className="footer-whatsapp"
