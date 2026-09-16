@@ -268,6 +268,9 @@ export default function Navbar() {
           {/* Hamburger */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
             style={{
               background: "none",
               border: "none",
@@ -298,6 +301,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div
+          id="mobile-menu"
           style={{
             position: "fixed",
             top: "68px",

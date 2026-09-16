@@ -10,7 +10,9 @@
   --brand-gold: #c9973a;
   --brand-dark: #0d1f17;
   --brand-cream: #f7f3ec;
-  --brand-gray: #6b7b74;
+  /* Oscurecido desde #6b7b74: sobre el crema daba 4.03:1 y el texto normal
+     necesita 4.5:1. Con este llega a 5.1:1 sin cambiar el tono. */
+  --brand-gray: #5a6b63;
   --sidebar-w: 240px;
   /* Se usaba con var(--radius) sin estar definida, así que los botones
      quedaban con esquinas rectas */

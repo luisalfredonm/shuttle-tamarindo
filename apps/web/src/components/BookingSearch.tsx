@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { cloneElement, useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import { MapPin, CalendarDays, Clock, Users, Search } from "lucide-react";
@@ -327,6 +327,13 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
   );
 }
 
+/**
+ * Etiqueta + campo, atados por id.
+ *
+ * El id se genera acá y se le inyecta al control: sin htmlFor, un lector de
+ * pantalla anuncia "combo box" sin decir de qué, y el usuario no sabe si está
+ * eligiendo la ruta, la fecha o los pasajeros.
+ */
 function Field({
   label,
   icon,
@@ -334,15 +341,17 @@ function Field({
 }: {
   label: string;
   icon: React.ReactNode;
-  children: React.ReactNode;
+  children: React.ReactElement<{ id?: string }>;
 }) {
+  const id = useId();
+
   return (
     <div>
-      <label style={labelStyle}>
+      <label htmlFor={id} style={labelStyle}>
         <span style={{ display: "inline-flex", color: "var(--brand-gold)" }}>{icon}</span>
         {label}
       </label>
-      {children}
+      {cloneElement(children, { id })}
     </div>
   );
 }

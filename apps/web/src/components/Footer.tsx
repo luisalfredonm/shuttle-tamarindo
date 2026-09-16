@@ -85,7 +85,7 @@ export default async function Footer() {
             <p style={{
               fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem',
               lineHeight: 1.7, marginBottom: '1.5rem',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'rgba(255,255,255,0.7)',
             }}>
               The most reliable shuttle service in Guanacaste.
               Guaranteed departures, no minimum passengers.
@@ -97,7 +97,9 @@ export default async function Footer() {
               className="footer-whatsapp"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
-                background: '#25D366', color: '#fff',
+                // Texto oscuro sobre el verde de WhatsApp: en blanco no llega
+                // al contraste minimo y el verde es el que lo hace reconocible
+                background: '#25D366', color: 'var(--brand-dark)',
                 padding: '9px 16px', borderRadius: '8px',
                 fontFamily: 'DM Sans, sans-serif', fontSize: '0.85rem',
                 fontWeight: 500, textDecoration: 'none',
@@ -122,7 +124,7 @@ export default async function Footer() {
               {ROUTES.map(r => (
                 <li key={r.href}>
                   <Link href={r.href} className="footer-link" style={{
-                    color: 'rgba(255,255,255,0.5)',
+                    color: 'rgba(255,255,255,0.72)',
                     fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem',
                     textDecoration: 'none',
                   }}>
@@ -147,7 +149,7 @@ export default async function Footer() {
               {COMPANY.map(r => (
                 <li key={r.href}>
                   <Link href={r.href} className="footer-link" style={{
-                    color: 'rgba(255,255,255,0.5)',
+                    color: 'rgba(255,255,255,0.72)',
                     fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem',
                     textDecoration: 'none',
                   }}>
@@ -172,7 +174,7 @@ export default async function Footer() {
               {SUPPORT.map(r => (
                 <li key={r.href}>
                   <Link href={r.href} className="footer-link" style={{
-                    color: 'rgba(255,255,255,0.5)',
+                    color: 'rgba(255,255,255,0.72)',
                     fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem',
                     textDecoration: 'none',
                   }}>
@@ -186,7 +188,7 @@ export default async function Footer() {
 
         {/* Divider */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)' }}>
+          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.8rem', color: 'rgba(255,255,255,0.62)' }}>
             © {new Date().getFullYear()} Retana Services Tamarindo. All rights reserved.
             {' '}Site by{' '}
             <a
@@ -194,7 +196,9 @@ export default async function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               className="footer-link"
-              style={{ color: 'rgba(255,255,255,0.42)', textDecoration: 'none' }}
+              // Subrayado a proposito: dentro de un parrafo, el color solo no
+              // alcanza para que se vea que es un enlace
+              style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'underline' }}
             >
               321 Solutions
             </a>
@@ -205,7 +209,7 @@ export default async function Footer() {
               { label: 'Terms of Service', href: '/terms' },
             ].map(r => (
               <Link key={r.href} href={r.href} className="footer-link" style={{
-                color: 'rgba(255,255,255,0.3)',
+                color: 'rgba(255,255,255,0.62)',
                 fontFamily: 'DM Sans, sans-serif', fontSize: '0.8rem',
                 textDecoration: 'none',
               }}>
