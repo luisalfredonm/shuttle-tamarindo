@@ -6,11 +6,17 @@ import { Resend } from 'resend';
 export class EmailService {
   private resend: Resend;
   private from: string;
+  /** Sitio publico al que apuntan los botones de los correos */
+  private siteUrl: string;
   private readonly logger = new Logger(EmailService.name);
 
   constructor(private config: ConfigService) {
     this.resend = new Resend(this.config.get('RESEND_API_KEY'));
     this.from = this.config.get('EMAIL_FROM') || 'onboarding@resend.dev';
+    // Sin barra final: los enlaces la agregan al armar la ruta
+    this.siteUrl = (
+      this.config.get('SITE_URL') || 'https://retanaservices.com'
+    ).replace(/\/$/, '');
   }
 
   async sendWelcome(to: string, name: string) {
@@ -35,7 +41,7 @@ export class EmailService {
               </ul>
             </div>
             <div style="text-align: center;">
-              <a href="https://shuttletamarindo.com/book" style="display: inline-block; background: #1a6b4a; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 15px;">Book your first transfer</a>
+              <a href="${this.siteUrl}/book" style="display: inline-block; background: #1a6b4a; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 15px;">Book your first transfer</a>
             </div>
             <p style="text-align: center; color: #6b7b74; font-size: 13px; margin-top: 32px;">Retana Services Tamarindo · Costa Rica</p>
           </div>
