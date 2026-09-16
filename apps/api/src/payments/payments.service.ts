@@ -270,35 +270,45 @@ export class PaymentsService {
 
     const outbound = reservation.legs.find((l) => l.direction === 'OUTBOUND');
     if (!outbound) return;
+    const back = reservation.legs.find((l) => l.direction === 'RETURN');
 
-    const route =
-      `${outbound.trip.route.origin} → ${outbound.trip.route.destination}` +
-      (reservation.tripType === 'ROUND_TRIP' ? ' (ida y vuelta)' : '');
+    // Antes el ida y vuelta se aplanaba en un texto ("… (ida y vuelta)") y el
+    // cliente nunca veia la fecha ni la hora del regreso en su comprobante.
+    const legs = [outbound, ...(back ? [back] : [])].map((leg) => ({
+      direction: leg.direction,
+      origin: leg.trip.route.origin,
+      destination: leg.trip.route.destination,
+      departure: leg.trip.departureAt,
+      durationMin: leg.trip.route.durationMin,
+    }));
+
+    const common = {
+      bookingId: reservation.id,
+      legs,
+      passengers: reservation.passengers,
+      type: reservation.type,
+      amount: Number(reservation.totalAmount),
+      transactionId,
+      pickupAddress: reservation.pickupAddress,
+      flightNumber: reservation.flightNumber,
+      notes: reservation.notes,
+    };
 
     try {
       await this.email.sendBookingConfirmation(reservation.user.email, {
+        ...common,
         name: reservation.user.name,
-        bookingId: reservation.id,
-        route,
-        departure: outbound.trip.departureAt,
-        passengers: reservation.passengers,
-        type: reservation.type,
-        amount: Number(reservation.totalAmount),
-        transactionId,
       });
 
       const adminProfile = this.adminService.getProfile();
       if (adminProfile.email) {
         await this.email.sendNewBookingAlert(adminProfile.email, {
+          ...common,
+          name: reservation.user.name,
           adminName: adminProfile.name,
-          bookingId: reservation.id,
           customerName: reservation.user.name,
           customerEmail: reservation.user.email,
-          route,
-          departure: outbound.trip.departureAt,
-          passengers: reservation.passengers,
-          type: reservation.type,
-          amount: Number(reservation.totalAmount),
+          customerPhone: reservation.user.phone,
         });
       }
     } catch (error) {

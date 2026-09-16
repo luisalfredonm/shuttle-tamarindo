@@ -1,147 +1,290 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import {
+  BRAND,
+  EmailLeg,
+  bookingRef,
+  button,
+  detail,
+  detailsTable,
+  escapeHtml,
+  formatDate,
+  formatTime,
+  itinerary,
+  layout,
+  money,
+  note,
+  passengerLabel,
+  refBlock,
+  sectionTitle,
+  serviceLabel,
+  spacer,
+  totalPanel,
+} from './email.templates';
+
+export interface BookingEmailData {
+  name: string;
+  bookingId: string;
+  /** Tramos ya ordenados: ida primero, regreso despues si lo hay */
+  legs: EmailLeg[];
+  passengers: number;
+  type: string;
+  amount: number;
+  transactionId?: string;
+  pickupAddress?: string | null;
+  flightNumber?: string | null;
+  notes?: string | null;
+}
+
+export interface AdminAlertData extends BookingEmailData {
+  adminName?: string | null;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string | null;
+}
 
 @Injectable()
 export class EmailService {
   private resend: Resend;
   private from: string;
-  /** Sitio publico al que apuntan los botones de los correos */
+  /** Sitio publico al que apuntan los botones y las imagenes de los correos */
   private siteUrl: string;
   private readonly logger = new Logger(EmailService.name);
 
   constructor(private config: ConfigService) {
-    this.resend = new Resend(this.config.get('RESEND_API_KEY'));
-    this.from = this.config.get('EMAIL_FROM') || 'onboarding@resend.dev';
+    this.resend = new Resend(this.config.get<string>('RESEND_API_KEY'));
+    this.from =
+      this.config.get<string>('EMAIL_FROM') || 'onboarding@resend.dev';
     // Sin barra final: los enlaces la agregan al armar la ruta
     this.siteUrl = (
-      this.config.get('SITE_URL') || 'https://retanaservices.com'
+      this.config.get<string>('SITE_URL') || 'https://retanaservices.com'
     ).replace(/\/$/, '');
   }
 
+  /** Solo el nombre de pila: "Hi Luis Alfredo Nunez Mora" suena a formulario. */
+  private firstName(full: string): string {
+    return (full || '').trim().split(/\s+/)[0] || '';
+  }
+
+  /** "Tamarindo → Liberia Airport", para asuntos y vistas previas */
+  private routeLine(leg?: EmailLeg): string {
+    return leg ? `${leg.origin} → ${leg.destination}` : 'your transfer';
+  }
+
   async sendWelcome(to: string, name: string) {
+    const first = this.firstName(name);
+    const html = layout({
+      preheader: 'Your account is ready — book your first transfer in minutes.',
+      siteUrl: this.siteUrl,
+      eyebrow: 'Welcome aboard',
+      title: first ? `Pura vida, ${first}` : 'Pura vida',
+      intro:
+        'Your account is ready. Book shared or private transfers across Guanacaste in a couple of taps.',
+      content: `
+        ${sectionTitle('What you can do now')}
+        ${detailsTable(
+          detail(
+            'Book in minutes',
+            'Shared shuttles and private transfers on every major Guanacaste route.',
+          ) +
+            detail(
+              'Manage your trips',
+              'Check times, passengers and pick-up details from your account.',
+            ) +
+            detail(
+              'Keep your history',
+              'Every confirmed transfer stays saved for your next trip.',
+            ),
+        )}
+        ${spacer(4)}
+        ${button(`${this.siteUrl}/book`, 'Book your first transfer')}
+        ${button(`${this.siteUrl}/routes`, 'See all routes', 'ghost')}
+      `,
+    });
+
     try {
       const result = await this.resend.emails.send({
         from: this.from,
         to,
-        subject: 'Welcome to Retana Services Tamarindo 🌴',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #0d1f17;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              <div style="display: inline-block; width: 48px; height: 48px; background: #1a6b4a; border-radius: 12px; line-height: 48px; font-size: 24px; color: #fff; font-weight: 700;">S</div>
-              <h1 style="margin: 16px 0 4px; font-size: 24px;">Welcome, ${name}!</h1>
-              <p style="color: #6b7b74; margin: 0;">Your Retana Services Tamarindo account is ready.</p>
-            </div>
-            <div style="background: #f7f3ec; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
-              <p style="margin: 0 0 12px; font-size: 15px;">You can now:</p>
-              <ul style="margin: 0; padding-left: 20px; color: #0d1f17; font-size: 15px; line-height: 1.8;">
-                <li>Book shared or private transfers</li>
-                <li>Manage your bookings</li>
-                <li>View your travel history</li>
-              </ul>
-            </div>
-            <div style="text-align: center;">
-              <a href="${this.siteUrl}/book" style="display: inline-block; background: #1a6b4a; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 15px;">Book your first transfer</a>
-            </div>
-            <p style="text-align: center; color: #6b7b74; font-size: 13px; margin-top: 32px;">Retana Services Tamarindo · Costa Rica</p>
-          </div>
-        `,
+        subject: `Welcome to ${BRAND.name} 🌴`,
+        html,
       });
-      this.logger.log(`Welcome email sent to ${to} — id: ${result.data?.id} error: ${JSON.stringify(result.error)}`);
+      this.logger.log(
+        `Welcome email sent to ${to} — id: ${result.data?.id} error: ${JSON.stringify(result.error)}`,
+      );
     } catch (err) {
       this.logger.error('Failed to send welcome email', err);
     }
   }
 
-  async sendBookingConfirmation(to: string, data: {
-    name: string;
-    bookingId: string;
-    route: string;
-    departure: Date;
-    passengers: number;
-    type: string;
-    amount: number;
-    transactionId: string;
-  }) {
-    const dep = new Date(data.departure);
-    const dateStr = dep.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const timeStr = dep.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  async sendBookingConfirmation(to: string, data: BookingEmailData) {
+    const outbound = data.legs[0];
+    const ret = data.legs.find((l) => l.direction === 'RETURN');
+    const first = this.firstName(data.name);
+
+    // Solo se muestran los datos que la reserva realmente tiene: una fila
+    // "Flight number —" en un comprobante se lee como un dato perdido.
+    const extras =
+      (data.pickupAddress
+        ? detail('Pick-up address', data.pickupAddress)
+        : '') +
+      (data.flightNumber ? detail('Flight number', data.flightNumber) : '') +
+      (data.notes ? detail('Your notes', data.notes) : '');
+
+    const html = layout({
+      preheader: `${this.routeLine(outbound)} · ${formatDate(outbound.departure)} at ${formatTime(outbound.departure)}`,
+      siteUrl: this.siteUrl,
+      eyebrow: 'Payment confirmed',
+      title: first ? `You're all set, ${first}` : "You're all set",
+      intro: `We received your payment and your seat${data.passengers > 1 ? 's are' : ' is'} reserved. Here is everything you need for the day of your transfer.`,
+      content: `
+        ${sectionTitle(ret ? 'Your itinerary' : 'Your transfer')}
+        ${itinerary(outbound, { badge: ret ? 'Outbound' : undefined })}
+        ${ret ? spacer(14) + itinerary(ret, { badge: 'Return' }) : ''}
+        ${spacer(28)}
+
+        ${sectionTitle('Trip details')}
+        ${detailsTable(
+          detail('Service', serviceLabel(data.type)) +
+            detail('Passengers', passengerLabel(data.passengers)) +
+            extras,
+        )}
+
+        ${sectionTitle('Payment')}
+        ${refBlock([
+          { name: 'Booking reference', value: bookingRef(data.bookingId) },
+          ...(data.transactionId
+            ? [{ name: 'Transaction', value: data.transactionId }]
+            : []),
+        ])}
+        ${spacer(12)}
+        ${this.paidPanel(data.amount)}
+        ${spacer(26)}
+
+        ${button(`${this.siteUrl}/account`, 'View my booking')}
+        ${button(`https://wa.me/${BRAND.whatsapp}`, 'Message us', 'ghost')}
+        ${spacer(18)}
+        ${note(
+          `Please be ready <strong>10 minutes before</strong> the departure time. Need to change something? Reply to this email or message us with reference <strong>${escapeHtml(
+            bookingRef(data.bookingId),
+          )}</strong>.`,
+        )}
+      `,
+    });
 
     try {
       const result = await this.resend.emails.send({
         from: this.from,
         to,
-        subject: `Booking Confirmed — ${data.route}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #0d1f17;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              <div style="display: inline-block; width: 48px; height: 48px; background: #1a6b4a; border-radius: 12px; line-height: 48px; font-size: 24px; color: #fff; font-weight: 700;">S</div>
-              <h1 style="margin: 16px 0 4px; font-size: 24px;">Booking Confirmed!</h1>
-              <p style="color: #6b7b74; margin: 0;">Hi ${data.name}, your transfer is booked.</p>
-            </div>
-            <div style="background: #f7f3ec; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
-              <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Route</td><td style="padding: 8px 0; font-weight: 600; text-align: right;">${data.route}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Date</td><td style="padding: 8px 0; text-align: right;">${dateStr}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Time</td><td style="padding: 8px 0; text-align: right;">${timeStr}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Passengers</td><td style="padding: 8px 0; text-align: right;">${data.passengers}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Type</td><td style="padding: 8px 0; text-align: right;">${data.type}</td></tr>
-                <tr style="border-top: 1px solid #e8e4dc;"><td style="padding: 12px 0 0; font-weight: 600;">Total Paid</td><td style="padding: 12px 0 0; font-weight: 700; font-size: 18px; color: #1a6b4a; text-align: right;">$${data.amount}</td></tr>
-              </table>
-            </div>
-            <p style="font-size: 12px; color: #6b7b74; margin: 0 0 24px;">Booking ID: ${data.bookingId.slice(0, 8).toUpperCase()} · Transaction: ${data.transactionId}</p>
-            <p style="text-align: center; color: #6b7b74; font-size: 13px; margin: 0;">Retana Services Tamarindo · Costa Rica</p>
-          </div>
-        `,
+        subject: `Booking confirmed — ${this.routeLine(outbound)}`,
+        html,
       });
-      this.logger.log(`Booking confirmation sent to ${to} — id: ${result.data?.id} error: ${JSON.stringify(result.error)}`);
+      this.logger.log(
+        `Booking confirmation sent to ${to} — id: ${result.data?.id} error: ${JSON.stringify(result.error)}`,
+      );
     } catch (err) {
       this.logger.error('Failed to send booking confirmation', err);
     }
   }
 
-  async sendNewBookingAlert(to: string, data: {
-    adminName: string;
-    bookingId: string;
-    customerName: string;
-    customerEmail: string;
-    route: string;
-    departure: Date;
-    passengers: number;
-    type: string;
-    amount: number;
-  }) {
-    const dep = new Date(data.departure);
-    const dateStr = dep.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const timeStr = dep.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  async sendNewBookingAlert(to: string, data: AdminAlertData) {
+    const outbound = data.legs[0];
+    const ret = data.legs.find((l) => l.direction === 'RETURN');
+    const adminFirst = this.firstName(data.adminName || '');
+    const wa = (data.customerPhone || '').replace(/\D/g, '');
+
+    const contactRows =
+      detail('Name', data.customerName) +
+      detail(
+        'Email',
+        `<a href="mailto:${escapeHtml(data.customerEmail)}" style="color:#1a6b4a;font-weight:700;text-decoration:none;">${escapeHtml(
+          data.customerEmail,
+        )}</a>`,
+        true,
+      ) +
+      (data.customerPhone
+        ? detail(
+            'Phone',
+            `<a href="tel:${escapeHtml(data.customerPhone)}" style="color:#1a6b4a;font-weight:700;text-decoration:none;">${escapeHtml(
+              data.customerPhone,
+            )}</a>`,
+            true,
+          )
+        : '');
+
+    const opsRows =
+      detail('Service', serviceLabel(data.type)) +
+      detail('Passengers', passengerLabel(data.passengers)) +
+      (data.pickupAddress
+        ? detail('Pick-up address', data.pickupAddress)
+        : '') +
+      (data.flightNumber ? detail('Flight number', data.flightNumber) : '') +
+      (data.notes ? detail('Customer notes', data.notes) : '');
+
+    const html = layout({
+      preheader: `${data.customerName} · ${this.routeLine(outbound)} · ${money(data.amount)}`,
+      siteUrl: this.siteUrl,
+      audience: 'admin',
+      eyebrow: 'New booking · paid',
+      title: adminFirst ? `New booking, ${adminFirst}` : 'New booking received',
+      intro: `${data.customerName} paid ${money(data.amount)} for ${passengerLabel(
+        data.passengers,
+      )} on ${this.routeLine(outbound)}.`,
+      content: `
+        ${sectionTitle(ret ? 'Itinerary' : 'Transfer')}
+        ${itinerary(outbound, { badge: ret ? 'Outbound' : undefined })}
+        ${ret ? spacer(14) + itinerary(ret, { badge: 'Return' }) : ''}
+        ${spacer(28)}
+
+        ${sectionTitle('Customer')}
+        ${detailsTable(contactRows)}
+
+        ${sectionTitle('Operations')}
+        ${detailsTable(opsRows)}
+
+        ${sectionTitle('Payment')}
+        ${refBlock([
+          { name: 'Booking reference', value: bookingRef(data.bookingId) },
+          ...(data.transactionId
+            ? [{ name: 'Transaction', value: data.transactionId }]
+            : []),
+        ])}
+        ${spacer(12)}
+        ${this.paidPanel(data.amount)}
+        ${spacer(26)}
+
+        ${button(
+          // La direccion va literal: encodearla deja un mailto con %40 que
+          // algunos clientes de escritorio no abren. Solo el asunto se encodea.
+          `mailto:${escapeHtml(data.customerEmail)}?subject=${encodeURIComponent(
+            `${BRAND.name} — booking ${bookingRef(data.bookingId)}`,
+          )}`,
+          'Email customer',
+        )}
+        ${wa ? button(`https://wa.me/${wa}`, 'WhatsApp customer', 'ghost') : ''}
+      `,
+    });
+
     try {
       const result = await this.resend.emails.send({
         from: this.from,
         to,
-        subject: `New Booking — ${data.route}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #0d1f17;">
-            <h1 style="font-size: 20px; margin: 0 0 4px;">New Booking Received</h1>
-            <p style="color: #6b7b74; margin: 0 0 24px;">Hi ${data.adminName}, a new payment was confirmed.</p>
-            <div style="background: #f7f3ec; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
-              <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Customer</td><td style="padding: 8px 0; font-weight: 600; text-align: right;">${data.customerName}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Email</td><td style="padding: 8px 0; text-align: right;">${data.customerEmail}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Route</td><td style="padding: 8px 0; text-align: right;">${data.route}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Date</td><td style="padding: 8px 0; text-align: right;">${dateStr}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Time</td><td style="padding: 8px 0; text-align: right;">${timeStr}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Passengers</td><td style="padding: 8px 0; text-align: right;">${data.passengers}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7b74;">Type</td><td style="padding: 8px 0; text-align: right;">${data.type}</td></tr>
-                <tr style="border-top: 1px solid #e8e4dc;"><td style="padding: 12px 0 0; font-weight: 600;">Amount</td><td style="padding: 12px 0 0; font-weight: 700; font-size: 18px; color: #1a6b4a; text-align: right;">$${data.amount}</td></tr>
-              </table>
-            </div>
-            <p style="font-size: 12px; color: #6b7b74;">Booking ID: ${data.bookingId.slice(0, 8).toUpperCase()}</p>
-          </div>
-        `,
+        subject: `New booking ${bookingRef(data.bookingId)} — ${this.routeLine(outbound)} · ${money(
+          data.amount,
+        )}`,
+        html,
       });
-      this.logger.log(`Booking alert sent to admin ${to} — id: ${result.data?.id}`);
+      this.logger.log(
+        `Booking alert sent to admin ${to} — id: ${result.data?.id}`,
+      );
     } catch (err) {
       this.logger.error('Failed to send booking alert to admin', err);
     }
+  }
+
+  /** Panel del total. Lo comparten el comprobante y el aviso interno. */
+  private paidPanel(amount: number): string {
+    return totalPanel(amount, 'Total paid');
   }
 }
