@@ -1,10 +1,52 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { authFetch } from "@/lib/api";
+import { authFetch, getPaymentMethods, PaymentMethod } from "@/lib/api";
 import BookingLegs from "./BookingLegs";
+
+declare global {
+  interface Window {
+    paypal?: any;
+  }
+}
+
+/**
+ * Carga el SDK de PayPal una sola vez por sesión.
+ *
+ * El clientId decide qué cuenta cobra, así que si cambia (de sandbox a live)
+ * el script viejo ya no sirve: se descarta y se pide de nuevo.
+ */
+function loadPayPalSdk(clientId: string): Promise<any> {
+  const previous = document.querySelector<HTMLScriptElement>(
+    "script[data-paypal-sdk]",
+  );
+
+  if (previous && previous.dataset.clientId === clientId && window.paypal) {
+    return Promise.resolve(window.paypal);
+  }
+
+  if (previous && previous.dataset.clientId !== clientId) {
+    previous.remove();
+    delete window.paypal;
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src =
+      `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}` +
+      `&currency=USD&intent=capture`;
+    script.dataset.paypalSdk = "true";
+    script.dataset.clientId = clientId;
+    script.onload = () =>
+      window.paypal
+        ? resolve(window.paypal)
+        : reject(new Error("PayPal no cargó"));
+    script.onerror = () => reject(new Error("PayPal no cargó"));
+    document.body.appendChild(script);
+  });
+}
 
 export default function PaymentForm() {
   const params = useSearchParams();
@@ -20,6 +62,24 @@ export default function PaymentForm() {
   // tick del interval (hasta 1s) donde se pintaría "expiró" por error.
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
+  // null = todavía no se preguntó; [] = no hay ninguno disponible
+  const [methods, setMethods] = useState<PaymentMethod[] | null>(null);
+  const [sdkError, setSdkError] = useState(false);
+
+  const buttonsRef = useRef<HTMLDivElement>(null);
+  // Los botones de PayPal los dibuja el SDK, no React: sin esta guarda se
+  // volverían a montar en cada tick del contador
+  const renderedRef = useRef(false);
+
+  // El monto y el id de la reserva viajan por ref para no tener que volver a
+  // dibujar los botones cuando cambia el estado
+  const bookingIdRef = useRef(bookingId);
+  bookingIdRef.current = bookingId;
+
+  const paypal = methods?.find(
+    (m) => m.provider === "PAYPAL" && m.publicKey,
+  );
+
   // Cargar booking
   useEffect(() => {
     if (!bookingId) return;
@@ -30,6 +90,11 @@ export default function PaymentForm() {
       })
       .catch(() => setLoading(false));
   }, [bookingId]);
+
+  // Métodos de pago disponibles
+  useEffect(() => {
+    getPaymentMethods().then(setMethods);
+  }, []);
 
   // Countdown del hold
   useEffect(() => {
@@ -53,20 +118,74 @@ export default function PaymentForm() {
     return () => clearInterval(interval);
   }, [booking]);
 
-  async function handlePay() {
-    setPaying(true);
-    setError("");
-    try {
-      await authFetch("/payments/process", {
-        method: "POST",
-        body: JSON.stringify({ bookingId }),
-      });
-      router.push(`/booking-success?bookingId=${bookingId}`);
-    } catch (e: any) {
-      setError(e.message || "Payment failed. Please try again.");
-      setPaying(false);
-    }
-  }
+  // Botones de PayPal
+  useEffect(() => {
+    if (!paypal?.publicKey || !booking || renderedRef.current) return;
+    if (booking.status !== "PENDING") return;
+
+    let buttons: any;
+    let cancelled = false;
+
+    loadPayPalSdk(paypal.publicKey)
+      .then((sdk) => {
+        if (cancelled || !buttonsRef.current) return;
+        renderedRef.current = true;
+
+        buttons = sdk.Buttons({
+          style: { layout: "vertical", shape: "rect", label: "pay" },
+
+          // El importe lo pone el servidor desde la reserva: acá solo se dice
+          // cuál es la reserva
+          createOrder: async () => {
+            setError("");
+            const order = await authFetch("/payments/order", {
+              method: "POST",
+              body: JSON.stringify({ reservationId: bookingIdRef.current }),
+            });
+            return order.orderId;
+          },
+
+          // Aprobar no es cobrar: la reserva se confirma cuando el servidor
+          // captura contra PayPal y verifica el importe
+          onApprove: async (data: { orderID: string }) => {
+            setPaying(true);
+            try {
+              await authFetch("/payments/capture", {
+                method: "POST",
+                body: JSON.stringify({ orderId: data.orderID }),
+              });
+              router.push(`/booking-success?bookingId=${bookingIdRef.current}`);
+            } catch (e: any) {
+              setPaying(false);
+              setError(
+                e.message ||
+                  "We could not confirm your payment. Write to us before paying again.",
+              );
+            }
+          },
+
+          onCancel: () => {
+            setError(
+              "Payment canceled. Your seats stay held until the timer runs out.",
+            );
+          },
+
+          onError: () => {
+            setError("Payment failed. Please try again.");
+          },
+        });
+
+        return buttons.render(buttonsRef.current);
+      })
+      .catch(() => setSdkError(true));
+
+    return () => {
+      cancelled = true;
+      // close() saca los iframes del SDK: sin esto quedan vivos al navegar
+      if (buttons?.close) buttons.close();
+      renderedRef.current = false;
+    };
+  }, [paypal?.publicKey, booking, router]);
 
   const mins = String(Math.floor((timeLeft ?? 0) / 60)).padStart(2, "0");
   const secs = String((timeLeft ?? 0) % 60).padStart(2, "0");
@@ -81,6 +200,14 @@ export default function PaymentForm() {
     );
 
   const isRoundTrip = booking.tripType === "ROUND_TRIP";
+  const expired = timeLeft === 0 && booking.status === "PENDING";
+  const noticeStyle = {
+    borderRadius: "10px",
+    padding: "12px 16px",
+    marginBottom: "1.5rem",
+    fontFamily: "DM Sans, sans-serif",
+    fontSize: "0.85rem",
+  } as const;
 
   return (
     <div style={{ maxWidth: "480px", width: "100%" }}>
@@ -147,7 +274,7 @@ export default function PaymentForm() {
         </div>
       )}
 
-      {timeLeft === 0 && booking.status === "PENDING" && (
+      {expired && (
         // Acá timeLeft ya se calculó de verdad (no es el default): 0 significa vencido
         <div
           style={{
@@ -256,33 +383,28 @@ export default function PaymentForm() {
         </div>
       </div>
 
-      {/* Mock notice */}
-      <div
-        style={{
-          background: "#fffbf0",
-          border: "1px solid #f0d080",
-          borderRadius: "10px",
-          padding: "12px 16px",
-          marginBottom: "1.5rem",
-          fontFamily: "DM Sans, sans-serif",
-          fontSize: "0.85rem",
-          color: "#856404",
-        }}
-      >
-        Secure payment powered by BAC Credomatic. Test mode active.
-      </div>
+      {/* Modo de prueba: el cliente tiene que saber que no se le cobra */}
+      {paypal?.mode === "sandbox" && (
+        <div
+          style={{
+            ...noticeStyle,
+            background: "#fffbf0",
+            border: "1px solid #f0d080",
+            color: "#856404",
+          }}
+        >
+          Test mode. No real charge is made.
+        </div>
+      )}
 
       {/* Error */}
       {error && (
         <div
           style={{
+            ...noticeStyle,
             background: "#fff0f0",
             border: "1px solid #ffc5c5",
-            borderRadius: "10px",
-            padding: "12px 16px",
-            marginBottom: "1.5rem",
             color: "#c0392b",
-            fontFamily: "DM Sans, sans-serif",
             fontSize: "0.9rem",
           }}
         >
@@ -290,26 +412,71 @@ export default function PaymentForm() {
         </div>
       )}
 
-      {/* Pay button */}
-      <button
-        onClick={handlePay}
-        disabled={paying || timeLeft === 0}
-        style={{
-          width: "100%",
-          background: "var(--brand-green)",
-          color: "#fff",
-          border: "none",
-          borderRadius: "12px",
-          padding: "16px",
-          cursor: paying || timeLeft === 0 ? "not-allowed" : "pointer",
-          fontFamily: "DM Sans, sans-serif",
-          fontWeight: 500,
-          fontSize: "1rem",
-          opacity: paying || timeLeft === 0 ? 0.6 : 1,
-        }}
-      >
-        {paying ? "Processing payment..." : `Pay $${booking.totalAmount} USD`}
-      </button>
+      {/* Zona de pago */}
+      {!expired && (
+        <>
+          {methods === null && (
+            <p
+              style={{
+                fontFamily: "DM Sans, sans-serif",
+                fontSize: "0.9rem",
+                color: "var(--brand-gray)",
+              }}
+            >
+              Loading payment options...
+            </p>
+          )}
+
+          {methods !== null && !paypal && (
+            <div
+              style={{
+                ...noticeStyle,
+                background: "#fff5e6",
+                border: "1px solid #f0a500",
+                color: "#856404",
+                fontSize: "0.9rem",
+              }}
+            >
+              Online payment is unavailable right now. Your seats are held —
+              write to us at reservas@retanaservices.com to confirm this
+              booking.
+            </div>
+          )}
+
+          {sdkError && (
+            <div
+              style={{
+                ...noticeStyle,
+                background: "#fff0f0",
+                border: "1px solid #ffc5c5",
+                color: "#c0392b",
+                fontSize: "0.9rem",
+              }}
+            >
+              PayPal could not load. Check your connection and reload the page.
+            </div>
+          )}
+
+          {paying && (
+            <p
+              style={{
+                fontFamily: "DM Sans, sans-serif",
+                fontSize: "0.9rem",
+                color: "var(--brand-gray)",
+                marginBottom: "0.75rem",
+              }}
+            >
+              Confirming your payment...
+            </p>
+          )}
+
+          {/* Lo dibuja el SDK de PayPal: React no toca lo de adentro */}
+          <div
+            ref={buttonsRef}
+            style={{ opacity: paying ? 0.5 : 1, minHeight: paypal ? 150 : 0 }}
+          />
+        </>
+      )}
 
       <p
         style={{

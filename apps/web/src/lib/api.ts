@@ -154,6 +154,34 @@ export async function getTrips(params: {
   return res.json();
 }
 
+/** Un metodo de pago prendido en el panel y con credenciales en el servidor */
+export interface PaymentMethod {
+  provider: "PAYPAL" | "BAC_CREDOMATIC";
+  /** "sandbox" mientras se prueba: en el checkout se avisa que no se cobra */
+  mode: string;
+  /** clientId del SDK. Es publico por diseno: viaja al navegador */
+  publicKey: string | null;
+}
+
+/**
+ * Metodos disponibles para el checkout.
+ *
+ * Si la API no responde devuelve una lista vacia en vez de romper: el checkout
+ * muestra que el pago en linea no esta disponible, que es informacion util, en
+ * lugar de una pantalla en blanco sobre una reserva que ya tiene asientos.
+ */
+export async function getPaymentMethods(): Promise<PaymentMethod[]> {
+  try {
+    const res = await fetch(`${API_URL}/payments/methods`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
 export async function getRoutes(): Promise<Route[]> {
   const res = await fetch(`${API_URL}/routes`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch routes");
