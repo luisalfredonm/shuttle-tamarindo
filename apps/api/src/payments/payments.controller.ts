@@ -16,6 +16,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { CaptureOrderDto } from './dto/capture-order.dto';
 import { UpdatePaymentConfigDto } from './dto/update-payment-config.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
@@ -48,18 +49,35 @@ export class PaymentsController {
     return this.paymentsService.handleWebhook(headers, raw);
   }
 
-  // De aca en adelante hace falta sesion, y el servicio valida ademas que la
-  // reserva sea de quien la pide
-  @UseGuards(JwtAuthGuard)
+  // Pagar no exige cuenta: vale la sesion del dueno o el enlace secreto de la
+  // reserva (X-Booking-Token). Quien puede pagar cual reserva lo decide el
+  // servicio, no este controlador.
+  @UseGuards(OptionalJwtAuthGuard)
   @Post('order')
-  createOrder(@Request() req: any, @Body() dto: CreateOrderDto) {
-    return this.paymentsService.createOrder(dto.reservationId, req.user);
+  createOrder(
+    @Request() req: any,
+    @Body() dto: CreateOrderDto,
+    @Headers('x-booking-token') token?: string,
+  ) {
+    return this.paymentsService.createOrder(
+      dto.reservationId,
+      req.user ?? undefined,
+      token,
+    );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard)
   @Post('capture')
-  capture(@Request() req: any, @Body() dto: CaptureOrderDto) {
-    return this.paymentsService.captureOrder(dto.orderId, req.user);
+  capture(
+    @Request() req: any,
+    @Body() dto: CaptureOrderDto,
+    @Headers('x-booking-token') token?: string,
+  ) {
+    return this.paymentsService.captureOrder(
+      dto.orderId,
+      req.user ?? undefined,
+      token,
+    );
   }
 
   // Configuracion de metodos: solo ADMIN. Nunca devuelve ni acepta secretos.
@@ -87,9 +105,17 @@ export class PaymentsController {
     return this.configService.verify(provider);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('booking/:bookingId')
-  getByBooking(@Request() req: any, @Param('bookingId') bookingId: string) {
-    return this.paymentsService.getPaymentByBooking(bookingId, req.user);
+  getByBooking(
+    @Request() req: any,
+    @Param('bookingId') bookingId: string,
+    @Headers('x-booking-token') token?: string,
+  ) {
+    return this.paymentsService.getPaymentByBooking(
+      bookingId,
+      req.user ?? undefined,
+      token,
+    );
   }
 }

@@ -56,6 +56,10 @@ export interface BookingLeg {
 export interface Booking {
   id: string;
   userId: string;
+  /** Enlace secreto de la reserva: con esto se ve y se paga sin cuenta */
+  accessToken?: string | null;
+  /** true si se reservó sin sesión: solo se abre con su enlace */
+  bookedAsGuest?: boolean;
   type: "SHARED" | "PRIVATE";
   tripType: "ONE_WAY" | "ROUND_TRIP";
   passengers: number;
@@ -133,6 +137,49 @@ export async function authFetch(path: string, options?: RequestInit) {
 
   if (!res.ok) {
     if (res.status === 401) {
+      handleExpiredSession();
+      throw new Error(SESSION_EXPIRED);
+    }
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || "Request failed");
+  }
+
+  return res.json();
+}
+
+/**
+ * fetch de una reserva concreta, con sesión o con su enlace secreto.
+ *
+ * Desde que se puede reservar sin cuenta, la misma pantalla sirve a dos
+ * clientes: el que tiene sesión (Bearer) y el invitado, que llega con el
+ * token de su reserva en la URL o en el correo. Se mandan los dos cuando
+ * existen y el servidor acepta el que le sirva.
+ */
+export async function bookingFetch(
+  path: string,
+  bookingToken?: string,
+  options?: RequestInit,
+) {
+  const session = localStorage.getItem("shuttle_token");
+  if (!session && !bookingToken) {
+    throw new Error("You must be signed in");
+  }
+
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(session ? { Authorization: `Bearer ${session}` } : {}),
+      ...(bookingToken ? { "X-Booking-Token": bookingToken } : {}),
+      ...options?.headers,
+    },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    // Con enlace secreto un 401 no es una sesión vencida: es que el enlace no
+    // sirve, y mandar al login dejaría al invitado sin salida
+    if (res.status === 401 && !bookingToken) {
       handleExpiredSession();
       throw new Error(SESSION_EXPIRED);
     }
@@ -234,23 +281,28 @@ export async function createBooking(data: {
   flightNumber?: string;
   pickupAddress?: string;
   agreementSignedName: string;
+  /** Contacto de quien reserva sin cuenta. Con sesión no se envían. */
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  turnstileToken?: string;
 }): Promise<Booking> {
-  // El userId ya no se envía: el backend lo toma del JWT
+  // El userId ya no se envía: el backend lo toma del JWT. Sin sesión se
+  // reserva igual (checkout de invitado) y la reserva viaja con su enlace.
   const token = localStorage.getItem("shuttle_token");
-  if (!token) throw new Error("You must be signed in to book a trip");
 
   const res = await fetch(`${API_URL}/bookings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
     // Reservar es el paso que más duele perder: si la sesión venció, se avisa
     // y se vuelve acá después de entrar, en vez de dejar un error suelto.
-    if (res.status === 401) {
+    if (res.status === 401 && token) {
       handleExpiredSession();
       throw new Error(SESSION_EXPIRED);
     }

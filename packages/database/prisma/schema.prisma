@@ -152,6 +152,20 @@ model Reservation {
   /// respaldo confiable de cuando se acepto.
   agreementSignedName String?
   agreementSignedAt   DateTime?
+
+  /// Enlace secreto de la reserva: con el se ve, se paga y se cancela sin
+  /// sesion. Va en el correo y en la URL que recibe el cliente. Se guarda en
+  /// claro porque protege los mismos datos que ya estan en esta fila.
+  accessToken   String?  @unique
+  /// Hecha sin sesion. No aparece en "Mi cuenta" aunque el email coincida:
+  /// sin verificacion de email, registrarse con el correo de otro no debe
+  /// dar acceso a sus viajes.
+  bookedAsGuest Boolean  @default(false)
+  /// Contacto de esta reserva. En invitados manda sobre el del usuario, asi
+  /// una reserva sin sesion nunca pisa los datos de una cuenta existente.
+  contactName   String?
+  contactPhone  String?
+
   legs        Booking[]
   payment     Payment?
   createdAt   DateTime      @default(now())

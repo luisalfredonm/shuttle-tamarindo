@@ -30,6 +30,8 @@ type Booking = {
   agreementSignedName?: string;
   agreementSignedAt?: string;
   user: { id: string; name: string; email: string; phone?: string };
+  /** Reservada sin cuenta: el contacto es el de la compra, no el de un perfil */
+  bookedAsGuest?: boolean;
   legs: Leg[];
   payment?: { externalId?: string; paidAt?: string; amount: number };
 };
@@ -191,6 +193,10 @@ export default function BookingsContent() {
               <Row label="Name" value={selected.user?.name} />
               <Row label="Email" value={selected.user?.email} />
               <Row label="Phone" value={selected.user?.phone || "-"} />
+              <Row
+                label="Booked"
+                value={selected.bookedAsGuest ? "As guest (no account)" : "With an account"}
+              />
             </Section>
 
             {/* Lo que necesita el conductor para el pickup */}

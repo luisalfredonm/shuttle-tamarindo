@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { clientIp } from './common/client-ip';
 import { PrismaModule } from './prisma/prisma.module';
 import { RoutesModule } from './routes/routes.module';
 import { TripsModule } from './trips/trips.module';
@@ -16,6 +18,13 @@ import { SchedulesModule } from './schedules/schedules.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+
+    // Limite por IP. No hay guard global a proposito: solo lo usan los
+    // endpoints que se pueden llamar sin sesion (reservar, entrar, registrarse)
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 600_000, limit: 10 }],
+      getTracker: (req) => clientIp(req as never),
+    }),
     PrismaModule,
     RoutesModule,
     TripsModule,

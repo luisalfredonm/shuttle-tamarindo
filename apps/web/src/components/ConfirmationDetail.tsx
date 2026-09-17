@@ -3,35 +3,43 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { authFetch } from "@/lib/api";
+import { bookingFetch } from "@/lib/api";
 import BookingLegs from "./BookingLegs";
 
 export default function ConfirmationDetail() {
   const params = useSearchParams();
   const router = useRouter();
   const bookingId = params.get("bookingId") || "";
+  // Enlace secreto de la reserva: es lo que deja seguir sin cuenta
+  const token = params.get("t") || "";
+  const secret = token ? `&t=${encodeURIComponent(token)}` : "";
 
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!bookingId) return;
-    authFetch(`/bookings/${bookingId}`)
+    bookingFetch(`/bookings/${bookingId}`, token || undefined)
       .then((b) => {
         // Si ya está confirmado, redirigir a success
         if (b.status === "CONFIRMED") {
-          router.replace(`/booking-success?bookingId=${bookingId}`);
+          router.replace(`/booking-success?bookingId=${bookingId}${secret}`);
           return;
         }
         setBooking(b);
       })
-      .catch(() =>
+      .catch(() => {
+        // Con enlace secreto el login no ayuda: o el enlace sirve o no
+        if (token) {
+          setBooking(null);
+          return;
+        }
         router.replace(
           `/login?returnTo=${encodeURIComponent(`/confirmation?bookingId=${bookingId}`)}`,
-        ),
-      )
+        );
+      })
       .finally(() => setLoading(false));
-  }, [bookingId, router]);
+  }, [bookingId, token, secret, router]);
 
   if (loading)
     return (
@@ -187,7 +195,9 @@ export default function ConfirmationDetail() {
       {/* CTA */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         <button
-          onClick={() => router.push(`/payment?bookingId=${booking.id}`)}
+          onClick={() =>
+            router.push(`/payment?bookingId=${booking.id}${secret}`)
+          }
           style={{
             width: "100%",
             background: "var(--brand-green)",

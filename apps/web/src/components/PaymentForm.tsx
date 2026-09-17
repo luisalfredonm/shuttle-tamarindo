@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { authFetch, getPaymentMethods, PaymentMethod } from "@/lib/api";
+import { bookingFetch, getPaymentMethods, PaymentMethod } from "@/lib/api";
 import BookingLegs from "./BookingLegs";
 
 declare global {
@@ -52,6 +52,8 @@ export default function PaymentForm() {
   const params = useSearchParams();
   const router = useRouter();
   const bookingId = params.get("bookingId") || "";
+  // Enlace secreto de la reserva: deja pagar sin tener cuenta
+  const token = params.get("t") || "";
 
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -83,13 +85,13 @@ export default function PaymentForm() {
   // Cargar booking
   useEffect(() => {
     if (!bookingId) return;
-    authFetch(`/bookings/${bookingId}`)
+    bookingFetch(`/bookings/${bookingId}`, token || undefined)
       .then((b) => {
         setBooking(b);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [bookingId]);
+  }, [bookingId, token]);
 
   // Métodos de pago disponibles
   useEffect(() => {
@@ -138,10 +140,14 @@ export default function PaymentForm() {
           // cuál es la reserva
           createOrder: async () => {
             setError("");
-            const order = await authFetch("/payments/order", {
-              method: "POST",
-              body: JSON.stringify({ reservationId: bookingIdRef.current }),
-            });
+            const order = await bookingFetch(
+              "/payments/order",
+              token || undefined,
+              {
+                method: "POST",
+                body: JSON.stringify({ reservationId: bookingIdRef.current }),
+              },
+            );
             return order.orderId;
           },
 
@@ -150,11 +156,18 @@ export default function PaymentForm() {
           onApprove: async (data: { orderID: string }) => {
             setPaying(true);
             try {
-              await authFetch("/payments/capture", {
-                method: "POST",
-                body: JSON.stringify({ orderId: data.orderID }),
-              });
-              router.push(`/booking-success?bookingId=${bookingIdRef.current}`);
+              await bookingFetch(
+                "/payments/capture",
+                token || undefined,
+                {
+                  method: "POST",
+                  body: JSON.stringify({ orderId: data.orderID }),
+                },
+              );
+              const secret = token ? `&t=${encodeURIComponent(token)}` : "";
+              router.push(
+                `/booking-success?bookingId=${bookingIdRef.current}${secret}`,
+              );
             } catch (e: any) {
               setPaying(false);
               setError(
@@ -185,7 +198,8 @@ export default function PaymentForm() {
       if (buttons?.close) buttons.close();
       renderedRef.current = false;
     };
-  }, [paypal?.publicKey, booking, router]);
+    // token sale de la URL y no cambia mientras la pantalla vive
+  }, [paypal?.publicKey, booking, token, router]);
 
   const mins = String(Math.floor((timeLeft ?? 0) / 60)).padStart(2, "0");
   const secs = String((timeLeft ?? 0) % 60).padStart(2, "0");

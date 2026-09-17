@@ -26,6 +26,8 @@ import {
 export interface BookingEmailData {
   name: string;
   bookingId: string;
+  /** Enlace secreto: deja abrir la reserva sin cuenta, desde el correo */
+  accessToken?: string | null;
   /** Tramos ya ordenados: ida primero, regreso despues si lo hay */
   legs: EmailLeg[];
   passengers: number;
@@ -60,6 +62,21 @@ export class EmailService {
     this.siteUrl = (
       this.config.get<string>('SITE_URL') || 'https://retanaservices.com'
     ).replace(/\/$/, '');
+  }
+
+  /**
+   * A donde lleva "View my booking".
+   *
+   * Con el enlace secreto abre esa reserva aunque el cliente no tenga cuenta,
+   * que es el caso normal desde que se puede reservar como invitado. Sin token
+   * (reservas viejas) se cae a "Mi cuenta", que exige sesion.
+   */
+  private bookingUrl(data: BookingEmailData): string {
+    if (!data.accessToken) return `${this.siteUrl}/account`;
+    return (
+      `${this.siteUrl}/booking-success?bookingId=${encodeURIComponent(data.bookingId)}` +
+      `&t=${encodeURIComponent(data.accessToken)}`
+    );
   }
 
   /** Solo el nombre de pila: "Hi Luis Alfredo Nunez Mora" suena a formulario. */
@@ -162,7 +179,7 @@ export class EmailService {
         ${this.paidPanel(data.amount)}
         ${spacer(26)}
 
-        ${button(`${this.siteUrl}/account`, 'View my booking')}
+        ${button(this.bookingUrl(data), 'View my booking')}
         ${button(`https://wa.me/${BRAND.whatsapp}`, 'Message us', 'ghost')}
         ${spacer(18)}
         ${note(

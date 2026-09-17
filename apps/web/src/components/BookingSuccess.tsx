@@ -3,13 +3,15 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { authFetch, outboundTrip } from '@/lib/api';
+import { bookingFetch, outboundTrip } from '@/lib/api';
 import { BRAND_WHATSAPP } from '@/lib/brand';
 import BookingLegs from './BookingLegs';
 
 export default function BookingSuccess() {
   const params    = useSearchParams();
   const bookingId = params.get('bookingId') || '';
+  // Enlace secreto de la reserva: llega en el correo y en la URL del pago
+  const token     = params.get('t') || '';
 
   const [booking, setBooking] = useState<any>(null);
   const [payment, setPayment] = useState<any>(null);
@@ -18,14 +20,16 @@ export default function BookingSuccess() {
   useEffect(() => {
     if (!bookingId) return;
     Promise.all([
-      authFetch(`/bookings/${bookingId}`),
-      authFetch(`/payments/booking/${bookingId}`).catch(() => null),
+      bookingFetch(`/bookings/${bookingId}`, token || undefined),
+      bookingFetch(`/payments/booking/${bookingId}`, token || undefined).catch(
+        () => null,
+      ),
     ]).then(([b, p]) => {
       setBooking(b);
       setPayment(p);
     }).catch(() => setBooking(null))
       .finally(() => setLoading(false));
-  }, [bookingId]);
+  }, [bookingId, token]);
 
   if (loading) return (
     <div style={{ textAlign: 'center', fontFamily: 'DM Sans, sans-serif', color: 'var(--brand-gray)' }}>

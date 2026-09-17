@@ -1,4 +1,5 @@
 import {
+  IsEmail,
   IsString,
   IsInt,
   IsEnum,
@@ -7,6 +8,7 @@ import {
   IsNotEmpty,
   Min,
   Max,
+  MaxLength,
 } from 'class-validator';
 
 export enum BookingTypeEnum {
@@ -77,4 +79,28 @@ export class CreateBookingDto {
   @IsString()
   @IsNotEmpty()
   agreementSignedName: string;
+
+  /**
+   * Contacto de quien reserva sin cuenta. Los tres son obligatorios en ese
+   * caso y el servicio los exige; van opcionales aca porque con sesion los
+   * datos salen del usuario y no del formulario.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  guestName?: string;
+
+  @IsOptional()
+  @IsEmail()
+  guestEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  guestPhone?: string;
+
+  /** Token del captcha (Turnstile). Solo se pide si el servidor lo tiene activo. */
+  @IsOptional()
+  @IsString()
+  turnstileToken?: string;
 }

@@ -9,11 +9,15 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { AdminService } from '../admin/admin.service';
-import { RequestUser, assertOwnerOrAdmin } from '../auth/request-user';
+import { RequestUser } from '../auth/request-user';
+import {
+  NO_ACCESS,
+  assertCanAccessReservation,
+} from '../bookings/reservation-access';
 import { PayPalProvider } from './providers/paypal.provider';
 import { PaymentProvider } from './providers/payment-provider.interface';
 
-const NOT_YOURS = 'No tienes acceso a esta reserva';
+const NOT_YOURS = NO_ACCESS;
 
 /** Margen para diferencias de redondeo al comparar importes */
 const AMOUNT_TOLERANCE = 0.01;
@@ -69,8 +73,8 @@ export class PaymentsService {
    * El importe sale de la reserva en la base, nunca del cliente: si viniera del
    * navegador, cualquiera podria pagar $1 por un traslado de $180.
    */
-  async createOrder(reservationId: string, user: RequestUser) {
-    const reservation = await this.loadPayable(reservationId, user);
+  async createOrder(reservationId: string, user?: RequestUser, token?: string) {
+    const reservation = await this.loadPayable(reservationId, user, token);
 
     const enabled = await this.availableMethods();
     const method = enabled.find((m) => m.provider === 'PAYPAL');
@@ -125,14 +129,23 @@ export class PaymentsService {
    * Lo que dice el navegador no alcanza: la reserva se confirma solo despues de
    * que la pasarela confirma el cobro contra su propia API.
    */
-  async captureOrder(orderId: string, user: RequestUser) {
+  async captureOrder(orderId: string, user?: RequestUser, token?: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { orderId },
-      include: { reservation: { select: { id: true, userId: true } } },
+      include: {
+        reservation: {
+          select: {
+            id: true,
+            userId: true,
+            accessToken: true,
+            bookedAsGuest: true,
+          },
+        },
+      },
     });
 
     if (!payment) throw new NotFoundException('Orden de pago no encontrada');
-    assertOwnerOrAdmin(payment.reservation.userId, user, NOT_YOURS);
+    assertCanAccessReservation(payment.reservation, user, token);
 
     if (payment.status === 'PAID') {
       // Doble clic o reintento: se responde el resultado que ya existe
@@ -210,7 +223,9 @@ export class PaymentsService {
     const orderId = event.resource?.supplementary_data?.related_ids?.order_id;
     if (!orderId) return { received: true, ignored: 'sin order_id' };
 
-    const payment = await this.prisma.payment.findUnique({ where: { orderId } });
+    const payment = await this.prisma.payment.findUnique({
+      where: { orderId },
+    });
     if (!payment || payment.status === 'PAID') {
       // Ya estaba cobrado por la captura del paso 2: nada que hacer
       return { received: true };
@@ -282,8 +297,14 @@ export class PaymentsService {
       durationMin: leg.trip.route.durationMin,
     }));
 
+    // En una reserva de invitado el contacto es el de la compra, no el de la
+    // cuenta a la que se colgo por tener el mismo correo
+    const contactName = reservation.contactName ?? reservation.user.name;
+    const contactPhone = reservation.contactPhone ?? reservation.user.phone;
+
     const common = {
       bookingId: reservation.id,
+      accessToken: reservation.accessToken,
       legs,
       passengers: reservation.passengers,
       type: reservation.type,
@@ -297,18 +318,18 @@ export class PaymentsService {
     try {
       await this.email.sendBookingConfirmation(reservation.user.email, {
         ...common,
-        name: reservation.user.name,
+        name: contactName,
       });
 
       const adminProfile = this.adminService.getProfile();
       if (adminProfile.email) {
         await this.email.sendNewBookingAlert(adminProfile.email, {
           ...common,
-          name: reservation.user.name,
+          name: contactName,
           adminName: adminProfile.name,
-          customerName: reservation.user.name,
+          customerName: contactName,
           customerEmail: reservation.user.email,
-          customerPhone: reservation.user.phone,
+          customerPhone: contactPhone,
         });
       }
     } catch (error) {
@@ -320,7 +341,11 @@ export class PaymentsService {
   }
 
   /** Reserva que se puede pagar, o el motivo por el que no */
-  private async loadPayable(reservationId: string, user: RequestUser) {
+  private async loadPayable(
+    reservationId: string,
+    user?: RequestUser,
+    token?: string,
+  ) {
     const reservation = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
       include: {
@@ -330,7 +355,7 @@ export class PaymentsService {
     });
 
     if (!reservation) throw new NotFoundException('Reserva no encontrada');
-    assertOwnerOrAdmin(reservation.userId, user, NOT_YOURS);
+    assertCanAccessReservation(reservation, user, token);
 
     if (reservation.status === 'CONFIRMED') {
       throw new BadRequestException('Esta reserva ya fue pagada');
@@ -367,14 +392,26 @@ export class PaymentsService {
     };
   }
 
-  async getPaymentByBooking(reservationId: string, user: RequestUser) {
+  async getPaymentByBooking(
+    reservationId: string,
+    user?: RequestUser,
+    token?: string,
+  ) {
     const payment = await this.prisma.payment.findUnique({
       where: { reservationId },
-      include: { reservation: { select: { userId: true } } },
+      include: {
+        reservation: {
+          select: {
+            userId: true,
+            accessToken: true,
+            bookedAsGuest: true,
+          },
+        },
+      },
     });
 
     if (!payment) throw new NotFoundException('Pago no encontrado');
-    assertOwnerOrAdmin(payment.reservation.userId, user, NOT_YOURS);
+    assertCanAccessReservation(payment.reservation, user, token);
 
     // No devolvemos la reserva anidada: solo se cargó para validar el permiso
     const { reservation: _owner, ...rest } = payment;

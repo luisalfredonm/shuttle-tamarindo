@@ -7,6 +7,7 @@ import { getReverseRoute } from "@/lib/routes-data";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
 import CancellationPolicy from "./CancellationPolicy";
+import TurnstileWidget from "./TurnstileWidget";
 
 /** Arma el ISO de una salida a partir de la fecha y la hora que eligió el cliente */
 function buildDepartureAt(day: string, time: string) {
@@ -160,6 +161,19 @@ export default function BookResults() {
   const [flightNumber, setFlightNumber] = useState("");
   const [tripNotes, setTripNotes] = useState("");
 
+  // Contacto de quien reserva sin cuenta: el conductor necesita a quién
+  // llamar y el cliente, a dónde recibir su comprobante
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+
+  const guestReady =
+    !!guestName.trim() &&
+    // Validación mínima: el formato real lo valida el servidor
+    /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(guestEmail.trim()) &&
+    !!guestPhone.trim();
+
   // El vuelo solo aplica si alguno de los tramos toca el aeropuerto
   const showFlightNumber =
     routeSlug.includes("airport") || !!returnSlug?.includes("airport");
@@ -233,6 +247,7 @@ export default function BookResults() {
       (pickedIn ? Number(pickedIn.priceShared) * seatsToBook : 0);
 
   const ready =
+    (!!user || guestReady) &&
     !!pickupAddress.trim() &&
     agreementChecked &&
     !!signatureName.trim() &&
@@ -244,14 +259,6 @@ export default function BookResults() {
   async function handleConfirm() {
     if (!ready) return;
 
-    // Reservar exige sesión: el backend saca el userId del JWT.
-    // Volvemos a esta misma búsqueda después del login.
-    if (!user) {
-      const returnTo = `/book?${params.toString()}`;
-      router.push(`/login?returnTo=${encodeURIComponent(returnTo)}`);
-      return;
-    }
-
     setBooking(true);
     setError("");
     try {
@@ -260,6 +267,15 @@ export default function BookResults() {
         flightNumber: showFlightNumber ? flightNumber.trim() || undefined : undefined,
         notes: tripNotes.trim() || undefined,
         agreementSignedName: signatureName.trim(),
+        // Con sesión el contacto sale de la cuenta; sin sesión, del formulario
+        ...(user
+          ? {}
+          : {
+              guestName: guestName.trim(),
+              guestEmail: guestEmail.trim(),
+              guestPhone: guestPhone.trim(),
+              turnstileToken: turnstileToken || undefined,
+            }),
       };
 
       const b = isPrivate
@@ -285,7 +301,11 @@ export default function BookResults() {
             passengers: seatsToBook,
             ...tripDetails,
           });
-      router.push(`/confirmation?bookingId=${b.id}`);
+      // El token va en la URL: es lo que deja pagar y ver la reserva sin cuenta
+      const secret = b.accessToken
+        ? `&t=${encodeURIComponent(b.accessToken)}`
+        : "";
+      router.push(`/confirmation?bookingId=${b.id}${secret}`);
     } catch (e: any) {
       setError(e.message || "Booking failed. Please try again.");
       setBooking(false);
@@ -709,6 +729,83 @@ export default function BookResults() {
                   setPickedIn,
                 )}
             </>
+          )}
+
+          {/* Sin cuenta: a nombre de quién va la reserva. Reservar no exige
+              registrarse, así que estos datos se piden acá una sola vez */}
+          {!user && (
+            <section style={{ marginBottom: "2.5rem" }}>
+              <div style={eyebrowStyle}>Your details</div>
+              <h2 style={{ fontSize: "1.15rem", margin: "2px 0 0.35rem" }}>
+                Who is travelling?
+              </h2>
+              <p
+                style={{
+                  fontFamily: "DM Sans, sans-serif",
+                  fontSize: "0.85rem",
+                  color: "var(--brand-gray)",
+                  marginBottom: "1rem",
+                }}
+              >
+                No account needed. We email your confirmation and a link to
+                manage this booking.{" "}
+                <Link
+                  href={`/login?returnTo=${encodeURIComponent(`/book?${params.toString()}`)}`}
+                  style={{ color: "var(--brand-green)" }}
+                >
+                  Sign in
+                </Link>{" "}
+                if you already have one.
+              </p>
+
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+              >
+                <div>
+                  <label style={fieldLabelStyle}>Full name *</label>
+                  <input
+                    type="text"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    autoComplete="name"
+                    placeholder="Your full name"
+                    style={fieldStyle}
+                  />
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "1rem",
+                  }}
+                >
+                  <div>
+                    <label style={fieldLabelStyle}>Email *</label>
+                    <input
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      autoComplete="email"
+                      placeholder="you@email.com"
+                      style={fieldStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={fieldLabelStyle}>Phone / WhatsApp *</label>
+                    <input
+                      type="tel"
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                      autoComplete="tel"
+                      placeholder="+1 555 123 4567"
+                      style={fieldStyle}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <TurnstileWidget onToken={setTurnstileToken} />
+            </section>
           )}
 
           {/* Datos que el conductor necesita para el pickup; no se piden en

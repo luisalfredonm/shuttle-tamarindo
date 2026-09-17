@@ -23,19 +23,36 @@ export class AuthService {
       where: { email: dto.email },
     });
 
-    if (exists) throw new ConflictException('El email ya está registrado');
+    // Con contrasena ya hay cuenta de verdad. Sin contrasena es un registro
+    // que nacio de una reserva como invitado: se le pone la contrasena en vez
+    // de dejar el correo bloqueado para siempre.
+    if (exists?.password) {
+      throw new ConflictException('El email ya está registrado');
+    }
 
     const hashedPassword = await bcrypt.hash(dto.password, 12);
 
-    const user = await this.prisma.user.create({
-      data: {
-        name: dto.name,
-        email: dto.email,
-        password: hashedPassword,
-        phone: dto.phone,
-        role: 'CUSTOMER',
-      },
-    });
+    // Sus reservas de invitado NO pasan a esta cuenta: el correo no se
+    // verifica, asi que registrarse con el email de otro no puede mostrar sus
+    // viajes. Se siguen abriendo con el enlace que recibio por correo.
+    const user = exists
+      ? await this.prisma.user.update({
+          where: { id: exists.id },
+          data: {
+            name: dto.name,
+            password: hashedPassword,
+            phone: dto.phone ?? exists.phone,
+          },
+        })
+      : await this.prisma.user.create({
+          data: {
+            name: dto.name,
+            email: dto.email,
+            password: hashedPassword,
+            phone: dto.phone,
+            role: 'CUSTOMER',
+          },
+        });
 
     const token = this.signToken(user.id, user.email);
 
@@ -100,13 +117,21 @@ export class AuthService {
     return user;
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
     const match = await bcrypt.compare(currentPassword, user.password);
-    if (!match) throw new UnauthorizedException('Current password is incorrect');
+    if (!match)
+      throw new UnauthorizedException('Current password is incorrect');
     const hashed = await bcrypt.hash(newPassword, 12);
-    await this.prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashed },
+    });
     return { message: 'Password updated' };
   }
 

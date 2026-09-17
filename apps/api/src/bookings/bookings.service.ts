@@ -8,6 +8,12 @@ import { Prisma } from '@shuttle/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { RequestUser, assertOwnerOrAdmin } from '../auth/request-user';
+import {
+  NO_ACCESS,
+  assertCanAccessReservation,
+  newAccessToken,
+} from './reservation-access';
+import { TurnstileService } from './turnstile.service';
 
 /**
  * Nota de vocabulario: de cara al cliente una "booking" es la compra entera,
@@ -26,7 +32,7 @@ const ACTIVE_STATUSES: Prisma.EnumBookingStatusFilter = {
   in: ['PENDING', 'CONFIRMED'],
 };
 
-const NOT_YOURS = 'No tienes acceso a esta reserva';
+const NOT_YOURS = NO_ACCESS;
 
 const RESERVATION_INCLUDE = {
   // OUTBOUND antes que RETURN
@@ -39,7 +45,50 @@ const RESERVATION_INCLUDE = {
 
 @Injectable()
 export class BookingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private turnstile: TurnstileService,
+  ) {}
+
+  /**
+   * Cliente al que se le cuelga una reserva sin sesion.
+   *
+   * Si el email ya tiene cuenta la reserva se le adjunta, pero no se toca su
+   * nombre ni su contrasena: el email no se verifica, asi que un invitado no
+   * puede modificar la cuenta de otro. Los datos de contacto de esta compra
+   * viven en la reserva (contactName / contactPhone).
+   */
+  private async resolveGuestUserId(
+    tx: Prisma.TransactionClient,
+    guest: { name: string; email: string; phone: string },
+  ): Promise<string> {
+    const email = guest.email.trim().toLowerCase();
+
+    const existing = await tx.user.findUnique({ where: { email } });
+    if (existing) {
+      // Sin contrasena no hay cuenta que proteger: se refrescan sus datos
+      if (!existing.password) {
+        await tx.user.update({
+          where: { id: existing.id },
+          data: { name: guest.name, phone: guest.phone },
+        });
+      }
+      return existing.id;
+    }
+
+    const created = await tx.user.create({
+      data: {
+        email,
+        name: guest.name,
+        phone: guest.phone,
+        // Sin contrasena: no se puede iniciar sesion con esta cuenta hasta
+        // que la persona se registre con este mismo correo
+        password: '',
+        role: 'CUSTOMER',
+      },
+    });
+    return created.id;
+  }
 
   /**
    * Cancela las reservas PENDING vencidas que ocupan asiento en este viaje.
@@ -216,8 +265,42 @@ export class BookingsService {
     return created.id;
   }
 
-  async create(userId: string, dto: CreateBookingDto) {
+  /**
+   * Reserva con o sin sesion.
+   *
+   * Sin sesion (`user` undefined) hacen falta nombre, email y telefono: el
+   * conductor necesita a quien llamar y el cliente su comprobante. La reserva
+   * se marca bookedAsGuest y se accede con su enlace secreto.
+   */
+  async create(
+    user: RequestUser | undefined,
+    dto: CreateBookingDto,
+    ip?: string,
+  ) {
+    const isGuest = !user;
+
+    if (isGuest) {
+      if (
+        !dto.guestName?.trim() ||
+        !dto.guestEmail?.trim() ||
+        !dto.guestPhone?.trim()
+      ) {
+        throw new BadRequestException(
+          'Falta el nombre, el email o el telefono de contacto',
+        );
+      }
+      // Antes de tocar la base: un bot no deberia ni llegar a crear el Trip
+      await this.turnstile.verify(dto.turnstileToken, ip);
+    }
+
     return this.prisma.$transaction(async (tx) => {
+      const userId = user
+        ? user.id
+        : await this.resolveGuestUserId(tx, {
+            name: dto.guestName!.trim(),
+            email: dto.guestEmail!.trim(),
+            phone: dto.guestPhone!.trim(),
+          });
       const tripId = await this.resolveTripId(
         tx,
         dto.type,
@@ -278,6 +361,10 @@ export class BookingsService {
       const reservation = await tx.reservation.create({
         data: {
           userId,
+          accessToken: newAccessToken(),
+          bookedAsGuest: isGuest,
+          contactName: isGuest ? dto.guestName!.trim() : null,
+          contactPhone: isGuest ? dto.guestPhone!.trim() : null,
           type: dto.type,
           tripType: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
           passengers: dto.passengers,
@@ -328,25 +415,30 @@ export class BookingsService {
     assertOwnerOrAdmin(userId, user, NOT_YOURS);
 
     return this.prisma.reservation.findMany({
-      where: { userId },
+      // Las de invitado quedan fuera a proposito: se ven con su enlace, no
+      // por tener una cuenta con el mismo correo
+      where: {
+        userId,
+        ...(user.role === 'ADMIN' ? {} : { bookedAsGuest: false }),
+      },
       include: RESERVATION_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findById(id: string, user: RequestUser) {
+  async findById(id: string, user?: RequestUser, token?: string) {
     const reservation = await this.prisma.reservation.findUnique({
       where: { id },
       include: RESERVATION_INCLUDE,
     });
 
     if (!reservation) throw new NotFoundException('Reserva no encontrada');
-    assertOwnerOrAdmin(reservation.userId, user, NOT_YOURS);
+    assertCanAccessReservation(reservation, user, token);
 
     return reservation;
   }
 
-  async cancel(id: string, user: RequestUser) {
+  async cancel(id: string, user?: RequestUser, token?: string) {
     return this.prisma.$transaction(async (tx) => {
       const reservation = await tx.reservation.findUnique({
         where: { id },
@@ -354,7 +446,7 @@ export class BookingsService {
       });
 
       if (!reservation) throw new NotFoundException('Reserva no encontrada');
-      assertOwnerOrAdmin(reservation.userId, user, NOT_YOURS);
+      assertCanAccessReservation(reservation, user, token);
 
       if (reservation.status === 'CONFIRMED') {
         throw new BadRequestException(
@@ -400,12 +492,23 @@ export class BookingsService {
   }
 
   async findAllBookings() {
-    return this.prisma.reservation.findMany({
+    const reservations = await this.prisma.reservation.findMany({
       include: {
         ...RESERVATION_INCLUDE,
         user: { select: { id: true, name: true, email: true, phone: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // El panel muestra a quien recoger: en las de invitado eso es el contacto
+    // de la compra, no el nombre guardado en la cuenta del correo
+    return reservations.map((reservation) => ({
+      ...reservation,
+      user: {
+        ...reservation.user,
+        name: reservation.contactName ?? reservation.user.name,
+        phone: reservation.contactPhone ?? reservation.user.phone,
+      },
+    }));
   }
 }
