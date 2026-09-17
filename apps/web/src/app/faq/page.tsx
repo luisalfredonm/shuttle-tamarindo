@@ -58,6 +58,20 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     a: "Payments are made securely online at the time of booking. Your booking is confirmed once payment is received.",
   },
   {
+    q: "I lost my confirmation email. How do I find my booking?",
+    a: (
+      <>
+        Go to{" "}
+        <Link href="/find-booking" style={s.link}>
+          find my booking
+        </Link>{" "}
+        and enter the email you booked with. We will send you a link to each of
+        your bookings, so you can check the details or finish a payment without
+        creating an account.
+      </>
+    ),
+  },
+  {
     q: "What is your cancellation policy?",
     a: (
       <>

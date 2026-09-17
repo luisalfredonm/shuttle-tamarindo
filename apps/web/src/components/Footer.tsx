@@ -12,7 +12,10 @@ const COMPANY = [
 ];
 
 const SUPPORT = [
-  { label: 'My Bookings',      href: '/account' },
+  // Apunta a /find-booking y no a /account: reservar no exige cuenta, asi que
+  // para la mayoria /account es un muro de login. Esa pagina sirve a los dos,
+  // porque tambien ofrece entrar. Quien tiene sesion llega desde su menu.
+  { label: 'Manage my booking', href: '/find-booking' },
   { label: 'Cancellation Policy', href: '/cancellation' },
   { label: 'FAQ',              href: '/faq' },
   { label: 'WhatsApp Support', href: `https://wa.me/${BRAND_WHATSAPP}` },

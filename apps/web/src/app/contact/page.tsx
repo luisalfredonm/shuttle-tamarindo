@@ -21,6 +21,18 @@ export default function ContactPage() {
       title="Contact us"
       intro="Questions about a booking, a route or a custom transfer? We're happy to help — the fastest way to reach us is WhatsApp."
     >
+      {/* Arriba de todo: la mayoria de los mensajes son para pedir la reserva
+          otra vez, y eso se resuelve sin esperar respuesta */}
+      <h2 style={s.h2}>Already booked?</h2>
+      <p style={s.p}>
+        If you just need your booking again, get it instantly at{" "}
+        <Link href="/find-booking" style={s.link}>
+          find my booking
+        </Link>
+        . Enter the email you booked with and we will send you the link — no
+        account needed.
+      </p>
+
       <h2 style={s.h2}>WhatsApp</h2>
       <p style={s.p}>
         <a href={waHref} target="_blank" rel="noopener noreferrer" style={s.link}>

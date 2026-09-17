@@ -171,6 +171,21 @@ export default function BookingSuccess() {
         </div>
       </div>
 
+      {/* Recuperar el enlace: se avisa acá y no cuando ya se perdió. Sin
+          cuenta, este enlace y el correo son el único acceso a la reserva */}
+      <p style={{
+        fontFamily: 'DM Sans, sans-serif', fontSize: '0.8rem',
+        color: 'var(--brand-gray)', lineHeight: 1.6,
+        textAlign: 'center', marginBottom: '1.5rem',
+      }}>
+        We emailed this confirmation to you. Lost it? Get your booking link
+        again at{' '}
+        <Link href="/find-booking" style={{ color: 'var(--brand-green)' }}>
+          find my booking
+        </Link>
+        .
+      </p>
+
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <a
