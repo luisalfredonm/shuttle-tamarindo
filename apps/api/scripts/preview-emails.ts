@@ -112,11 +112,41 @@ async function main() {
     flightNumber: 'AA 1423',
   });
 
+  await service.sendBookingLinks('traveler@example.com', 'Ana Retana', [
+    {
+      bookingId: 'b1234567-0000-0000-0000-000000000000',
+      accessToken: 'tok_de_prueba_no_real',
+      status: 'CONFIRMED',
+      amount: 120,
+      outbound: {
+        direction: 'OUTBOUND',
+        origin: 'Liberia Airport',
+        destination: 'Tamarindo',
+        departure: at('2026-10-02T15:30:00Z'),
+        durationMin: 75,
+      },
+    },
+    {
+      bookingId: 'c7654321-0000-0000-0000-000000000000',
+      accessToken: 'otro_tok_de_prueba',
+      status: 'PENDING',
+      amount: 60,
+      outbound: {
+        direction: 'OUTBOUND',
+        origin: 'Tamarindo',
+        destination: 'Liberia Airport',
+        departure: at('2026-10-09T17:15:00Z'),
+        durationMin: 75,
+      },
+    },
+  ]);
+
   const names = [
     'welcome',
     'booking-one-way',
     'booking-round-trip',
     'admin-alert',
+    'booking-links',
   ];
   fs.mkdirSync(OUT, { recursive: true });
   captured.forEach((msg, i) => {

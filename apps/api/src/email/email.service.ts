@@ -39,6 +39,16 @@ export interface BookingEmailData {
   notes?: string | null;
 }
 
+/** Una reserva en el correo de "encuentra mi reserva" */
+export interface BookingLink {
+  bookingId: string;
+  accessToken: string;
+  /** Tramo de ida: es el que representa la reserva en una linea */
+  outbound: EmailLeg;
+  status: string;
+  amount: number;
+}
+
 export interface AdminAlertData extends BookingEmailData {
   adminName?: string | null;
   customerName: string;
@@ -202,6 +212,68 @@ export class EmailService {
       );
     } catch (err) {
       this.logger.error('Failed to send booking confirmation', err);
+    }
+  }
+
+  /**
+   * Enlaces de las reservas de un correo, para quien reservo sin cuenta.
+   *
+   * Es la unica via de recuperacion: el enlace es lo que abre la reserva, y
+   * solo llega al buzon de su dueno. Por eso el listado va por correo y no en
+   * la respuesta de la pantalla.
+   */
+  async sendBookingLinks(to: string, name: string, bookings: BookingLink[]) {
+    const first = this.firstName(name);
+
+    const cards = bookings
+      .map((b) => {
+        const url =
+          `${this.siteUrl}/booking-success?bookingId=${encodeURIComponent(b.bookingId)}` +
+          `&t=${encodeURIComponent(b.accessToken)}`;
+        const state =
+          b.status === 'CONFIRMED' ? 'Confirmed' : 'Pending payment';
+
+        return (
+          itinerary(b.outbound, {
+            badge: `${state} · ${bookingRef(b.bookingId)}`,
+          }) +
+          spacer(10) +
+          button(
+            url,
+            b.status === 'CONFIRMED' ? 'Open this booking' : 'Pay this booking',
+          ) +
+          spacer(22)
+        );
+      })
+      .join('');
+
+    const html = layout({
+      preheader: `Your booking${bookings.length > 1 ? 's' : ''} with ${BRAND.name}`,
+      siteUrl: this.siteUrl,
+      eyebrow: 'Your bookings',
+      title: first ? `Here you go, ${first}` : 'Here are your bookings',
+      intro: `We found ${bookings.length === 1 ? '1 booking' : `${bookings.length} bookings`} for this email address. Open the one you need — no account required.`,
+      content: `
+        ${sectionTitle(bookings.length > 1 ? 'Your bookings' : 'Your booking')}
+        ${cards}
+        ${note(
+          'These links are personal: anyone with them can see and pay the booking, so please do not share this email.',
+        )}
+      `,
+    });
+
+    try {
+      const result = await this.resend.emails.send({
+        from: this.from,
+        to,
+        subject: `Your ${BRAND.name} booking${bookings.length > 1 ? 's' : ''}`,
+        html,
+      });
+      this.logger.log(
+        `Booking links sent to ${to} — id: ${result.data?.id} error: ${JSON.stringify(result.error)}`,
+      );
+    } catch (err) {
+      this.logger.error('Failed to send booking links', err);
     }
   }
 

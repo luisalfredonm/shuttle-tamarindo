@@ -14,6 +14,8 @@ import {
   newAccessToken,
 } from './reservation-access';
 import { TurnstileService } from './turnstile.service';
+import { EmailService } from '../email/email.service';
+import { LookupBookingsDto } from './dto/lookup-bookings.dto';
 
 /**
  * Nota de vocabulario: de cara al cliente una "booking" es la compra entera,
@@ -48,7 +50,72 @@ export class BookingsService {
   constructor(
     private prisma: PrismaService,
     private turnstile: TurnstileService,
+    private email: EmailService,
   ) {}
+
+  /**
+   * "Encuentra mi reserva": manda por correo los enlaces de las reservas de
+   * ese email.
+   *
+   * La respuesta es siempre la misma, exista o no el correo: si dijera "no hay
+   * reservas", esta pantalla serviria para averiguar quien compro. Los enlaces
+   * van al buzon, que es lo unico que prueba que el correo es suyo.
+   */
+  async sendMyBookings(dto: LookupBookingsDto, ip?: string) {
+    const ALWAYS = {
+      message:
+        'If that email has bookings, we just sent you a link to each one.',
+    };
+
+    await this.turnstile.verify(dto.turnstileToken, ip);
+
+    const email = dto.email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) return ALWAYS;
+
+    // Solo lo que el cliente todavia puede usar: activas y a futuro. Una
+    // reserva cancelada o de un viaje que ya paso no tiene nada que abrir.
+    const reservations = await this.prisma.reservation.findMany({
+      where: {
+        userId: user.id,
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        accessToken: { not: null },
+        legs: { some: { trip: { departureAt: { gte: new Date() } } } },
+      },
+      include: RESERVATION_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+
+    if (reservations.length === 0) return ALWAYS;
+
+    await this.email.sendBookingLinks(
+      user.email,
+      // El contacto de la compra mas reciente describe mejor a quien escribe
+      reservations[0].contactName ?? user.name,
+      reservations.map((reservation) => {
+        const leg =
+          reservation.legs.find((l) => l.direction === 'OUTBOUND') ??
+          reservation.legs[0];
+
+        return {
+          bookingId: reservation.id,
+          accessToken: reservation.accessToken!,
+          status: reservation.status,
+          amount: Number(reservation.totalAmount),
+          outbound: {
+            direction: leg.direction,
+            origin: leg.trip.route.origin,
+            destination: leg.trip.route.destination,
+            departure: leg.trip.departureAt,
+            durationMin: leg.trip.route.durationMin,
+          },
+        };
+      }),
+    );
+
+    return ALWAYS;
+  }
 
   /**
    * Cliente al que se le cuelga una reserva sin sesion.

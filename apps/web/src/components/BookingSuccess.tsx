@@ -39,7 +39,12 @@ export default function BookingSuccess() {
 
   if (!booking) return (
     <div style={{ textAlign: 'center', fontFamily: 'DM Sans, sans-serif' }}>
-      Booking not found.
+      <p style={{ marginBottom: '0.75rem' }}>
+        We could not open this booking. The link may be incomplete or expired.
+      </p>
+      <Link href="/find-booking" style={{ color: 'var(--brand-green)' }}>
+        Email me my booking link
+      </Link>
     </div>
   );
 

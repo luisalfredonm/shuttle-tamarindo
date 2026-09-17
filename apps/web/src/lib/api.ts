@@ -190,6 +190,33 @@ export async function bookingFetch(
   return res.json();
 }
 
+/**
+ * "Encuentra mi reserva": pide que manden los enlaces a ese correo.
+ *
+ * La respuesta es siempre la misma exista o no el correo, así que esta
+ * pantalla no sirve para averiguar quién compró.
+ */
+export async function lookupBookings(
+  email: string,
+  turnstileToken?: string,
+): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/bookings/lookup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, turnstileToken }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      err.message ||
+        "We could not send the email right now. Please try again in a minute.",
+    );
+  }
+
+  return res.json();
+}
+
 export async function getTrips(params: {
   routeSlug?: string;
   date?: string;

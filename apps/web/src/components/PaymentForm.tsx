@@ -210,7 +210,15 @@ export default function PaymentForm() {
     );
   if (!booking)
     return (
-      <p style={{ fontFamily: "DM Sans, sans-serif" }}>Booking not found.</p>
+      <div style={{ fontFamily: "DM Sans, sans-serif", textAlign: "center" }}>
+        <p style={{ marginBottom: "0.75rem" }}>
+          We could not open this booking. The link may be incomplete or
+          expired.
+        </p>
+        <Link href="/find-booking" style={{ color: "var(--brand-green)" }}>
+          Email me my booking link
+        </Link>
+      </div>
     );
 
   const isRoundTrip = booking.tripType === "ROUND_TRIP";

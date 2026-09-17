@@ -212,6 +212,30 @@ export default function LoginForm() {
           Create one
         </Link>
       </p>
+
+      {/* Reservar no exige cuenta, así que muchos clientes llegan acá sin
+          tener una: su reserva se recupera por correo */}
+      <p
+        style={{
+          textAlign: "center",
+          marginTop: "0.5rem",
+          fontFamily: "DM Sans, sans-serif",
+          fontSize: "0.9rem",
+          color: "var(--brand-gray)",
+        }}
+      >
+        Booked as a guest?{" "}
+        <Link
+          href="/find-booking"
+          style={{
+            color: "var(--brand-green)",
+            textDecoration: "none",
+            fontWeight: 500,
+          }}
+        >
+          Find my booking
+        </Link>
+      </p>
     </div>
   );
 }

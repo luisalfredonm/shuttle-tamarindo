@@ -12,6 +12,7 @@ import {
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { LookupBookingsDto } from './dto/lookup-bookings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -40,6 +41,20 @@ export class BookingsController {
       dto,
       clientIp(req),
     );
+  }
+
+  /**
+   * "Encuentra mi reserva": sin sesión, manda los enlaces por correo.
+   *
+   * Límite más duro que el de reservar: acá cada intento dispara un correo a
+   * una dirección que elige quien llama, así que es lo que se podría usar
+   * para molestar a alguien.
+   */
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
+  @Post('lookup')
+  lookup(@Request() req: any, @Body() dto: LookupBookingsDto) {
+    return this.bookingsService.sendMyBookings(dto, clientIp(req));
   }
 
   // Listado completo con datos de contacto de cada cliente: solo ADMIN
