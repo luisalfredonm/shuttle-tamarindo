@@ -210,7 +210,9 @@ export async function getActiveRoutes(): Promise<Route[]> {
 }
 
 export async function getRouteBySlug(slug: string): Promise<Route> {
-  const res = await fetch(`${API_URL}/routes/${slug}`, { cache: "no-store" });
+  const res = await fetch(`${API_URL}/routes/${encodeURIComponent(slug)}`, {
+    cache: "no-store",
+  });
   if (!res.ok) throw new Error("Failed to fetch route");
   return res.json();
 }

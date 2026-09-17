@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRouteDto } from './dto/create-route.dto';
 import { UpdateRouteDto } from './dto/update-route.dto';
@@ -63,13 +67,25 @@ export class RoutesService {
   }
 
   async create(dto: CreateRouteDto) {
+    await this.assertSlugAvailable(dto.slug);
     return this.prisma.route.create({ data: dto });
   }
 
   async update(id: string, dto: UpdateRouteDto) {
     const route = await this.prisma.route.findUnique({ where: { id } });
     if (!route) throw new NotFoundException(`Ruta no encontrada`);
+    if (dto.slug && dto.slug !== route.slug) {
+      await this.assertSlugAvailable(dto.slug);
+    }
     return this.prisma.route.update({ where: { id }, data: dto });
+  }
+
+  /** El slug es unico: mejor un mensaje claro que un 500 de Prisma */
+  private async assertSlugAvailable(slug: string) {
+    const taken = await this.prisma.route.findUnique({ where: { slug } });
+    if (taken) {
+      throw new ConflictException(`Ya existe una ruta con el slug "${slug}"`);
+    }
   }
 
   async remove(id: string) {

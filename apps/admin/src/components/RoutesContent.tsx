@@ -15,6 +15,15 @@ type Route = {
   isActive: boolean;
 };
 
+/** Igual que en el API: así se ve antes de guardar cómo va a quedar el slug */
+const toSlug = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 const emptyForm = { slug: "", origin: "", destination: "", durationMin: "", distanceKm: "", pricePrivate: "" };
 
 export default function RoutesContent() {
@@ -44,7 +53,7 @@ export default function RoutesContent() {
   const openEdit = (r: Route) => {
     setEditing(r);
     setForm({
-      slug: "",
+      slug: r.slug,
       origin: r.origin,
       destination: r.destination,
       durationMin: String(r.durationMin),
@@ -60,15 +69,12 @@ export default function RoutesContent() {
     setSaving(true);
     setError("");
     try {
-      const { slug, ...editFields } = form;
-      const numericFields = {
+      const body = {
+        ...form,
         durationMin: Number(form.durationMin),
         distanceKm: Number(form.distanceKm),
         pricePrivate: Number(form.pricePrivate),
       };
-      const body = editing
-        ? { ...editFields, ...numericFields }
-        : { ...form, ...numericFields };
       if (editing) {
         const updated = await apiFetch(`/routes/${editing.id}`, { method: "PATCH", body: JSON.stringify(body) });
         setRoutes((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
@@ -132,7 +138,7 @@ export default function RoutesContent() {
                 { label: "Duration (min)", key: "durationMin", placeholder: "90" },
                 { label: "Distance (km)", key: "distanceKm", placeholder: "78" },
                 { label: "Private price ($)", key: "pricePrivate", placeholder: "120" },
-              ].filter(({ key }) => !editing || key !== "slug").map(({ label, key, placeholder }) => (
+              ].map(({ label, key, placeholder }) => (
                 <div key={key}>
                   <label style={{ fontSize: "0.8rem", fontWeight: 500, display: "block", marginBottom: "4px" }}>{label}</label>
                   <input
@@ -142,6 +148,11 @@ export default function RoutesContent() {
                     onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                     style={input}
                   />
+                  {key === "slug" && form.slug && toSlug(form.slug) !== form.slug && (
+                    <p style={{ fontSize: "0.75rem", color: "var(--brand-gray)", marginTop: "4px" }}>
+                      Se guardará como: <code>{toSlug(form.slug) || "—"}</code>
+                    </p>
+                  )}
                 </div>
               ))}
               {error && <p style={{ color: "#c0392b", fontSize: "0.8rem" }}>{error}</p>}

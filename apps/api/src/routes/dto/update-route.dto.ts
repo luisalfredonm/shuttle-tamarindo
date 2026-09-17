@@ -1,13 +1,27 @@
-import { IsString, IsInt, IsNumber, IsOptional, IsBoolean, Min } from 'class-validator';
+import { IsString, IsInt, IsNumber, IsOptional, IsBoolean, IsNotEmpty, Matches, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { NormalizeSlug, SLUG_PATTERN, Trim } from './slug';
 
 export class UpdateRouteDto {
+  // Editable para poder corregir un slug mal escrito; las reservas se enlazan por id
   @IsOptional()
+  @NormalizeSlug()
   @IsString()
+  @Matches(SLUG_PATTERN, {
+    message: 'slug debe tener letras o numeros (ej: tamarindo-liberia-airport)',
+  })
+  slug?: string;
+
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @IsNotEmpty()
   origin?: string;
 
   @IsOptional()
+  @Trim()
   @IsString()
+  @IsNotEmpty()
   destination?: string;
 
   @IsOptional()
