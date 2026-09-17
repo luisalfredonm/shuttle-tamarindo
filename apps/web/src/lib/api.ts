@@ -16,6 +16,8 @@ export interface Route {
   priceShared?: number | null;
   /** Horas de salida del compartido, en hora local ("08:00") */
   departureTimes?: string[];
+  /** Foto propia subida desde el panel (Vercel Blob). null si no tiene */
+  imageUrl?: string | null;
 }
 
 export interface Trip {

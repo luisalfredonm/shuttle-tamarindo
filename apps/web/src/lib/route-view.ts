@@ -53,10 +53,10 @@ export function buildRouteView(route: Route): RouteView {
     sharedEnabled,
     hasEditorialContent: !!content,
 
-    // Foto propia mientras no haya una por ruta. Antes caia en picsum, que
-    // devuelve una imagen aleatoria sin relacion con Costa Rica: no sirve ni
-    // para la pagina ni para lo que se ve al compartir el enlace.
-    heroImage: content?.heroImage ?? BRAND_HERO_IMAGE,
+    // Primero la foto subida desde el panel, despues la del archivo y, si no
+    // hay ninguna, la de la marca. Nunca picsum: devolvia una imagen aleatoria
+    // sin relacion con Costa Rica, en la pagina y al compartir el enlace.
+    heroImage: route.imageUrl || content?.heroImage || BRAND_HERO_IMAGE,
 
     // El texto lo escribe una persona y el precio lo pone la base: asi el copy
     // se mantiene y el dato nunca queda viejo. Antes el precio y los horarios

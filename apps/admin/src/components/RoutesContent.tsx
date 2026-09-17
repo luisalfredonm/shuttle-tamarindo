@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowDown, PenLine, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import RouteImage from "./RouteImage";
 
 type Route = {
   id: string;
@@ -13,6 +14,7 @@ type Route = {
   distanceKm: number;
   pricePrivate: number;
   isActive: boolean;
+  imageUrl: string | null;
 };
 
 /** Igual que en el API: así se ve antes de guardar cómo va a quedar el slug */
@@ -172,6 +174,12 @@ export default function RoutesContent() {
         {loading && <div style={{ padding: "2rem", color: "var(--brand-gray)", fontSize: "0.875rem" }}>Loading routes...</div>}
         {!loading && routes.map((r) => (
           <div key={r.id} style={{ background: "var(--surface)", borderRadius: "14px", padding: "1.5rem", border: "1px solid var(--border-strong)" }}>
+            <RouteImage
+              routeId={r.id}
+              imageUrl={r.imageUrl}
+              label={`${r.origin} → ${r.destination}`}
+              onChange={(updated) => setRoutes((prev) => prev.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)))}
+            />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
               <div>
                 <div style={{ fontWeight: 500, fontSize: "0.95rem", marginBottom: "2px" }}>{r.origin}</div>

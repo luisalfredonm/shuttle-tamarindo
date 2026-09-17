@@ -6,10 +6,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRouteDto } from './dto/create-route.dto';
 import { UpdateRouteDto } from './dto/update-route.dto';
+import { RouteImagesService } from './route-images.service';
 
 @Injectable()
 export class RoutesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private routeImages: RouteImagesService,
+  ) {}
 
   /**
    * Rutas para la web y para el panel.
@@ -92,6 +96,8 @@ export class RoutesService {
     const route = await this.prisma.route.findUnique({ where: { id } });
     if (!route) throw new NotFoundException(`Ruta no encontrada`);
     await this.prisma.route.delete({ where: { id } });
+    // Despues de borrar: si la ruta no se podia eliminar, conserva su foto
+    await this.routeImages.deleteBlob(route.imageUrl);
     return { message: 'Ruta eliminada' };
   }
 

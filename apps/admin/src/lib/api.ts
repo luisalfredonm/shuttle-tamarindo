@@ -4,10 +4,12 @@
  * token, y los paths siguen escribiéndose igual que antes ("/bookings/...").
  */
 export async function apiFetch(path: string, options?: RequestInit) {
+  // Con FormData el navegador arma el Content-Type con su boundary: no se pisa
+  const isForm = options?.body instanceof FormData;
   const res = await fetch(`/api/proxy${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isForm ? {} : { "Content-Type": "application/json" }),
       ...options?.headers,
     },
     cache: "no-store",

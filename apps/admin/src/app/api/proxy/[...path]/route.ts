@@ -27,18 +27,20 @@ async function forward(
   }
 
   const target = `${API_URL}/${path.join('/')}${req.nextUrl.search}`;
+  // El cuerpo viaja en bytes y con su Content-Type original: asi pasan tanto
+  // el JSON como las fotos (multipart), que como texto se corromperian
   const body = METHODS_WITHOUT_BODY.includes(req.method)
     ? undefined
-    : await req.text();
+    : await req.arrayBuffer();
 
   try {
     const res = await fetch(target, {
       method: req.method,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': req.headers.get('Content-Type') || 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: body || undefined,
+      body: body && body.byteLength > 0 ? body : undefined,
       cache: 'no-store',
     });
 

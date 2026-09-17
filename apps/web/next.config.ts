@@ -3,6 +3,19 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
 
+  // Solo se optimizan fotos del almacenamiento propio (las que sube el panel).
+  // Cualquier otro dominio responde 400 en vez de servir de proxy abierto.
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        pathname: "/routes/**",
+        search: "",
+      },
+    ],
+  },
+
   async headers() {
     return [
       {

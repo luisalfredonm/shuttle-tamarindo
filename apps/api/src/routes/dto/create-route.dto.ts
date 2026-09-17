@@ -1,4 +1,13 @@
-import { IsString, IsInt, IsNumber, IsOptional, IsBoolean, IsNotEmpty, Matches, Min } from 'class-validator';
+import {
+  IsString,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+  IsNotEmpty,
+  Matches,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { NormalizeSlug, SLUG_PATTERN, Trim } from './slug';
 
@@ -32,10 +41,6 @@ export class CreateRouteDto {
   @IsNumber()
   @Type(() => Number)
   pricePrivate: number;
-
-  @IsOptional()
-  @IsString()
-  imageUrl?: string;
 
   @IsOptional()
   @IsBoolean()
