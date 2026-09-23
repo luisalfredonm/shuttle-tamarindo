@@ -57,13 +57,13 @@ A van reserved exclusively for your group. No stops, no waiting for other passen
 
 ## Departure Times
 
-We offer three guaranteed daily departures from Tamarindo:
+We run three daily departures from Tamarindo:
 
 - **9:00 AM** — Ideal for afternoon flights
 - **2:00 PM** — Perfect for evening departures
 - **6:00 PM** — For early morning next-day flights
 
-All departures are **guaranteed** regardless of how many passengers have booked. No minimum required.
+A shared departure opens once **three passengers** are confirmed. From then on anyone can join it, even travelling alone — and if no departure is running that day, booking three seats starts one. Need a specific time? A private transfer runs whenever you need it.
 
 ## How Early Should You Arrive at LIR?
 
@@ -253,7 +253,7 @@ A shared shuttle is a van or minibus that carries multiple passengers traveling 
 **Pros:**
 - Significantly cheaper per person
 - Air-conditioned and comfortable
-- Guaranteed departures on fixed schedules
+- Fixed daily schedules
 - Door-to-door pickup and drop-off
 
 **Cons:**

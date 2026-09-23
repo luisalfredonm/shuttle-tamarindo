@@ -98,7 +98,7 @@ export default function WhyUs() {
                   marginBottom: "0.4rem",
                 }}
               >
-                Guaranteed Departures
+                Shared Seats from $30
               </h3>
               <p
                 style={{
@@ -109,9 +109,9 @@ export default function WhyUs() {
                   maxWidth: "56ch",
                 }}
               >
-                Your trip runs no matter what. No minimum passengers
-                required, ever. Once a shared departure is scheduled, it
-                leaves.
+                A shared departure opens once three passengers are confirmed.
+                After that anyone can join it, even travelling alone. Prefer
+                your own schedule? A private transfer leaves at any time.
               </p>
             </div>
 

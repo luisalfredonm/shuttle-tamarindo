@@ -91,7 +91,7 @@ export default async function Footer() {
               color: 'rgba(255,255,255,0.7)',
             }}>
               The most reliable shuttle service in Guanacaste.
-              Guaranteed departures, no minimum passengers.
+              Shared seats from $30, private transfers any time.
             </p>
             <a
               href={`https://wa.me/${BRAND_WHATSAPP}`}

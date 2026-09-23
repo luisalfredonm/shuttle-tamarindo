@@ -502,7 +502,7 @@ export default function RouteDetail({ route }: Props) {
                           borderRadius: "100px",
                         }}
                       >
-                        Guaranteed
+                        Daily
                       </span>
                     </div>
                   ))}
@@ -516,7 +516,8 @@ export default function RouteDetail({ route }: Props) {
                     lineHeight: 1.5,
                   }}
                 >
-                  All departures are guaranteed regardless of passenger count.
+                  A shared departure opens once three passengers are confirmed.
+                  After that anyone can join it, even travelling alone.
                 </p>
               </div>
             )}

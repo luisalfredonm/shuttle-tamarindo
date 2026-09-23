@@ -6,7 +6,7 @@ import { BRAND_NAME, BRAND_FOUNDED } from "@/lib/brand";
 export const metadata: Metadata = {
   title: "About Us — Reliable Shuttle Service in Guanacaste",
   description:
-    "Retana Services Tamarindo has provided guaranteed shared shuttles and private transfers across Guanacaste, Costa Rica since 2015. Learn who we are and how we operate.",
+    "Retana Services Tamarindo has provided shared shuttles and private transfers across Guanacaste, Costa Rica since 2015. Learn who we are and how we operate.",
   alternates: { canonical: "/about" },
 };
 
@@ -14,7 +14,7 @@ export default function AboutPage() {
   return (
     <ContentPage
       title="About Retana Services Tamarindo"
-      intro={`Since ${BRAND_FOUNDED}, we have been moving travelers across Guanacaste with guaranteed departures, fair prices and door-to-door service.`}
+      intro={`Since ${BRAND_FOUNDED}, we have been moving travelers across Guanacaste with fixed daily schedules, fair prices and door-to-door service.`}
     >
       <h2 style={s.h2}>Who we are</h2>
       <p style={s.p}>
@@ -27,8 +27,10 @@ export default function AboutPage() {
       <h2 style={s.h2}>What makes us different</h2>
       <ul style={s.ul}>
         <li>
-          <strong>Guaranteed departures.</strong> Our scheduled shuttles run
-          regardless of how many passengers have booked — there is no minimum.
+          <strong>Shared seats from $30.</strong> A shared departure opens once
+          three passengers are confirmed. From then on anyone can join it, even
+          travelling alone. Need to leave on your own schedule? A private
+          transfer runs at any time.
         </li>
         <li>
           <strong>Door-to-door service.</strong> We pick you up at your hotel or

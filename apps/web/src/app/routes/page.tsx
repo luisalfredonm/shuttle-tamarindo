@@ -6,7 +6,7 @@ import { buildRouteView, displayPrice } from "@/lib/route-view";
 export const metadata: Metadata = {
   title: "All Shuttle Routes in Guanacaste, Costa Rica",
   description:
-    "Browse all available shuttle routes from Tamarindo. Daily departures to Liberia Airport, Arenal, Monteverde, San José and more. Guaranteed service.",
+    "Browse all available shuttle routes from Tamarindo. Daily departures to Liberia Airport, Arenal, Monteverde, San José and more. Shared seats from $30.",
 };
 
 export default async function RoutesIndexPage() {
@@ -46,7 +46,7 @@ export default async function RoutesIndexPage() {
             fontSize: "1rem",
           }}
         >
-          Guaranteed daily departures across Guanacaste and Costa Rica
+          Daily departures across Guanacaste and Costa Rica
         </p>
       </section>
 

@@ -11,7 +11,7 @@ const BLUR_PLACEHOLDER =
   "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%237b5a86'/%3E%3Cstop offset='0.45' stop-color='%23e2894f'/%3E%3Cstop offset='0.78' stop-color='%23a8734b'/%3E%3Cstop offset='1' stop-color='%232b2119'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='12' height='8' fill='url(%23g)'/%3E%3C/svg%3E";
 
 const STATS = [
-  { num: "100%", label: "Guaranteed departures" },
+  { num: "$30", label: "Per person, shared" },
   { num: "6+", label: "Daily routes" },
   { num: "24/7", label: "Support" },
 ];
@@ -104,7 +104,7 @@ export default function Hero() {
             textTransform: "uppercase",
           }}
         >
-          Guaranteed departures · No minimum passengers
+          Shared seats from $30 · Private any time
         </span>
 
         <h1
@@ -135,8 +135,8 @@ export default function Hero() {
           }}
         >
           Shared shuttles and private transfers from Tamarindo to Liberia
-          Airport and every major destination. Always on time, always
-          guaranteed.
+          Airport and every major destination. Always on time, always door to
+          door.
         </p>
 
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>

@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     template: "%s | Retana Services Tamarindo",
   },
   description:
-    "Shared shuttles and private transfers from Tamarindo to Liberia Airport and all major destinations in Costa Rica. Guaranteed departures, no minimum passengers. From $30/person.",
+    "Shared shuttles and private transfers from Tamarindo to Liberia Airport and across Costa Rica. Shared seats from $30 per person; private transfers any time.",
   keywords: [
     "shuttle tamarindo",
     "transfer liberia airport",
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     siteName: "Retana Services Tamarindo",
     title: "Retana Services Tamarindo | Guaranteed Transfers in Guanacaste",
     description:
-      "Shared shuttles and private transfers from Tamarindo to Liberia Airport. Guaranteed departures, no minimum passengers. Book online in 2 minutes.",
+      "Shared shuttles and private transfers from Tamarindo to Liberia Airport. Shared seats from $30 per person, private transfers any time. Book online in 2 minutes.",
     images: [
       {
         // Foto real del servicio. Antes apuntaba a /og-image.jpg, que no
@@ -81,7 +81,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Retana Services Tamarindo | Guaranteed Transfers in Guanacaste",
     description:
-      "Shared shuttles and private transfers in Guanacaste. From $30/person. Guaranteed departures.",
+      "Shared shuttles and private transfers in Guanacaste. Shared seats from $30 per person, private transfers any time.",
     images: [BASE_URL + BRAND_HERO_IMAGE],
   },
   alternates: {

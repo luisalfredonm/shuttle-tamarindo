@@ -299,8 +299,7 @@ export default function BlogPostContent({ post, related }: Props) {
                     marginBottom: "1.25rem",
                   }}
                 >
-                  Guaranteed departures · No minimum passengers · From
-                  $30/person
+                  Shared seats from $30 · Private transfers any time
                 </p>
                 <Link
                   href="/#book"
