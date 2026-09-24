@@ -1,6 +1,7 @@
 import { getRouteBySlug as getRouteContent, type RouteData } from "./routes-data";
 import type { Route } from "./api";
 import { BRAND_HERO_IMAGE } from "./brand";
+import { sharedScheduleText } from "./days";
 
 /**
  * Une los datos operativos de la base con el contenido editorial del archivo.
@@ -19,6 +20,8 @@ export type RouteView = RouteData & {
   /** false cuando la ruta todavia no tiene contenido escrito en el archivo */
   hasEditorialContent: boolean;
   sharedEnabled: boolean;
+  /** Días del compartido, 0 = domingo. Vacío = todos */
+  sharedDays: number[];
   /** Siempre resuelta: la propia de la ruta o la general del servicio */
   heroImage: string;
 };
@@ -51,6 +54,7 @@ export function buildRouteView(route: Route): RouteView {
     priceShared: Number(priceShared),
     departureHours,
     sharedEnabled,
+    sharedDays: route.sharedDays ?? [],
     hasEditorialContent: !!content,
 
     // Primero la foto subida desde el panel, despues la del archivo y, si no
@@ -68,8 +72,8 @@ export function buildRouteView(route: Route): RouteView {
       Number(route.pricePrivate),
     ),
     metaDescription: content?.metaDescription
-      ? withSchedule(content.metaDescription, sharedEnabled, Number(priceShared), departureHours, Number(route.pricePrivate))
-      : defaultDescription(route, sharedEnabled, Number(priceShared), departureHours),
+      ? withSchedule(content.metaDescription, sharedEnabled, Number(priceShared), sharedScheduleText(route.sharedDays, departureHours), Number(route.pricePrivate))
+      : defaultDescription(route, sharedEnabled, Number(priceShared), sharedScheduleText(route.sharedDays, departureHours)),
 
     // Sin contenido escrito se muestran vacias y la pagina omite la seccion,
     // en vez de inventar respuestas o atracciones que nadie reviso.
@@ -96,11 +100,11 @@ function withSchedule(
   description: string,
   sharedEnabled: boolean,
   priceShared: number,
-  departureHours: string[],
+  schedule: string,
   pricePrivate: number,
 ): string {
   const fact = sharedEnabled
-    ? `From $${priceShared} per person, departures at ${departureHours.join(", ")}.`
+    ? `From $${priceShared} per person. ${schedule}.`
     : `From $${pricePrivate} per vehicle, at the time you choose.`;
 
   return `${description} ${fact}`;
@@ -121,15 +125,14 @@ function defaultDescription(
   route: Route,
   sharedEnabled: boolean,
   priceShared: number,
-  departureHours: string[],
+  schedule: string,
 ): string {
-  const hours = departureHours.join(", ");
   const duration = Math.round(route.durationMin / 60);
 
   // El texto solo afirma lo que la base respalda: sin horarios no se prometen
   // salidas diarias, que es exactamente el error que habia en el archivo.
   return sharedEnabled
-    ? `Shared shuttle from ${route.origin} to ${route.destination} from $${priceShared} per person. Daily departures at ${hours}. About ${duration} hours door to door. Book online in minutes.`
+    ? `Shared shuttle from ${route.origin} to ${route.destination} from $${priceShared} per person. ${schedule}. About ${duration} hours door to door. Book online in minutes.`
     : `Private transfer from ${route.origin} to ${route.destination} from $${Number(route.pricePrivate)} per vehicle, at the time you choose. About ${duration} hours door to door. Book online in minutes.`;
 }
 

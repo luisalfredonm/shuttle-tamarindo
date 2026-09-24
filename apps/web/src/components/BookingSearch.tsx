@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { MapPin, CalendarDays, Clock, Users, Baby, Search } from "lucide-react";
 import { DEFAULT_PRICING, getPricing, type Route } from "@/lib/api";
 import { range } from "@/lib/private-price";
+import { daysPhrase, isEveryDay } from "@/lib/days";
 
 /**
  * Ruta que deshace el camino de la dada, si esta cargada.
@@ -352,6 +353,15 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
               any departure that is already running. If none is running that
               day, booking {SHARED_MIN_PASSENGERS} seats starts one — or take a
               private transfer at any time.
+            </p>
+          )}
+
+          {/* Se avisa antes de elegir fecha: enterarse en los resultados de
+              que ese día no sale obliga a volver atrás */}
+          {!isPrivate && selected && !isEveryDay(selected.sharedDays) && (
+            <p style={{ ...minNoticeStyle, color: "var(--brand-dark)", fontWeight: 500 }}>
+              The shared shuttle on this route runs on{" "}
+              {daysPhrase(selected.sharedDays!)}.
             </p>
           )}
 

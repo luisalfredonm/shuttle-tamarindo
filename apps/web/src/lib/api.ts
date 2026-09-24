@@ -20,6 +20,8 @@ export interface Route {
   priceShared?: number | null;
   /** Horas de salida del compartido, en hora local ("08:00") */
   departureTimes?: string[];
+  /** Días en que sale el compartido (0 = domingo). Todos si sale a diario */
+  sharedDays?: number[];
   /** Foto propia subida desde el panel (Vercel Blob). null si no tiene */
   imageUrl?: string | null;
 }

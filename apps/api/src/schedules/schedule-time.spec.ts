@@ -1,4 +1,5 @@
 import {
+  costaRicaWeekday,
   isValidTime,
   parseTime,
   toCostaRicaParts,
@@ -14,7 +15,15 @@ describe('schedule-time', () => {
     });
 
     it('rechaza lo que no es HH:MM de 24h', () => {
-      for (const time of ['24:00', '8:00', '08:60', '0800', '8am', '', '08:0']) {
+      for (const time of [
+        '24:00',
+        '8:00',
+        '08:60',
+        '0800',
+        '8am',
+        '',
+        '08:0',
+      ]) {
         expect(isValidTime(time)).toBe(false);
       }
     });
@@ -80,6 +89,15 @@ describe('schedule-time', () => {
         const utc = toUtcDeparture(2026, 9, 15, time);
         expect(toCostaRicaParts(utc).time).toBe(time);
       }
+    });
+  });
+
+  describe('costaRicaWeekday', () => {
+    it('usa el dia local aunque en UTC ya sea el siguiente', () => {
+      // Sabado 26/09/2026 a las 20:00 en CR = domingo 02:00 UTC
+      const saturdayNight = toUtcDeparture(2026, 9, 26, '20:00');
+      expect(saturdayNight.getUTCDay()).toBe(0);
+      expect(costaRicaWeekday(saturdayNight)).toBe(6);
     });
   });
 

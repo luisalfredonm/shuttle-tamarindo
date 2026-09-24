@@ -105,6 +105,10 @@ model RouteSchedule {
   /// generador, usando que Costa Rica es UTC-6 fijo (no tiene horario de verano).
   departureTime String
 
+  /// Dias de la semana en que sale, en hora de Costa Rica: 0 = domingo ...
+  /// 6 = sabado. Por defecto todos, que es como funcionaba antes de existir.
+  daysOfWeek Int[] @default([0, 1, 2, 3, 4, 5, 6])
+
   priceShared Decimal @db.Decimal(10, 2)
   capacity    Int     @default(10)
 

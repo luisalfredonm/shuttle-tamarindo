@@ -36,7 +36,19 @@ export function toUtcDeparture(
   time: string,
 ): Date {
   const { hour, minute } = parseTime(time);
-  return new Date(Date.UTC(year, month - 1, day, hour + CR_UTC_OFFSET_HOURS, minute, 0, 0));
+  return new Date(
+    Date.UTC(year, month - 1, day, hour + CR_UTC_OFFSET_HOURS, minute, 0, 0),
+  );
+}
+
+/** Todos los dias: 0 = domingo ... 6 = sabado, como Date.getUTCDay */
+export const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+
+/** Dia de la semana de un instante, en hora de Costa Rica */
+export function costaRicaWeekday(date: Date): number {
+  return new Date(
+    date.getTime() - CR_UTC_OFFSET_HOURS * 3600 * 1000,
+  ).getUTCDay();
 }
 
 /** Partes de la fecha en hora de Costa Rica de un instante UTC */

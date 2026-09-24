@@ -12,6 +12,7 @@ import {
   Route,
 } from "@/lib/api";
 import { privateQuote, range } from "@/lib/private-price";
+import { daysPhrase, isEveryDay } from "@/lib/days";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
 import CancellationPolicy from "./CancellationPolicy";
@@ -101,6 +102,18 @@ export default function BookResults() {
   function label(slug: string) {
     const r = [outboundRoute, inboundRoute].find((x) => x?.slug === slug);
     return r ? `${r.origin} → ${r.destination}` : slug;
+  }
+
+  /**
+   * Por qué no hay salidas ese día. Si la ruta solo sale ciertos días, se dice
+   * cuáles: un "no hay salidas" a secas hace pensar que no hay servicio.
+   */
+  function emptyLegMessage(slug: string) {
+    const r = [outboundRoute, inboundRoute].find((x) => x?.slug === slug);
+    if (r?.sharedDays && !isEveryDay(r.sharedDays)) {
+      return `The shared shuttle on this route runs on ${daysPhrase(r.sharedDays)}. Pick one of those dates, or book a private transfer any day.`;
+    }
+    return "No departures on this date. Try another day or contact us.";
   }
 
   function changeInfants(next: number) {
@@ -413,7 +426,7 @@ export default function BookResults() {
 
         {list.length === 0 ? (
           <div style={emptyStyle}>
-            No departures on this date. Try another day or contact us.
+            {emptyLegMessage(slug)}
           </div>
         ) : (
           <div

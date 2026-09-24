@@ -33,7 +33,7 @@ export class RoutesService {
       include: {
         schedules: {
           where: { isActive: true },
-          select: { departureTime: true, priceShared: true },
+          select: { departureTime: true, priceShared: true, daysOfWeek: true },
           orderBy: { departureTime: 'asc' },
         },
       },
@@ -60,7 +60,7 @@ export class RoutesService {
         },
         schedules: {
           where: { isActive: true },
-          select: { departureTime: true, priceShared: true },
+          select: { departureTime: true, priceShared: true, daysOfWeek: true },
           orderBy: { departureTime: 'asc' },
         },
       },
@@ -257,15 +257,24 @@ function findReverse<
  * priceShared es el mas barato de las salidas: es el "desde" que la web
  * muestra en la tarjeta de la ruta. Va null cuando no hay compartido, para que
  * el llamador no confunda "gratis" con "no se vende por asiento".
+ *
+ * sharedDays junta los dias de todos los horarios (0 = domingo): con eso la
+ * web puede decir "sale los sabados" en vez de un "no hay salidas" a secas.
  */
 function summarizeSchedules(
-  schedules: { departureTime: string; priceShared: unknown }[],
+  schedules: {
+    departureTime: string;
+    priceShared: unknown;
+    daysOfWeek: number[];
+  }[],
 ) {
   const prices = schedules.map((s) => Number(s.priceShared));
+  const days = new Set(schedules.flatMap((s) => s.daysOfWeek));
 
   return {
     sharedEnabled: schedules.length > 0,
     departureTimes: schedules.map((s) => s.departureTime),
+    sharedDays: [...days].sort((a, b) => a - b),
     priceShared: prices.length > 0 ? Math.min(...prices) : null,
   };
 }

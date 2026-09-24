@@ -11,7 +11,22 @@ type Schedule = {
   priceShared: string | number;
   capacity: number;
   isActive: boolean;
+  /** 0 = domingo ... 6 = sábado, hora de Costa Rica */
+  daysOfWeek: number[];
 };
+
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+// Lunes primero, que es como se lee la semana en Costa Rica
+const WEEK = [1, 2, 3, 4, 5, 6, 0];
+const DAY_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const DAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** "Every day", "Saturdays", "Mo, We, Fr" */
+function daysLabel(days: number[]) {
+  if (days.length === 7) return "Every day";
+  if (days.length === 1) return `${DAY_LONG[days[0]]}s only`;
+  return WEEK.filter((d) => days.includes(d)).map((d) => DAY_SHORT[d]).join(", ");
+}
 
 type Coverage = {
   routeId: string;
@@ -24,7 +39,7 @@ type Coverage = {
   sharedEnabled: boolean;
 };
 
-const emptyDraft = { departureTime: "", priceShared: "", capacity: "10" };
+const emptyDraft = { departureTime: "", priceShared: "", capacity: "10", daysOfWeek: ALL_DAYS };
 
 export default function SchedulesContent() {
   const [routes, setRoutes] = useState<Coverage[]>([]);
@@ -71,6 +86,7 @@ export default function SchedulesContent() {
           departureTime: draft.departureTime,
           priceShared: Number(draft.priceShared),
           capacity: Number(draft.capacity),
+          daysOfWeek: draft.daysOfWeek,
         }),
       });
       setDrafts((prev) => ({ ...prev, [route.routeId]: emptyDraft }));
@@ -101,6 +117,31 @@ export default function SchedulesContent() {
       await load();
     } catch (err: any) {
       setError(err.message || "Could not update the schedule");
+    }
+  };
+
+  const changeDays = async (schedule: Schedule, days: number[]) => {
+    if (days.length === 0) {
+      setError("A schedule needs at least one day. Pause it instead to stop selling it.");
+      return;
+    }
+    setError("");
+    setNotice("");
+    try {
+      const result = await apiFetch(`/schedules/${schedule.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ daysOfWeek: days }),
+      });
+      setNotice(
+        `${schedule.departureTime} now runs: ${daysLabel(result.daysOfWeek)}.` +
+          (result.movedTrips
+            ? ` ${result.movedTrips} empty departures on other days were removed.`
+            : "") +
+          " Departures that already have passengers are kept.",
+      );
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update the days");
     }
   };
 
@@ -157,8 +198,8 @@ export default function SchedulesContent() {
         <div>
           <h1 style={{ fontSize: "1.6rem", fontWeight: 500 }}>Schedules</h1>
           <p style={subtitle}>
-            Set a departure time once and the system creates that day-by-day
-            departure for you. No more adding trips one at a time.
+            Set a departure time and the days it runs, and the system creates
+            those departures for you. No more adding trips one at a time.
           </p>
         </div>
         <button
@@ -191,6 +232,7 @@ export default function SchedulesContent() {
             <thead>
               <tr>
                 <th style={th}>Departs</th>
+                <th style={th}>Days</th>
                 <th style={th}>Price</th>
                 <th style={th}>Seats</th>
                 <th style={th}>Status</th>
@@ -202,6 +244,15 @@ export default function SchedulesContent() {
                 <tr key={s.id}>
                   <td style={{ ...td, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
                     {s.departureTime}
+                  </td>
+                  <td style={td}>
+                    <DayPicker
+                      days={s.daysOfWeek}
+                      onChange={(days) => changeDays(s, days)}
+                    />
+                    <div style={{ fontSize: "0.7rem", color: "var(--brand-gray)", marginTop: "3px" }}>
+                      {daysLabel(s.daysOfWeek)}
+                    </div>
                   </td>
                   <td style={td}>${Number(s.priceShared).toFixed(2)}</td>
                   <td style={td}>{s.capacity}</td>
@@ -335,6 +386,10 @@ function AddRow({
         style={{ ...input, width: "100px" }}
         aria-label="Seats in the vehicle"
       />
+      <DayPicker
+        days={draft.daysOfWeek}
+        onChange={(daysOfWeek) => daysOfWeek.length > 0 && onChange({ daysOfWeek })}
+      />
       <button onClick={onAdd} disabled={saving} style={{ ...btnSecondary, opacity: saving ? 0.6 : 1 }}>
         <Plus size={14} style={{ marginRight: 4, verticalAlign: "-2px" }} />
         {saving ? "Adding..." : "Add"}
@@ -343,7 +398,52 @@ function AddRow({
   );
 }
 
+/** Los 7 días como botones que se prenden y apagan, lunes primero */
+function DayPicker({
+  days,
+  onChange,
+}: {
+  days: number[];
+  onChange: (days: number[]) => void;
+}) {
+  const toggle = (d: number) =>
+    onChange(days.includes(d) ? days.filter((x) => x !== d) : [...days, d].sort((a, b) => a - b));
+
+  return (
+    <div role="group" aria-label="Days of the week" style={{ display: "inline-flex", gap: "3px" }}>
+      {WEEK.map((d) => {
+        const on = days.includes(d);
+        return (
+          <button
+            key={d}
+            type="button"
+            onClick={() => toggle(d)}
+            aria-pressed={on}
+            aria-label={DAY_LONG[d]}
+            title={DAY_LONG[d]}
+            style={dayBtn(on)}
+          >
+            {DAY_SHORT[d]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // Styles
+const dayBtn = (on: boolean): React.CSSProperties => ({
+  width: "28px",
+  height: "26px",
+  borderRadius: "6px",
+  border: on ? "1px solid #1a6b4a" : "1px solid var(--border-strong)",
+  background: on ? "#1a6b4a" : "var(--surface)",
+  color: on ? "#fff" : "var(--brand-gray)",
+  fontSize: "0.7rem",
+  fontWeight: 600,
+  cursor: "pointer",
+  padding: 0,
+});
 const header: React.CSSProperties = {
   marginBottom: "1.5rem",
   display: "flex",
@@ -425,6 +525,7 @@ const btnSecondary: React.CSSProperties = {
   background: "var(--surface)",
   fontSize: "0.875rem",
   cursor: "pointer",
+  whiteSpace: "nowrap",
 };
 const input: React.CSSProperties = {
   padding: "8px 12px",

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { displayPrice, type RouteView } from "@/lib/route-view";
 import { DEFAULT_PRICING, getPricing } from "@/lib/api";
 import { privateQuote, range } from "@/lib/private-price";
+import { daysPhrase, isEveryDay, sharedScheduleText } from "@/lib/days";
 
 interface Props {
   route: RouteView;
@@ -188,7 +189,7 @@ export default function RouteDetail({ route }: Props) {
               {route.durationMin % 60 > 0 ? ` ${route.durationMin % 60}m` : ""}{" "}
               · {route.distanceKm} km
               {route.sharedEnabled
-                ? ` · Departures at ${route.departureHours.join(", ")}`
+                ? ` · ${sharedScheduleText(route.sharedDays, route.departureHours)}`
                 : " · Private transfer at the time you choose"}
             </p>
 
@@ -205,10 +206,15 @@ export default function RouteDetail({ route }: Props) {
                 ...(route.sharedEnabled
                   ? [
                       { label: "Shared price", value: `$${route.priceShared}` },
-                      {
-                        label: "Daily departures",
-                        value: `${route.departureHours.length}`,
-                      },
+                      isEveryDay(route.sharedDays)
+                        ? {
+                            label: "Daily departures",
+                            value: `${route.departureHours.length}`,
+                          }
+                        : {
+                            label: "Runs on",
+                            value: daysPhrase(route.sharedDays),
+                          },
                     ]
                   : []),
                 { label: "Private price", value: `$${route.pricePrivate}` },
@@ -471,7 +477,9 @@ export default function RouteDetail({ route }: Props) {
                     color: "#fff",
                   }}
                 >
-                  Daily Departures
+                  {isEveryDay(route.sharedDays)
+                    ? "Daily Departures"
+                    : `Departures on ${daysPhrase(route.sharedDays)}`}
                 </h3>
                 <div
                   style={{
@@ -513,7 +521,9 @@ export default function RouteDetail({ route }: Props) {
                           borderRadius: "100px",
                         }}
                       >
-                        Daily
+                        {isEveryDay(route.sharedDays)
+                          ? "Daily"
+                          : daysPhrase(route.sharedDays)}
                       </span>
                     </div>
                   ))}

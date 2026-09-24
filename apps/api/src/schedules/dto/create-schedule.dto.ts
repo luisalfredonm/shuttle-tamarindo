@@ -1,4 +1,7 @@
 import {
+  ArrayMinSize,
+  ArrayUnique,
+  IsArray,
   IsBoolean,
   IsInt,
   IsNumber,
@@ -32,4 +35,14 @@ export class CreateScheduleDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  /** 0 = domingo ... 6 = sabado. Sin enviar = todos los dias. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Elegi al menos un dia de la semana' })
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  daysOfWeek?: number[];
 }

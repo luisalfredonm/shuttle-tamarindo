@@ -8,7 +8,12 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
-import { toCostaRicaParts, toUtcDeparture } from './schedule-time';
+import {
+  ALL_DAYS,
+  costaRicaWeekday,
+  toCostaRicaParts,
+  toUtcDeparture,
+} from './schedule-time';
 
 /** Dias hacia adelante que mantiene generados la ventana rodante */
 export const GENERATION_WINDOW_DAYS = 60;
@@ -44,6 +49,9 @@ const SHARED_SCHEDULES: Record<string, string[]> = {
 const SEED_PRICE_SHARED = 30;
 const SEED_CAPACITY = 10;
 
+function sortDays(days: number[]): number[] {
+  return [...days].sort((a, b) => a - b);
+}
 
 export interface GenerationResult {
   created: number;
@@ -143,6 +151,7 @@ export class SchedulesService {
         priceShared: dto.priceShared,
         capacity: dto.capacity ?? 10,
         isActive: dto.isActive ?? true,
+        daysOfWeek: sortDays(dto.daysOfWeek ?? ALL_DAYS),
       },
     });
   }
@@ -171,17 +180,42 @@ export class SchedulesService {
 
     const updated = await this.prisma.routeSchedule.update({
       where: { id },
-      data: dto,
+      data: {
+        ...dto,
+        ...(dto.daysOfWeek && { daysOfWeek: sortDays(dto.daysOfWeek) }),
+      },
     });
+
+    const timeChanged =
+      !!dto.departureTime && dto.departureTime !== schedule.departureTime;
+    const daysChanged =
+      !!dto.daysOfWeek &&
+      sortDays(dto.daysOfWeek).join() !== sortDays(schedule.daysOfWeek).join();
 
     // Si cambio la hora, las salidas viejas sin reservas dejan de corresponder
     // a ninguna plantilla: se limpian y el generador crea las de la hora nueva.
     let movedTrips = 0;
-    if (dto.departureTime && dto.departureTime !== schedule.departureTime) {
+    if (timeChanged) {
       movedTrips = await this.deleteFutureEmptyTripsAt(
         schedule.routeId,
         schedule.departureTime,
       );
+    }
+
+    // Lo mismo con los dias que se sacaron: pasar de "todos los dias" a "solo
+    // sabados" borra las salidas vacias del resto de la semana. Las que ya
+    // tienen pasajeros se quedan, porque ese viaje se vendio.
+    if (daysChanged) {
+      movedTrips += await this.deleteFutureEmptyTripsAt(
+        updated.routeId,
+        updated.departureTime,
+        updated.daysOfWeek,
+      );
+    }
+
+    // Hora o dias nuevos: se generan ya, sin esperar al cron de la noche
+    if (timeChanged || daysChanged) {
+      await this.generateTrips(GENERATION_WINDOW_DAYS, updated.routeId);
     }
 
     // El precio y la capacidad nuevos valen para las salidas que todavia no
@@ -273,8 +307,12 @@ export class SchedulesService {
           const year = cursor.getUTCFullYear();
           const month = cursor.getUTCMonth() + 1;
           const day = cursor.getUTCDate();
+          // cursor es la fecha local de CR guardada como UTC: su dia UTC es el local
+          const weekday = cursor.getUTCDay();
 
           for (const schedule of route.schedules) {
+            if (!schedule.daysOfWeek.includes(weekday)) continue;
+
             const departureAt = toUtcDeparture(
               year,
               month,
@@ -378,7 +416,11 @@ export class SchedulesService {
    * esa ruta) y se compara la hora ya convertida. El conjunto es chico porque
    * la ventana es de 60 dias.
    */
-  private async findFutureEmptyTripsAt(routeId: string, departureTime: string) {
+  private async findFutureEmptyTripsAt(
+    routeId: string,
+    departureTime: string,
+    keepDays: number[] = [],
+  ) {
     const candidates = await this.prisma.trip.findMany({
       where: {
         routeId,
@@ -390,15 +432,23 @@ export class SchedulesService {
     });
 
     return candidates.filter(
-      (trip) => toCostaRicaParts(trip.departureAt).time === departureTime,
+      (trip) =>
+        toCostaRicaParts(trip.departureAt).time === departureTime &&
+        !keepDays.includes(costaRicaWeekday(trip.departureAt)),
     );
   }
 
+  /** keepDays: dias de la semana cuyas salidas no se tocan */
   private async deleteFutureEmptyTripsAt(
     routeId: string,
     departureTime: string,
+    keepDays: number[] = [],
   ): Promise<number> {
-    const matching = await this.findFutureEmptyTripsAt(routeId, departureTime);
+    const matching = await this.findFutureEmptyTripsAt(
+      routeId,
+      departureTime,
+      keepDays,
+    );
     if (matching.length === 0) return 0;
 
     const result = await this.prisma.trip.deleteMany({
