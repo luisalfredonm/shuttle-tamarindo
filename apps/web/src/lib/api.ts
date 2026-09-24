@@ -9,6 +9,10 @@ export interface Route {
   distanceKm: number;
   /** Precio fijo del privado en esta ruta: vehículo exclusivo, cualquier hora */
   pricePrivate: number;
+  /** Privado ida y vuelta. null = esta ruta no vende round trip privado */
+  pricePrivateRoundTrip?: number | null;
+  /** Slug de la ruta con origen y destino invertidos, si está activa */
+  reverseSlug?: string | null;
   isActive?: boolean;
   /** true si la ruta tiene horarios: se puede vender compartido, no solo privado */
   sharedEnabled?: boolean;
@@ -63,6 +67,8 @@ export interface Booking {
   type: "SHARED" | "PRIVATE";
   tripType: "ONE_WAY" | "ROUND_TRIP";
   passengers: number;
+  /** Infantes de 0 a 2 años: no pagan pero ocupan asiento */
+  infants?: number;
   totalAmount: number;
   status: string;
   heldUntil: string;
@@ -89,6 +95,16 @@ export function outboundLeg(booking: any): any {
 /** El viaje de ida, o undefined si la reserva viniera sin tramos */
 export function outboundTrip(booking: any): any {
   return outboundLeg(booking)?.trip;
+}
+
+/** "3" o "3 + 1 infant": los infantes no pagan pero el conductor debe saberlo */
+export function passengersLabel(booking: {
+  passengers: number;
+  infants?: number;
+}) {
+  const infants = booking.infants ?? 0;
+  if (!infants) return `${booking.passengers}`;
+  return `${booking.passengers} + ${infants} infant${infants === 1 ? "" : "s"}`;
 }
 
 /** El tramo de regreso; solo existe en ida y vuelta */
@@ -258,6 +274,35 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
   }
 }
 
+/** Reglas del privado, iguales para todas las rutas. Se editan en el panel. */
+export interface PricingSettings {
+  includedPassengers: number;
+  extraPassengerPrice: number;
+  vehicleCapacity: number;
+}
+
+/** Valores de la migración: se usan solo si la API no responde */
+export const DEFAULT_PRICING: PricingSettings = {
+  includedPassengers: 4,
+  extraPassengerPrice: 20,
+  vehicleCapacity: 10,
+};
+
+/**
+ * Reglas vigentes para mostrar el desglose. Si la API falla se muestran las
+ * de fábrica en vez de romper el buscador: el total real lo calcula el
+ * servidor al reservar.
+ */
+export async function getPricing(): Promise<PricingSettings> {
+  try {
+    const res = await fetch(`${API_URL}/pricing`, { cache: "no-store" });
+    if (!res.ok) return DEFAULT_PRICING;
+    return await res.json();
+  } catch {
+    return DEFAULT_PRICING;
+  }
+}
+
 export async function getRoutes(): Promise<Route[]> {
   const res = await fetch(`${API_URL}/routes`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch routes");
@@ -304,6 +349,7 @@ export async function createBooking(data: {
   returnDepartureAt?: string;
   type: "SHARED" | "PRIVATE";
   passengers: number;
+  infants?: number;
   notes?: string;
   flightNumber?: string;
   pickupAddress?: string;

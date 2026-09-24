@@ -13,6 +13,7 @@ type Route = {
   durationMin: number;
   distanceKm: number;
   pricePrivate: number;
+  pricePrivateRoundTrip: number | null;
   isActive: boolean;
   imageUrl: string | null;
 };
@@ -26,7 +27,23 @@ const toSlug = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const emptyForm = { slug: "", origin: "", destination: "", durationMin: "", distanceKm: "", pricePrivate: "" };
+const emptyForm = { slug: "", origin: "", destination: "", durationMin: "", distanceKm: "", pricePrivate: "", pricePrivateRoundTrip: "" };
+
+const FIELDS: { label: string; key: keyof typeof emptyForm; placeholder: string; optional?: boolean; hint?: string }[] = [
+  { label: "Slug", key: "slug", placeholder: "tamarindo-liberia-airport" },
+  { label: "Origin", key: "origin", placeholder: "Tamarindo" },
+  { label: "Destination", key: "destination", placeholder: "Aeropuerto Liberia (LIR)" },
+  { label: "Duration (min)", key: "durationMin", placeholder: "90" },
+  { label: "Distance (km)", key: "distanceKm", placeholder: "78" },
+  { label: "Private one way ($)", key: "pricePrivate", placeholder: "100" },
+  {
+    label: "Private round trip ($)",
+    key: "pricePrivateRoundTrip",
+    placeholder: "180",
+    optional: true,
+    hint: "Se copia a la ruta inversa. Vacío = no se vende ida y vuelta privado.",
+  },
+];
 
 export default function RoutesContent() {
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -61,6 +78,7 @@ export default function RoutesContent() {
       durationMin: String(r.durationMin),
       distanceKm: String(r.distanceKm),
       pricePrivate: String(r.pricePrivate),
+      pricePrivateRoundTrip: r.pricePrivateRoundTrip === null ? "" : String(r.pricePrivateRoundTrip),
     });
     setError("");
     setShowForm(true);
@@ -76,14 +94,15 @@ export default function RoutesContent() {
         durationMin: Number(form.durationMin),
         distanceKm: Number(form.distanceKm),
         pricePrivate: Number(form.pricePrivate),
+        pricePrivateRoundTrip: form.pricePrivateRoundTrip.trim() === "" ? null : Number(form.pricePrivateRoundTrip),
       };
       if (editing) {
-        const updated = await apiFetch(`/routes/${editing.id}`, { method: "PATCH", body: JSON.stringify(body) });
-        setRoutes((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+        await apiFetch(`/routes/${editing.id}`, { method: "PATCH", body: JSON.stringify(body) });
       } else {
         await apiFetch("/routes", { method: "POST", body: JSON.stringify(body) });
-        load();
       }
+      // Se recarga todo: guardar el round trip también cambia la ruta inversa
+      load();
       setShowForm(false);
     } catch (err: any) {
       setError(err.message || "Error al guardar");
@@ -133,23 +152,19 @@ export default function RoutesContent() {
               {editing ? "Edit Route" : "New Route"}
             </h2>
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              {[
-                { label: "Slug", key: "slug", placeholder: "tamarindo-liberia-airport" },
-                { label: "Origin", key: "origin", placeholder: "Tamarindo" },
-                { label: "Destination", key: "destination", placeholder: "Aeropuerto Liberia (LIR)" },
-                { label: "Duration (min)", key: "durationMin", placeholder: "90" },
-                { label: "Distance (km)", key: "distanceKm", placeholder: "78" },
-                { label: "Private price ($)", key: "pricePrivate", placeholder: "120" },
-              ].map(({ label, key, placeholder }) => (
+              {FIELDS.map(({ label, key, placeholder, optional, hint }) => (
                 <div key={key}>
                   <label style={{ fontSize: "0.8rem", fontWeight: 500, display: "block", marginBottom: "4px" }}>{label}</label>
                   <input
-                    required
+                    required={!optional}
                     placeholder={placeholder}
-                    value={form[key as keyof typeof form]}
+                    value={form[key]}
                     onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                     style={input}
                   />
+                  {hint && (
+                    <p style={{ fontSize: "0.75rem", color: "var(--brand-gray)", marginTop: "4px" }}>{hint}</p>
+                  )}
                   {key === "slug" && form.slug && toSlug(form.slug) !== form.slug && (
                     <p style={{ fontSize: "0.75rem", color: "var(--brand-gray)", marginTop: "4px" }}>
                       Se guardará como: <code>{toSlug(form.slug) || "—"}</code>
@@ -190,13 +205,18 @@ export default function RoutesContent() {
                 {r.isActive ? "Active" : "Inactive"}
               </button>
             </div>
-            <div style={{ display: "flex", gap: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-soft)", fontSize: "0.8rem", color: "var(--brand-gray)" }}>
-              <span>{Math.floor(r.durationMin / 60)}h {r.durationMin % 60 > 0 ? (r.durationMin % 60) + "m" : ""}</span>
-              <span>{r.distanceKm} km</span>
-              <span>Private ${r.pricePrivate}</span>
-              <span style={{ fontFamily: "monospace", fontSize: "0.75rem", flex: 1 }}>{r.slug}</span>
-              <button onClick={() => openEdit(r)} style={iconBtn}><PenLine size={14} /></button>
-              <button onClick={() => handleDelete(r)} style={iconBtn}><Trash2 size={14} /></button>
+            <div style={{ paddingTop: "1rem", borderTop: "1px solid var(--border-soft)", fontSize: "0.8rem", color: "var(--brand-gray)" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem 1.25rem", marginBottom: "0.6rem" }}>
+                <span>{Math.floor(r.durationMin / 60)}h {r.durationMin % 60 > 0 ? (r.durationMin % 60) + "m" : ""}</span>
+                <span>{r.distanceKm} km</span>
+                <span>Private ${r.pricePrivate}</span>
+                <span>Round trip {r.pricePrivateRoundTrip === null ? "—" : `$${r.pricePrivateRoundTrip}`}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ fontFamily: "monospace", fontSize: "0.75rem", flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{r.slug}</span>
+                <button onClick={() => openEdit(r)} style={iconBtn} aria-label="Edit route"><PenLine size={14} /></button>
+                <button onClick={() => handleDelete(r)} style={iconBtn} aria-label="Delete route"><Trash2 size={14} /></button>
+              </div>
             </div>
           </div>
         ))}

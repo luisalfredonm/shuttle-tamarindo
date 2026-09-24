@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { bookingFetch, outboundTrip } from '@/lib/api';
+import { bookingFetch, outboundTrip, passengersLabel } from '@/lib/api';
 import { BRAND_WHATSAPP } from '@/lib/brand';
 import BookingLegs from './BookingLegs';
 
@@ -124,7 +124,7 @@ export default function BookingSuccess() {
             { label: 'Booking ID',    value: booking.id.slice(0, 8).toUpperCase() },
             { label: 'Status',        value: '✓ Confirmed', green: true },
             { label: 'Type',          value: booking.type === 'SHARED' ? 'Shared Shuttle' : 'Private Transfer' },
-            { label: 'Passengers',    value: `${booking.passengers}` },
+            { label: 'Passengers',    value: passengersLabel(booking) },
             { label: 'Amount Paid',   value: `$${booking.totalAmount} USD`, green: true },
             { label: 'Transaction',   value: payment?.externalId?.slice(0, 16) || '—' },
           ].map(item => (

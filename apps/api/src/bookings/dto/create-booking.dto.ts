@@ -53,10 +53,21 @@ export class CreateBookingDto {
   @IsEnum(BookingTypeEnum)
   type: BookingTypeEnum;
 
+  /**
+   * Pasajeros que pagan: adultos y ninos. El tope real es la capacidad de la
+   * van, que se edita desde el panel y la valida el servicio.
+   */
   @IsInt()
   @Min(1)
-  @Max(10)
+  @Max(50)
   passengers: number;
+
+  /** Infantes de 0 a 2 anos: no pagan pero ocupan asiento. Solo en privado. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(50)
+  infants?: number;
 
   @IsOptional()
   @IsString()

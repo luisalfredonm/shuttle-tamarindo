@@ -42,6 +42,13 @@ export class CreateRouteDto {
   @Type(() => Number)
   pricePrivate: number;
 
+  /** Ida y vuelta privado. Vacío = esta ruta no vende round trip privado. */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  pricePrivateRoundTrip?: number | null;
+
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

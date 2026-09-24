@@ -22,6 +22,7 @@ type Booking = {
   type: string;
   tripType: "ONE_WAY" | "ROUND_TRIP";
   passengers: number;
+  infants?: number;
   totalAmount: number;
   createdAt: string;
   notes?: string;
@@ -248,6 +249,9 @@ export default function BookingsContent() {
                 }
               />
               <Row label="Passengers" value={String(selected.passengers)} />
+              {!!selected.infants && (
+                <Row label="Infants (0–2)" value={String(selected.infants)} />
+              )}
               <Row label="Amount" value={`$${selected.totalAmount}`} green />
               <Row label="Status" value={selected.status} />
               <Row

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpenCheck, Bus, CalendarClock, CreditCard, Route, UserRound, LogOut, ArrowUpRight, Menu, X } from 'lucide-react';
+import { LayoutDashboard, BookOpenCheck, Bus, CalendarClock, CreditCard, Route, Tag, UserRound, LogOut, ArrowUpRight, Menu, X } from 'lucide-react';
 
 /** Sitio publico al que apunta "View website". En produccion hay que
  *  cargar NEXT_PUBLIC_SITE_URL: sin eso el link manda al localhost del que mira. */
@@ -15,6 +15,7 @@ const NAV = [
   { label: 'Trips',     href: '/trips',     icon: Bus },
   { label: 'Schedules', href: '/schedules', icon: CalendarClock },
   { label: 'Routes',    href: '/routes',    icon: Route },
+  { label: 'Pricing',   href: '/pricing',   icon: Tag },
   { label: 'Payments',  href: '/payments',  icon: CreditCard },
   { label: 'Profile',   href: '/profile',   icon: UserRound },
 ];

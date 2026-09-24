@@ -2,8 +2,9 @@
 import { cloneElement, useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
-import { MapPin, CalendarDays, Clock, Users, Search } from "lucide-react";
-import type { Route } from "@/lib/api";
+import { MapPin, CalendarDays, Clock, Users, Baby, Search } from "lucide-react";
+import { DEFAULT_PRICING, getPricing, type Route } from "@/lib/api";
+import { range } from "@/lib/private-price";
 
 /**
  * Ruta que deshace el camino de la dada, si esta cargada.
@@ -32,6 +33,8 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
   const [route, setRoute] = useState("");
   const [date, setDate] = useState("");
   const [passengers, setPass] = useState("1");
+  const [infants, setInfants] = useState("0");
+  const [pricing, setPricing] = useState(DEFAULT_PRICING);
   const [type, setType] = useState<"SHARED" | "PRIVATE">("SHARED");
   const [tripType, setTripType] = useState<"ONE_WAY" | "ROUND_TRIP">("ONE_WAY");
   const [returnDate, setReturnDate] = useState("");
@@ -64,9 +67,26 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
     }
   }, [availableRoutes, route]);
 
-  // Solo hay ida y vuelta donde el regreso también está disponible en este modo
+  useEffect(() => {
+    getPricing().then(setPricing);
+  }, []);
+
+  // La van lleva hasta vehicleCapacity personas contando infantes. Lo que ya
+  // no entra (p. ej. 10 pasajeros de compartido al pasar a privado) se recorta
+  // al leerlo, sin tocar lo que eligió el visitante
+  const capacity = pricing.vehicleCapacity;
+  const paxCount = isPrivate
+    ? Math.min(Number(passengers), capacity)
+    : Number(passengers);
+  const maxInfants = Math.max(0, capacity - paxCount);
+  const infantCount = Math.min(Number(infants), maxInfants);
+
+  // Solo hay ida y vuelta donde el regreso también está disponible en este
+  // modo, y en privado además hace falta que la ruta tenga su precio propio
+  const selected = routes.find((r) => r.slug === route);
   const reverse = route ? findReverse(availableRoutes, route) : undefined;
-  const canRoundTrip = !!reverse;
+  const canRoundTrip =
+    !!reverse && (!isPrivate || selected?.pricePrivateRoundTrip != null);
   const isRoundTrip = canRoundTrip && tripType === "ROUND_TRIP";
 
   function handleSearch(e: React.FormEvent) {
@@ -76,7 +96,12 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
     if (isPrivate && !time) return;
     if (isPrivate && isRoundTrip && !returnTime) return;
 
-    const params = new URLSearchParams({ route, date, passengers, type });
+    const params = new URLSearchParams({
+      route,
+      date,
+      passengers: String(paxCount),
+      type,
+    });
     if (isRoundTrip) {
       params.set("tripType", "ROUND_TRIP");
       params.set("returnDate", returnDate);
@@ -84,6 +109,7 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
     if (isPrivate) {
       params.set("time", time);
       if (isRoundTrip) params.set("returnTime", returnTime);
+      if (infantCount > 0) params.set("infants", String(infantCount));
     }
     router.push(`/book?${params}`);
   }
@@ -277,17 +303,35 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
               </Field>
             )}
 
-            {type === "SHARED" && (
-              <Field label="Passengers" icon={<Users size={16} strokeWidth={2} />}>
+            <Field
+              label={isPrivate ? "Passengers (age 3+)" : "Passengers"}
+              icon={<Users size={16} strokeWidth={2} />}
+            >
+              <select
+                value={paxCount}
+                onChange={(e) => setPass(e.target.value)}
+                style={inputStyle}
+                className="rst-field"
+              >
+                {range(1, isPrivate ? capacity : 10).map((n) => (
+                  <option key={n} value={n}>
+                    {n} {n === 1 ? "passenger" : "passengers"}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            {isPrivate && (
+              <Field label="Infants (0–2)" icon={<Baby size={16} strokeWidth={2} />}>
                 <select
-                  value={passengers}
-                  onChange={(e) => setPass(e.target.value)}
+                  value={infantCount}
+                  onChange={(e) => setInfants(e.target.value)}
                   style={inputStyle}
                   className="rst-field"
                 >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                  {range(0, maxInfants).map((n) => (
                     <option key={n} value={n}>
-                      {n} {n === 1 ? "passenger" : "passengers"}
+                      {n === 0 ? "No infants" : `${n} ${n === 1 ? "infant" : "infants"}`}
                     </option>
                   ))}
                 </select>
@@ -302,12 +346,21 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
 
           {/* La regla del mínimo se explica acá, que es donde se elige cuántos
               viajan. Enterarse recién en los resultados llega tarde. */}
-          {type === "SHARED" && Number(passengers) < SHARED_MIN_PASSENGERS && (
+          {type === "SHARED" && paxCount < SHARED_MIN_PASSENGERS && (
             <p style={minNoticeStyle}>
               Travelling with fewer than {SHARED_MIN_PASSENGERS}? You can join
               any departure that is already running. If none is running that
               day, booking {SHARED_MIN_PASSENGERS} seats starts one — or take a
               private transfer at any time.
+            </p>
+          )}
+
+          {isPrivate && (
+            <p style={minNoticeStyle}>
+              Private price covers up to {pricing.includedPassengers} passengers;
+              each additional passenger is ${pricing.extraPassengerPrice}.
+              Infants (0–2) ride free but need a seat. Up to {capacity} people
+              per van.
             </p>
           )}
         </motion.div>

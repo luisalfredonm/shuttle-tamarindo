@@ -3,7 +3,12 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { bookingFetch, getPaymentMethods, PaymentMethod } from "@/lib/api";
+import {
+  bookingFetch,
+  getPaymentMethods,
+  passengersLabel,
+  PaymentMethod,
+} from "@/lib/api";
 import BookingLegs from "./BookingLegs";
 
 declare global {
@@ -350,7 +355,7 @@ export default function PaymentForm() {
             value: isRoundTrip ? "Round trip" : "One way",
           },
           { label: "Type", value: booking.type },
-          { label: "Passengers", value: `${booking.passengers}` },
+          { label: "Passengers", value: passengersLabel(booking) },
         ].map((item) => (
           <div
             key={item.label}

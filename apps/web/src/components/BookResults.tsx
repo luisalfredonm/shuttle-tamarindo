@@ -2,8 +2,16 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { getTrips, getRouteBySlug, createBooking, Trip, Route } from "@/lib/api";
-import { getReverseRoute } from "@/lib/routes-data";
+import {
+  getTrips,
+  getRouteBySlug,
+  createBooking,
+  getPricing,
+  DEFAULT_PRICING,
+  Trip,
+  Route,
+} from "@/lib/api";
+import { privateQuote, range } from "@/lib/private-price";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
 import CancellationPolicy from "./CancellationPolicy";
@@ -12,19 +20,6 @@ import TurnstileWidget from "./TurnstileWidget";
 /** Arma el ISO de una salida a partir de la fecha y la hora que eligió el cliente */
 function buildDepartureAt(day: string, time: string) {
   return new Date(`${day}T${time}`).toISOString();
-}
-
-const ROUTE_LABELS: Record<string, string> = {
-  "tamarindo-liberia-airport": "Tamarindo → Liberia Airport (LIR)",
-  "liberia-airport-tamarindo": "Liberia Airport (LIR) → Tamarindo",
-  "tamarindo-arenal": "Tamarindo → Arenal",
-  "tamarindo-monteverde": "Tamarindo → Monteverde",
-  "tamarindo-san-jose": "Tamarindo → San José",
-  "tamarindo-nosara": "Tamarindo → Nosara",
-};
-
-function label(slug: string) {
-  return ROUTE_LABELS[slug] || slug;
 }
 
 function longDate(value: string) {
@@ -49,7 +44,15 @@ export default function BookResults() {
   const isRoundTrip = params.get("tripType") === "ROUND_TRIP" && !!returnDate;
   const isPrivate = type === "PRIVATE";
 
-  const returnSlug = isRoundTrip ? getReverseRoute(routeSlug)?.slug : undefined;
+  /**
+   * Ruta del regreso, según la base.
+   *
+   * Antes salía de una lista fija en el código: una ruta de ida y vuelta dada
+   * de alta en el panel mostraba el toggle en el buscador pero acá no
+   * encontraba su regreso.
+   */
+  const [returnSlug, setReturnSlug] = useState<string | undefined>();
+  const [pricing, setPricing] = useState(DEFAULT_PRICING);
 
   const [outbound, setOutbound] = useState<Trip[]>([]);
   const [inbound, setInbound] = useState<Trip[]>([]);
@@ -85,8 +88,45 @@ export default function BookResults() {
     () => params.get("returnTime") || "",
   );
 
+  /** Infantes 0–2: no pagan pero ocupan asiento. Solo en privado. */
+  const [infants, setInfants] = useState(() => {
+    const n = parseInt(params.get("infants") || "0");
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  });
+
   const [pickedOut, setPickedOut] = useState<Trip | null>(null);
   const [pickedIn, setPickedIn] = useState<Trip | null>(null);
+
+  /** "Origen → Destino" desde la base; el slug solo mientras carga */
+  function label(slug: string) {
+    const r = [outboundRoute, inboundRoute].find((x) => x?.slug === slug);
+    return r ? `${r.origin} → ${r.destination}` : slug;
+  }
+
+  function changeInfants(next: number) {
+    setInfants(next);
+
+    const qs = new URLSearchParams(params.toString());
+    if (next > 0) qs.set("infants", String(next));
+    else qs.delete("infants");
+    router.replace(`/book?${qs.toString()}`, { scroll: false });
+  }
+
+  useEffect(() => {
+    getPricing().then(setPricing);
+  }, []);
+
+  // La van lleva hasta vehicleCapacity personas contando infantes: lo que ya
+  // no entra se recorta en vez de mandar a la API algo que va a rechazar
+  const capacity = pricing.vehicleCapacity;
+  useEffect(() => {
+    if (!isPrivate) return;
+    if (passengers > capacity) changePassengers(capacity);
+    else if (passengers + infants > capacity) {
+      changeInfants(Math.max(0, capacity - passengers));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPrivate, passengers, infants, capacity]);
 
   /** Cambia el número de viajeros y lo refleja en la URL, para que el enlace siga sirviendo */
   function changePassengers(next: number) {
@@ -204,45 +244,76 @@ export default function BookResults() {
 
   useEffect(() => {
     if (!routeSlug || !date) return;
+    let cancelled = false;
     setLoading(true);
     setError("");
 
-    if (isPrivate) {
-      const requests: Promise<Route>[] = [getRouteBySlug(routeSlug)];
-      if (isRoundTrip && returnSlug) requests.push(getRouteBySlug(returnSlug));
+    (async () => {
+      try {
+        // La ruta de ida dice cuál es su regreso: hay que tenerla antes que el resto
+        const out = await getRouteBySlug(routeSlug);
+        const backSlug = isRoundTrip ? (out.reverseSlug ?? undefined) : undefined;
 
-      Promise.all(requests)
-        .then(([out, back]) => {
-          setOutboundRoute(out);
-          setInboundRoute(back ?? null);
-        })
-        .catch(() => setError("Could not load route pricing. Please try again."))
-        .finally(() => setLoading(false));
-      return;
-    }
+        const [back, outTrips, backTrips] = await Promise.all([
+          backSlug ? getRouteBySlug(backSlug) : Promise.resolve(null),
+          isPrivate ? Promise.resolve([]) : getTrips({ routeSlug, date }),
+          !isPrivate && backSlug
+            ? getTrips({ routeSlug: backSlug, date: returnDate })
+            : Promise.resolve([]),
+        ]);
+        if (cancelled) return;
 
-    const requests: Promise<Trip[]>[] = [getTrips({ routeSlug, date })];
-    if (isRoundTrip && returnSlug) {
-      requests.push(getTrips({ routeSlug: returnSlug, date: returnDate }));
-    }
+        setOutboundRoute(out);
+        setReturnSlug(backSlug);
+        setInboundRoute(back);
+        setOutbound(outTrips);
+        setInbound(backTrips);
 
-    Promise.all(requests)
-      .then(([out, back]) => {
-        setOutbound(out);
-        setInbound(back ?? []);
-      })
-      .catch(() => setError("Could not load trips. Please try again."))
-      .finally(() => setLoading(false));
-  }, [routeSlug, date, returnSlug, returnDate, isRoundTrip, isPrivate]);
+        if (isRoundTrip && !backSlug) {
+          setError("Round trip is not available on this route.");
+        }
+      } catch {
+        if (cancelled) return;
+        setError(
+          isPrivate
+            ? "Could not load route pricing. Please try again."
+            : "Could not load trips. Please try again.",
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [routeSlug, date, returnDate, isRoundTrip, isPrivate]);
 
   /** Lo que cuesta esta salida en particular, con sus propios asientos */
   const legPrice = (trip: Trip) => Number(trip.priceShared) * seatsFor(trip);
 
+  /**
+   * Base del privado: el precio one way, o el round trip propio de la ruta.
+   * null cuando la ruta no vende round trip privado.
+   */
+  const privateBase = !outboundRoute
+    ? null
+    : isRoundTrip
+      ? (outboundRoute.pricePrivateRoundTrip ?? null)
+      : outboundRoute.pricePrivate;
+  const quote =
+    privateBase === null
+      ? null
+      : privateQuote(Number(privateBase), passengers, pricing);
+
+  // Se llegó con un enlace de round trip privado a una ruta sin ese precio
+  const privateRoundTripMissing =
+    isPrivate && isRoundTrip && !!outboundRoute && privateBase === null;
+
   // El total va con seatsToBook, que es lo que la API va a cobrar en ambos
   // tramos, y no con los asientos de cada tarjeta por separado
   const total = isPrivate
-    ? (outboundRoute ? Number(outboundRoute.pricePrivate) : 0) +
-      (isRoundTrip && inboundRoute ? Number(inboundRoute.pricePrivate) : 0)
+    ? (quote?.total ?? 0)
     : (pickedOut ? Number(pickedOut.priceShared) * seatsToBook : 0) +
       (pickedIn ? Number(pickedIn.priceShared) * seatsToBook : 0);
 
@@ -252,7 +323,8 @@ export default function BookResults() {
     agreementChecked &&
     !!signatureName.trim() &&
     (isPrivate
-      ? !!date && !!time && !!outboundRoute &&
+      ? !!date && !!time && !!quote &&
+        passengers + infants <= capacity &&
         (!isRoundTrip || (!!returnDate && !!returnTime && !!inboundRoute))
       : !!pickedOut && (!isRoundTrip || !!pickedIn));
 
@@ -282,6 +354,7 @@ export default function BookResults() {
         ? await createBooking({
             type,
             passengers,
+            infants,
             routeSlug,
             departureAt: buildDepartureAt(date, time),
             ...(isRoundTrip && returnSlug
@@ -554,16 +627,30 @@ export default function BookResults() {
             )}
           </div>
 
-          <div
-            style={{
-              fontSize: "1.4rem",
-              fontFamily: "Playfair Display, serif",
-              fontWeight: 600,
-              color: "var(--brand-green)",
-            }}
-          >
-            {routeData ? `$${routeData.pricePrivate}` : "—"}
-          </div>
+          {/* En ida y vuelta el precio es uno solo por el viaje completo:
+              partirlo por tramo mostraría números que el cliente no paga */}
+          {isRoundTrip ? (
+            <div
+              style={{
+                fontSize: "0.8rem",
+                fontFamily: "DM Sans, sans-serif",
+                color: "var(--brand-gray)",
+              }}
+            >
+              Included in the round trip price
+            </div>
+          ) : (
+            <div
+              style={{
+                fontSize: "1.4rem",
+                fontFamily: "Playfair Display, serif",
+                fontWeight: 600,
+                color: "var(--brand-green)",
+              }}
+            >
+              {routeData && quote ? `$${quote.total}` : "—"}
+            </div>
+          )}
         </div>
       </section>
     );
@@ -631,15 +718,48 @@ export default function BookResults() {
           <span style={{ fontSize: "0.9rem" }}>· Shared shuttle</span>
         </div>
       ) : (
-        <p
+        <div
           style={{
-            color: "var(--brand-gray)",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.6rem",
+            flexWrap: "wrap",
+            marginBottom: "1.5rem",
             fontFamily: "DM Sans, sans-serif",
-            marginBottom: "2rem",
+            color: "var(--brand-gray)",
           }}
         >
-          Private transfer · full vehicle
-        </p>
+          <label htmlFor="pax" style={{ fontSize: "0.9rem" }}>
+            Travelling
+          </label>
+          <select
+            id="pax"
+            value={passengers}
+            onChange={(e) => changePassengers(Number(e.target.value))}
+            style={paxSelectStyle}
+          >
+            {range(1, capacity).map((n) => (
+              <option key={n} value={n}>
+                {n} passenger{n > 1 ? "s" : ""}
+              </option>
+            ))}
+          </select>
+          <span style={{ fontSize: "0.9rem" }}>+</span>
+          <select
+            id="infants"
+            value={infants}
+            onChange={(e) => changeInfants(Number(e.target.value))}
+            aria-label="Infants aged 0 to 2"
+            style={paxSelectStyle}
+          >
+            {range(0, Math.max(0, capacity - passengers)).map((n) => (
+              <option key={n} value={n}>
+                {n} infant{n === 1 ? "" : "s"} (0–2)
+              </option>
+            ))}
+          </select>
+          <span style={{ fontSize: "0.9rem" }}>· Private transfer</span>
+        </div>
       )}
 
       {type === "SHARED" && (
@@ -653,7 +773,19 @@ export default function BookResults() {
       {isPrivate && (
         <div style={noticeStyle}>
           Private transfers use an exclusive vehicle at the exact time you
-          requested — no shared schedule, no minimum passengers.
+          requested — no shared schedule, no minimum passengers. The price
+          covers up to {pricing.includedPassengers} passengers; each
+          additional passenger is ${pricing.extraPassengerPrice}
+          {isRoundTrip ? ", charged once for the whole round trip" : ""}.
+          Infants (0–2) ride free but need a seat. Up to {capacity} people per
+          van.
+        </div>
+      )}
+
+      {privateRoundTripMissing && (
+        <div style={errorStyle}>
+          Private round trip is not available on this route yet. Book each
+          way as a one way transfer, or contact us.
         </div>
       )}
 
@@ -667,7 +799,10 @@ export default function BookResults() {
           You can start one by booking {sharedMin} seats
           {startPrice ? ` for $${startPrice}` : ""}, or take a private transfer
           at the time you choose
-          {outboundRoute ? ` for $${Number(outboundRoute.pricePrivate)}` : ""}.{" "}
+          {outboundRoute
+            ? ` for $${privateQuote(Number(outboundRoute.pricePrivate), passengers, pricing).total}`
+            : ""}
+          .{" "}
           <Link
             href={privateHref}
             style={{ color: "var(--brand-green)", fontWeight: 600 }}
@@ -984,6 +1119,25 @@ export default function BookResults() {
                   {seatsToBook} seats — the minimum that starts this departure
                 </div>
               )}
+              {/* Desglose del privado: con extras el total no coincide con el
+                  precio de la ruta, y el cliente tiene que ver de dónde sale */}
+              {isPrivate && quote && (
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "rgba(255,255,255,0.7)",
+                    fontFamily: "DM Sans, sans-serif",
+                    marginTop: "2px",
+                  }}
+                >
+                  {isRoundTrip ? "Round trip" : "One way"} up to{" "}
+                  {pricing.includedPassengers} passengers ${quote.base}
+                  {quote.extraPassengers > 0 &&
+                    ` + ${quote.extraPassengers} extra × $${pricing.extraPassengerPrice}`}
+                  {infants > 0 &&
+                    ` · ${infants} infant${infants === 1 ? "" : "s"} free`}
+                </div>
+              )}
               {isRoundTrip && (
                 <div
                   style={{
@@ -1028,6 +1182,15 @@ export default function BookResults() {
     </div>
   );
 }
+
+const paxSelectStyle: React.CSSProperties = {
+  padding: "6px 10px",
+  borderRadius: "8px",
+  border: "1px solid #d9d3c7",
+  fontFamily: "DM Sans, sans-serif",
+  fontSize: "0.9rem",
+  background: "#fff",
+};
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: "0.68rem",

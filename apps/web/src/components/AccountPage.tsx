@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
-import { authFetch, outboundTrip } from '@/lib/api';
+import { authFetch, outboundTrip, passengersLabel } from '@/lib/api';
 import { BRAND_WHATSAPP } from '@/lib/brand';
 
 interface Leg {
@@ -175,7 +175,7 @@ function BookingCard({ booking }: { booking: Booking }) {
             // Sin esto la tarjeta de un ida y vuelta se ve igual que la de una ida
             ...(isRound && ret ? [{ label: 'Return', value: fmt(new Date(ret.trip.departureAt)) }] : []),
             { label: 'Type', value: booking.type === 'SHARED' ? 'Shared' : 'Private' },
-            { label: 'Passengers', value: `${booking.passengers}` },
+            { label: 'Passengers', value: passengersLabel(booking) },
           ].map(item => (
             <div key={item.label}>
               <div style={{ fontSize: '0.7rem', color: 'var(--brand-gray)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>{item.label}</div>

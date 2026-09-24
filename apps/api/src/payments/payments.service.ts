@@ -307,6 +307,7 @@ export class PaymentsService {
       accessToken: reservation.accessToken,
       legs,
       passengers: reservation.passengers,
+      infants: reservation.infants,
       type: reservation.type,
       amount: Number(reservation.totalAmount),
       transactionId,

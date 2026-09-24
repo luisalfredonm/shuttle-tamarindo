@@ -31,6 +31,8 @@ export interface BookingEmailData {
   /** Tramos ya ordenados: ida primero, regreso despues si lo hay */
   legs: EmailLeg[];
   passengers: number;
+  /** Infantes 0–2: no pagan pero el conductor tiene que llevar asiento */
+  infants?: number;
   type: string;
   amount: number;
   transactionId?: string;
@@ -174,7 +176,10 @@ export class EmailService {
         ${sectionTitle('Trip details')}
         ${detailsTable(
           detail('Service', serviceLabel(data.type)) +
-            detail('Passengers', passengerLabel(data.passengers)) +
+            detail(
+              'Passengers',
+              passengerLabel(data.passengers, data.infants),
+            ) +
             extras,
         )}
 
@@ -304,7 +309,7 @@ export class EmailService {
 
     const opsRows =
       detail('Service', serviceLabel(data.type)) +
-      detail('Passengers', passengerLabel(data.passengers)) +
+      detail('Passengers', passengerLabel(data.passengers, data.infants)) +
       (data.pickupAddress
         ? detail('Pick-up address', data.pickupAddress)
         : '') +

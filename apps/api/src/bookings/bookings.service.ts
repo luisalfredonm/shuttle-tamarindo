@@ -16,6 +16,8 @@ import {
 import { TurnstileService } from './turnstile.service';
 import { EmailService } from '../email/email.service';
 import { LookupBookingsDto } from './dto/lookup-bookings.dto';
+import { PricingService } from '../pricing/pricing.service';
+import { privateTotal, splitInTwo } from '../pricing/private-price';
 
 /**
  * Nota de vocabulario: de cara al cliente una "booking" es la compra entera,
@@ -51,6 +53,7 @@ export class BookingsService {
     private prisma: PrismaService,
     private turnstile: TurnstileService,
     private email: EmailService,
+    private pricing: PricingService,
   ) {}
 
   /**
@@ -221,10 +224,13 @@ export class BookingsService {
   }
 
   /**
-   * Valida un tramo y devuelve cuanto cuesta y cuantos asientos ocupa.
+   * Valida un tramo y devuelve cuantos asientos ocupa y, en SHARED, cuanto
+   * cuesta.
    *
-   * PRIVATE toma el vehiculo entero. SHARED exige SHARED_MIN_PASSENGERS
-   * mientras la salida no tenga ese piso ya confirmado por otros.
+   * PRIVATE toma el vehiculo entero y su precio se calcula sobre la reserva
+   * completa (ver create), porque los extras se cobran una vez aunque haya
+   * dos tramos. SHARED exige SHARED_MIN_PASSENGERS mientras la salida no
+   * tenga ese piso ya confirmado por otros.
    */
   private async priceLeg(
     tx: Prisma.TransactionClient,
@@ -272,9 +278,7 @@ export class BookingsService {
       );
     }
 
-    const amount = isPrivate
-      ? Number(trip.route.pricePrivate)
-      : Number(trip.priceShared) * dto.passengers;
+    const amount = isPrivate ? 0 : Number(trip.priceShared) * dto.passengers;
 
     return { trip, seats, amount };
   }
@@ -292,6 +296,7 @@ export class BookingsService {
     routeSlug: string | undefined,
     departureAt: string | undefined,
     label: string,
+    vehicleCapacity: number,
   ): Promise<string> {
     if (type === 'SHARED') {
       if (!tripId) throw new BadRequestException(`Falta el viaje (${label})`);
@@ -322,6 +327,7 @@ export class BookingsService {
       data: {
         routeId: route.id,
         departureAt: parsedDepartureAt,
+        capacity: vehicleCapacity,
         // priceShared no aplica a un privado ad-hoc, pero la columna es NOT NULL
         priceShared: 0,
         // No debe aparecer en la lista de compartido: es un vehiculo
@@ -368,6 +374,18 @@ export class BookingsService {
             email: dto.guestEmail!.trim(),
             phone: dto.guestPhone!.trim(),
           });
+
+      const isPrivate = dto.type === 'PRIVATE';
+      const settings = await this.pricing.get(tx);
+
+      // Los infantes solo existen en privado: en compartido se paga por asiento
+      const infants = isPrivate ? (dto.infants ?? 0) : 0;
+      if (isPrivate && dto.passengers + infants > settings.vehicleCapacity) {
+        throw new BadRequestException(
+          `La van lleva hasta ${settings.vehicleCapacity} personas, contando infantes`,
+        );
+      }
+
       const tripId = await this.resolveTripId(
         tx,
         dto.type,
@@ -375,6 +393,7 @@ export class BookingsService {
         dto.routeSlug,
         dto.departureAt,
         'ida',
+        settings.vehicleCapacity,
       );
 
       const isRoundTrip =
@@ -391,6 +410,7 @@ export class BookingsService {
           dto.returnRouteSlug,
           dto.returnDepartureAt,
           'regreso',
+          settings.vehicleCapacity,
         );
 
         if (returnTripId === tripId) {
@@ -420,7 +440,28 @@ export class BookingsService {
         }
       }
 
-      const totalAmount = outbound.amount + (inbound?.amount ?? 0);
+      let outboundAmount = outbound.amount;
+      let returnAmount = inbound?.amount ?? 0;
+
+      if (isPrivate) {
+        const base = isRoundTrip
+          ? outbound.trip.route.pricePrivateRoundTrip
+          : outbound.trip.route.pricePrivate;
+
+        // Sin precio propio no se vende: sumar dos one way no es la tarifa
+        if (base === null) {
+          throw new BadRequestException(
+            'Esta ruta todavía no tiene precio de ida y vuelta privado',
+          );
+        }
+
+        const { total } = privateTotal(Number(base), dto.passengers, settings);
+        [outboundAmount, returnAmount] = isRoundTrip
+          ? splitInTwo(total)
+          : [total, 0];
+      }
+
+      const totalAmount = outboundAmount + returnAmount;
 
       const heldUntil = new Date();
       heldUntil.setMinutes(heldUntil.getMinutes() + HOLD_MINUTES);
@@ -435,6 +476,7 @@ export class BookingsService {
           type: dto.type,
           tripType: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
           passengers: dto.passengers,
+          infants,
           totalAmount,
           heldUntil,
           notes: dto.notes,
@@ -449,7 +491,7 @@ export class BookingsService {
                 tripId,
                 direction: 'OUTBOUND',
                 passengers: outbound.seats,
-                amount: outbound.amount,
+                amount: outboundAmount,
               },
               ...(inbound
                 ? [
@@ -457,7 +499,7 @@ export class BookingsService {
                       tripId: returnTripId!,
                       direction: 'RETURN' as const,
                       passengers: inbound.seats,
-                      amount: inbound.amount,
+                      amount: returnAmount,
                     },
                   ]
                 : []),

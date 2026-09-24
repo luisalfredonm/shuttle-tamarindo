@@ -48,6 +48,13 @@ export class UpdateRouteDto {
   @Type(() => Number)
   pricePrivate?: number;
 
+  /** null lo borra: la ruta y su inversa dejan de vender round trip privado */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  pricePrivateRoundTrip?: number | null;
+
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

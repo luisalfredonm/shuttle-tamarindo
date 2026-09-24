@@ -81,6 +81,10 @@ model Route {
   /// Privado va en un vehiculo exclusivo a la hora que el cliente elija, asi
   /// que no tiene sentido por Trip: es un precio fijo por ruta.
   pricePrivate Decimal  @db.Decimal(10, 2)
+  /// Precio del privado ida y vuelta, con los pasajeros incluidos de
+  /// PricingSettings. Es el mismo en los dos sentidos, asi que se guarda igual
+  /// en la ruta y en su inversa. null = no se vende round trip privado.
+  pricePrivateRoundTrip Decimal? @db.Decimal(10, 2)
   isActive     Boolean  @default(true)
   trips        Trip[]
   schedules    RouteSchedule[]
@@ -115,6 +119,19 @@ model RouteSchedule {
   @@unique([routeId, departureTime])
 }
 
+/// Reglas de precio del privado, iguales para todas las rutas. Fila unica (id 1).
+///
+/// El precio base de cada ruta cubre hasta includedPassengers; cada pasajero
+/// que pague por encima suma extraPassengerPrice, una sola vez aunque sea ida
+/// y vuelta. vehicleCapacity es el tope de la van contando infantes.
+model PricingSettings {
+  id                  Int      @id @default(1)
+  includedPassengers  Int      @default(4)
+  extraPassengerPrice Decimal  @default(20) @db.Decimal(10, 2)
+  vehicleCapacity     Int      @default(10)
+  updatedAt           DateTime @updatedAt
+}
+
 model Trip {
   id          String     @id @default(uuid())
   route       Route      @relation(fields: [routeId], references: [id])
@@ -138,7 +155,10 @@ model Reservation {
   userId      String
   type        BookingType
   tripType    TripType      @default(ONE_WAY)
+  /// Pasajeros que pagan (adultos y ninos)
   passengers  Int
+  /// Infantes de 0 a 2 anos: no pagan pero ocupan asiento. Solo en privado.
+  infants     Int           @default(0)
   totalAmount Decimal       @db.Decimal(10, 2)
   status      BookingStatus @default(PENDING)
   heldUntil   DateTime?

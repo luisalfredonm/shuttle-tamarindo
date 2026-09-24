@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { bookingFetch } from "@/lib/api";
+import { bookingFetch, passengersLabel } from "@/lib/api";
 import BookingLegs from "./BookingLegs";
 
 export default function ConfirmationDetail() {
@@ -165,7 +165,7 @@ export default function ConfirmationDetail() {
               label: "Trip type",
               value: isRoundTrip ? "Round trip" : "One way",
             },
-            { label: "Passengers", value: `${booking.passengers}` },
+            { label: "Passengers", value: passengersLabel(booking) },
             { label: "Type", value: booking.type },
             { label: "Total", value: `$${booking.totalAmount}` },
           ].map((item) => (

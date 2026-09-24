@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@shuttle/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRouteDto } from './dto/create-route.dto';
 import { UpdateRouteDto } from './dto/update-route.dto';
@@ -41,6 +42,7 @@ export class RoutesService {
     return routes.map(({ schedules, ...route }) => ({
       ...route,
       ...summarizeSchedules(schedules),
+      reverseSlug: findReverse(routes, route)?.slug ?? null,
     }));
   }
 
@@ -67,12 +69,33 @@ export class RoutesService {
     if (!route) throw new NotFoundException(`Ruta "${slug}" no encontrada`);
 
     const { schedules, ...rest } = route;
-    return { ...rest, ...summarizeSchedules(schedules) };
+    const reverse = await this.findReverseRoute(route, true);
+
+    return {
+      ...rest,
+      ...summarizeSchedules(schedules),
+      reverseSlug: reverse?.slug ?? null,
+    };
   }
 
   async create(dto: CreateRouteDto) {
     await this.assertSlugAvailable(dto.slug);
-    return this.prisma.route.create({ data: dto });
+
+    return this.prisma.$transaction(async (tx) => {
+      // Al dar de alta el regreso de una ruta que ya tiene precio round trip,
+      // lo hereda si no trae uno propio. Un campo vacio no borra el de la
+      // inversa: al crear, vacio significa "no lo cargue", no "sacarlo".
+      const pricePrivateRoundTrip =
+        dto.pricePrivateRoundTrip ??
+        (await this.findReverseRoute(dto, false, tx))?.pricePrivateRoundTrip ??
+        null;
+
+      const created = await tx.route.create({
+        data: { ...dto, pricePrivateRoundTrip },
+      });
+      await this.syncRoundTripPrice(tx, created);
+      return created;
+    });
   }
 
   async update(id: string, dto: UpdateRouteDto) {
@@ -81,7 +104,59 @@ export class RoutesService {
     if (dto.slug && dto.slug !== route.slug) {
       await this.assertSlugAvailable(dto.slug);
     }
-    return this.prisma.route.update({ where: { id }, data: dto });
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.route.update({ where: { id }, data: dto });
+      if (dto.pricePrivateRoundTrip !== undefined) {
+        await this.syncRoundTripPrice(tx, updated);
+      }
+      return updated;
+    });
+  }
+
+  /**
+   * Ruta que deshace el camino de la dada (origen y destino invertidos).
+   *
+   * No hay una relacion guardada entre las dos: se reconocen por el texto,
+   * igual que en el buscador y al validar el regreso de una reserva.
+   */
+  private findReverseRoute(
+    route: { origin: string; destination: string; slug: string },
+    activeOnly: boolean,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    return tx.route.findFirst({
+      where: {
+        origin: route.destination,
+        destination: route.origin,
+        slug: { not: route.slug },
+        ...(activeOnly ? { isActive: true } : {}),
+      },
+    });
+  }
+
+  /**
+   * El round trip cuesta lo mismo sin importar desde que lado sale: se copia
+   * a la inversa para que el admin lo cargue una vez y no puedan quedar
+   * distintos.
+   */
+  private async syncRoundTripPrice(
+    tx: Prisma.TransactionClient,
+    route: {
+      origin: string;
+      destination: string;
+      slug: string;
+      pricePrivateRoundTrip: Prisma.Decimal | null;
+    },
+  ) {
+    await tx.route.updateMany({
+      where: {
+        origin: route.destination,
+        destination: route.origin,
+        slug: { not: route.slug },
+      },
+      data: { pricePrivateRoundTrip: route.pricePrivateRoundTrip },
+    });
   }
 
   /** El slug es unico: mejor un mensaje claro que un 500 de Prisma */
@@ -163,6 +238,17 @@ export class RoutesService {
 
     return { message: `${routes.length} rutas creadas correctamente` };
   }
+}
+
+function findReverse<
+  T extends { slug: string; origin: string; destination: string },
+>(routes: T[], route: T): T | undefined {
+  return routes.find(
+    (r) =>
+      r.slug !== route.slug &&
+      r.origin === route.destination &&
+      r.destination === route.origin,
+  );
 }
 
 /**

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { displayPrice, type RouteView } from "@/lib/route-view";
+import { DEFAULT_PRICING, getPricing } from "@/lib/api";
+import { privateQuote, range } from "@/lib/private-price";
 
 interface Props {
   route: RouteView;
@@ -20,6 +22,15 @@ export default function RouteDetail({ route }: Props) {
   const [type, setType] = useState<"SHARED" | "PRIVATE">(
     route.sharedEnabled ? "SHARED" : "PRIVATE",
   );
+  const [pricing, setPricing] = useState(DEFAULT_PRICING);
+
+  useEffect(() => {
+    getPricing().then(setPricing);
+  }, []);
+
+  // Recortado al leerlo: 10 de compartido no entran en una van privada de 8
+  const maxPassengers = type === "PRIVATE" ? pricing.vehicleCapacity : 10;
+  const paxCount = Math.min(Number(passengers), maxPassengers);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -29,7 +40,7 @@ export default function RouteDetail({ route }: Props) {
     const qs = new URLSearchParams({
       route: route.slug,
       date,
-      passengers,
+      passengers: String(paxCount),
       type,
     });
     // La hora viaja con la reserva: es lo que define la salida del privado
@@ -323,22 +334,22 @@ export default function RouteDetail({ route }: Props) {
                 </div>
               )}
 
-              {type === "SHARED" && (
-                <div>
-                  <label style={labelStyle}>Passengers</label>
-                  <select
-                    value={passengers}
-                    onChange={(e) => setPass(e.target.value)}
-                    style={inputStyle}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                      <option key={n} value={n}>
-                        {n} {n === 1 ? "passenger" : "passengers"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div>
+                <label style={labelStyle}>
+                  {type === "PRIVATE" ? "Passengers (age 3+)" : "Passengers"}
+                </label>
+                <select
+                  value={paxCount}
+                  onChange={(e) => setPass(e.target.value)}
+                  style={inputStyle}
+                >
+                  {range(1, maxPassengers).map((n) => (
+                    <option key={n} value={n}>
+                      {n} {n === 1 ? "passenger" : "passengers"}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div>
                 <label style={labelStyle}>Total</label>
@@ -355,8 +366,8 @@ export default function RouteDetail({ route }: Props) {
                 >
                   $
                   {type === "SHARED"
-                    ? route.priceShared * parseInt(passengers)
-                    : route.pricePrivate}{" "}
+                    ? route.priceShared * paxCount
+                    : privateQuote(route.pricePrivate, paxCount, pricing).total}{" "}
                   USD
                 </div>
               </div>

@@ -108,8 +108,10 @@ export function serviceLabel(type: string): string {
     .replace(/^./, (c) => c.toUpperCase());
 }
 
-export function passengerLabel(n: number): string {
-  return `${n} ${n === 1 ? 'passenger' : 'passengers'}`;
+export function passengerLabel(n: number, infants = 0): string {
+  const base = `${n} ${n === 1 ? 'passenger' : 'passengers'}`;
+  if (!infants) return base;
+  return `${base} + ${infants} ${infants === 1 ? 'infant' : 'infants'} (0–2)`;
 }
 
 /** Referencia corta, la misma que el cliente puede dictar por telefono. */
