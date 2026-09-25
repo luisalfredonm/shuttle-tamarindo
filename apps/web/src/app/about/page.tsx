@@ -6,7 +6,7 @@ import { BRAND_NAME, BRAND_FOUNDED } from "@/lib/brand";
 export const metadata: Metadata = {
   title: "About Us — Reliable Shuttle Service in Guanacaste",
   description:
-    "Retana Services Tamarindo has provided shared shuttles and private transfers across Guanacaste, Costa Rica since 2015. Learn who we are and how we operate.",
+    "Family-run since 2015, Retana Services Tamarindo provides shared shuttles and private transfers across Guanacaste, Costa Rica. Learn who we are and how we operate.",
   alternates: { canonical: "/about" },
 };
 
@@ -16,6 +16,14 @@ export default function AboutPage() {
       title="About Retana Services Tamarindo"
       intro={`Since ${BRAND_FOUNDED}, we have been moving travelers across Guanacaste with fixed daily schedules, fair prices and door-to-door service.`}
     >
+      <h2 style={s.h2}>Our story</h2>
+      <p style={s.p}>
+        We are a transport service company founded in {BRAND_FOUNDED}. Our
+        business is run by siblings, who have built and grown it with great care
+        and dedication, always committed to giving every customer the best
+        possible service.
+      </p>
+
       <h2 style={s.h2}>Who we are</h2>
       <p style={s.p}>
         {BRAND_NAME} is a locally owned transportation company based in

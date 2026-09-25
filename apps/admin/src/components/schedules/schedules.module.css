@@ -1,0 +1,48 @@
+/* Horarios: cada hora de salida es una ficha con sus días a un toque */
+
+.routeCard { margin-bottom: 1rem; overflow: hidden; }
+.routeHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; padding: 1rem 1rem 0.85rem; border-bottom: 1px solid var(--border); }
+.routeName { font-size: 0.98rem; font-weight: 650; letter-spacing: -0.01em; line-height: 1.35; overflow-wrap: anywhere; }
+.coverage { font-size: 0.74rem; color: var(--text-3); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.coverageLow { color: #c0392b; font-weight: 600; }
+
+/* Teléfono: hora arriba con el tacho, días a lo ancho, switch abajo.
+   Escritorio: todo en una fila */
+.slot {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "info remove" "days days" "switch switch";
+  row-gap: 0.7rem; column-gap: 1rem; align-items: center;
+  padding: 0.9rem 1rem; border-top: 1px solid var(--border);
+}
+.slot:first-of-type { border-top: none; }
+.slotInfo { grid-area: info; }
+.slotRemove { grid-area: remove; }
+.slotDays { grid-area: days; }
+.slotSwitch { grid-area: switch; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: -0.2rem; }
+.slotPaused .slotTime, .slotPaused .slotMeta, .slotPaused .slotDays { opacity: 0.5; }
+.slotTime { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+.slotMeta { font-size: 0.78rem; color: var(--text-3); margin-top: 4px; }
+.daysLabel { font-size: 0.78rem; color: var(--text-2); font-weight: 600; }
+.arrow { color: var(--brand-gold); font-weight: 700; }
+
+@media (min-width: 900px) {
+  .slot { grid-template-columns: 150px 330px 1fr auto; grid-template-areas: "info days switch remove"; }
+  .slotSwitch { margin-top: 0; justify-content: flex-end; gap: 1.25rem; }
+}
+
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.day {
+  min-height: 44px; border-radius: 10px;
+  border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text-3);
+  font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.day[aria-pressed="true"] { background: var(--brand-green); border-color: var(--brand-green); color: #fff; }
+.day:focus-visible { outline: 2px solid var(--brand-green); outline-offset: 2px; }
+
+.addBar { padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: var(--surface-2); }
+
+.privateRow { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
+.privateRow:first-of-type { border-top: none; }

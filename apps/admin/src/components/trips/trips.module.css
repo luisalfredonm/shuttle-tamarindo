@@ -1,0 +1,53 @@
+/* Salidas agrupadas por día: se leen como una agenda */
+
+.filters { display: grid; grid-template-columns: 1fr; gap: 0.6rem; margin-bottom: 1rem; }
+.filterRow { display: flex; gap: 0.5rem; }
+.filterRow > :first-child { flex: 1; min-width: 0; }
+@media (min-width: 641px) {
+  .filters { grid-template-columns: minmax(0, 320px) minmax(0, 260px) auto; justify-content: start; }
+}
+
+.day { margin-bottom: 1.25rem; }
+.dayHead {
+  position: sticky; top: 60px; z-index: 4;
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 0.55rem 0.15rem; margin-bottom: 0.35rem;
+  background: var(--bg);
+}
+@media (min-width: 641px) { .dayHead { top: 0; } }
+.dayName { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; }
+.dayToday { color: var(--brand-green); }
+.dayCount { font-size: 0.75rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+.list { display: flex; flex-direction: column; overflow: hidden; }
+
+.trip {
+  display: grid; grid-template-columns: 5.1rem 1fr auto; align-items: center; gap: 0.7rem;
+  width: 100%; min-height: 64px; padding: 0.7rem 0.9rem;
+  background: none; border: none; border-top: 1px solid var(--border);
+  text-align: left; font: inherit; color: inherit; cursor: pointer;
+  transition: background 0.12s;
+}
+.trip:first-child { border-top: none; }
+.trip:hover { background: var(--surface-hover); }
+.trip:focus-visible { outline: 2px solid var(--brand-green); outline-offset: -2px; }
+.tripCancelled .tripTime, .tripCancelled .tripRoute { text-decoration: line-through; color: var(--text-3); }
+
+.tripTime { white-space: nowrap; font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.tripRoute { display: block; font-size: 0.86rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.tripMeta { font-size: 0.73rem; color: var(--text-3); margin-top: 3px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.seats { text-align: right; }
+.seatsNum { font-size: 0.9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.seatsNum small { font-weight: 500; color: var(--text-3); font-size: 0.75rem; }
+.bar { width: 54px; height: 5px; border-radius: 5px; background: var(--border-soft); overflow: hidden; margin-top: 5px; margin-left: auto; }
+.bar span { display: block; height: 100%; border-radius: 5px; }
+
+.statusGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.statusBtn {
+  min-height: 48px; border-radius: 12px; border: 1.5px solid var(--border-strong);
+  background: var(--surface); color: var(--text-2);
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.statusBtn[aria-pressed="true"] { border-color: var(--brand-green); background: #e8f5ee; color: #1a6b4a; }
+.statusBtn:focus-visible { outline: 2px solid var(--brand-green); outline-offset: 2px; }

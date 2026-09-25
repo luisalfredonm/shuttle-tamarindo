@@ -5,12 +5,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, BookOpenCheck, Bus, CalendarClock, CreditCard, Route, Tag, UserRound, LogOut, ArrowUpRight, Menu, X } from 'lucide-react';
 
+/** Lo del día a día, a un toque en la barra de abajo del teléfono. El resto va en "More". */
+const TABS = ['/dashboard', '/bookings', '/trips', '/schedules'];
+
 /** Sitio publico al que apunta "View website". En produccion hay que
  *  cargar NEXT_PUBLIC_SITE_URL: sin eso el link manda al localhost del que mira. */
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 const NAV = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Home',      href: '/dashboard', icon: LayoutDashboard },
   { label: 'Bookings',  href: '/bookings',  icon: BookOpenCheck },
   { label: 'Trips',     href: '/trips',     icon: Bus },
   { label: 'Schedules', href: '/schedules', icon: CalendarClock },
@@ -52,21 +55,44 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Solo visible en telefono: la barra fija reemplaza al rail lateral,
-          que en esa medida pasa a ser un drawer oculto por defecto */}
+      {/* Solo en telefono: arriba la marca y la pagina actual, abajo las
+          pestanas al alcance del pulgar. El rail lateral pasa a ser el drawer
+          de "More" */}
       <div className="mobile-topbar">
-        <button
-          className="mobile-topbar-btn"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open menu"
-        >
-          <Menu size={22} />
-        </button>
-        <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600 }}>
-          Retana Services Tamarindo
-        </span>
-        <span style={{ width: '22px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="mobile-topbar-logo">S</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.66rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              Retana Services
+            </div>
+            <div style={{ color: '#fff', fontSize: '0.95rem', fontWeight: 650, lineHeight: 1.2 }}>
+              {NAV.find((n) => pathname.startsWith(n.href))?.label ?? 'Admin'}
+            </div>
+          </div>
+        </div>
       </div>
+
+      <nav className="tabbar" aria-label="Main">
+        {NAV.filter((n) => TABS.includes(n.href)).map((item) => {
+          const active = pathname.startsWith(item.href);
+          const Icon = item.icon;
+          return (
+            <Link key={item.href} href={item.href} className={`tabbar-item${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined}>
+              <Icon size={21} strokeWidth={active ? 2.3 : 1.8} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          className={`tabbar-item${NAV.some((n) => !TABS.includes(n.href) && pathname.startsWith(n.href)) ? ' active' : ''}`}
+          onClick={() => setMobileOpen(true)}
+          aria-label="More sections"
+        >
+          <Menu size={21} strokeWidth={1.8} />
+          <span>More</span>
+        </button>
+      </nav>
 
       <div
         className={`sidebar-backdrop${mobileOpen ? ' mobile-open' : ''}`}

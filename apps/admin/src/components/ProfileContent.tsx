@@ -1,14 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { BellRing } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import PageHeader from "./ui/PageHeader";
+import Toast from "./ui/Toast";
+import ui from "./ui/ui.module.css";
+
+const FIELDS = [
+  { label: "Name", key: "name", type: "text", placeholder: "Your name", autoComplete: "name" },
+  { label: "Notification email", key: "email", type: "email", placeholder: "you@example.com", autoComplete: "email" },
+  { label: "WhatsApp / Phone", key: "phone", type: "tel", placeholder: "+506 8888 8888", autoComplete: "tel" },
+] as const;
 
 export default function ProfileContent() {
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const clearNotice = useCallback(() => setNotice(""), []);
+  const clearError = useCallback(() => setError(""), []);
 
   useEffect(() => {
     apiFetch("/admin/profile")
@@ -21,16 +33,11 @@ export default function ProfileContent() {
     e.preventDefault();
     setSaving(true);
     setError("");
-    setSuccess(false);
     try {
-      await apiFetch("/admin/profile", {
-        method: "PATCH",
-        body: JSON.stringify(form),
-      });
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.message || "Error saving profile");
+      await apiFetch("/admin/profile", { method: "PATCH", body: JSON.stringify(form) });
+      setNotice("Profile saved.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error saving profile");
     } finally {
       setSaving(false);
     }
@@ -38,65 +45,46 @@ export default function ProfileContent() {
 
   return (
     <div>
-      <div style={{ marginBottom: "1.75rem" }}>
-        <h1 style={{ fontSize: "1.6rem", fontWeight: 500 }}>Profile</h1>
-        <p style={{ fontSize: "0.875rem", color: "var(--brand-gray)", marginTop: "4px" }}>
-          Your info and notification settings
-        </p>
-      </div>
+      <PageHeader title="Profile" subtitle="Your details and where booking alerts are sent." />
 
-      <div style={{ maxWidth: "480px", background: "var(--surface)", borderRadius: "16px", padding: "2rem", border: "1px solid var(--border-strong)" }}>
-        {loading ? (
-          <p style={{ color: "var(--brand-gray)", fontSize: "0.875rem" }}>Loading...</p>
-        ) : (
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            {[
-              { label: "Name", key: "name", type: "text", placeholder: "Your name" },
-              { label: "Notification email", key: "email", type: "email", placeholder: "you@example.com" },
-              { label: "WhatsApp / Phone", key: "phone", type: "tel", placeholder: "+506 8888 8888" },
-            ].map(({ label, key, type, placeholder }) => (
-              <div key={key}>
-                <label style={labelStyle}>{label}</label>
-                <input
-                  type={type}
-                  placeholder={placeholder}
-                  value={form[key as keyof typeof form]}
-                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  style={inputStyle}
-                />
-              </div>
-            ))}
+      {loading ? (
+        <div className={ui.skeleton} style={{ height: 320, maxWidth: 560 }} aria-hidden="true" />
+      ) : (
+        <form onSubmit={handleSubmit} style={{ maxWidth: 560 }}>
+          <section className={`${ui.card} ${ui.cardPad}`}>
+            <div className={ui.form}>
+              {FIELDS.map(({ label, key, type, placeholder, autoComplete }) => (
+                <div key={key} className={ui.field}>
+                  <label className={ui.label} htmlFor={`profile-${key}`}>{label}</label>
+                  <input
+                    id={`profile-${key}`}
+                    type={type}
+                    placeholder={placeholder}
+                    autoComplete={autoComplete}
+                    className={ui.input}
+                    value={form[key]}
+                    onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
 
-            <p style={{ fontSize: "0.78rem", color: "var(--brand-gray)", margin: 0 }}>
-              The notification email receives an alert every time a new booking is confirmed.
-            </p>
+          <div className={`${ui.notice} ${ui.noticeInfo}`} style={{ marginTop: "0.85rem" }}>
+            <BellRing size={17} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>The notification email receives an alert every time a new booking is confirmed.</span>
+          </div>
 
-            {error && <p style={{ color: "#c0392b", fontSize: "0.8rem", margin: 0 }}>{error}</p>}
-            {success && <p style={{ color: "#1a6b4a", fontSize: "0.8rem", margin: 0 }}>Profile saved successfully.</p>}
-
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                background: "var(--brand-gold)", color: "var(--brand-dark)", border: "none",
-                borderRadius: "8px", padding: "10px 20px", fontSize: "0.875rem",
-                fontWeight: 600, cursor: "pointer", opacity: saving ? 0.6 : 1, alignSelf: "flex-start",
-              }}
-            >
+          <div className={ui.stickyBar}>
+            <button type="submit" disabled={saving} className={`${ui.btn} ${ui.primary}`}>
               {saving ? "Saving..." : "Save changes"}
             </button>
-          </form>
-        )}
-      </div>
+          </div>
+        </form>
+      )}
+
+      {notice && <Toast message={notice} onClose={clearNotice} />}
+      {error && <Toast message={error} tone="error" onClose={clearError} />}
     </div>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  fontSize: "0.8rem", fontWeight: 500, display: "block", marginBottom: "4px",
-};
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "10px 12px", borderRadius: "8px",
-  border: "1px solid var(--border-strong)", fontSize: "0.875rem", boxSizing: "border-box",
-};
-

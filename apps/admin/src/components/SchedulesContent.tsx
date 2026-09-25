@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ArrowRight, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Plus, RefreshCw, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { money } from "@/lib/format";
+import PageHeader from "./ui/PageHeader";
+import Sheet from "./ui/Sheet";
+import Switch from "./ui/Switch";
+import Toast from "./ui/Toast";
+import ui from "./ui/ui.module.css";
+import s from "./schedules/schedules.module.css";
 
 type Schedule = {
   id: string;
@@ -15,19 +22,6 @@ type Schedule = {
   daysOfWeek: number[];
 };
 
-const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
-// Lunes primero, que es como se lee la semana en Costa Rica
-const WEEK = [1, 2, 3, 4, 5, 6, 0];
-const DAY_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-const DAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-/** "Every day", "Saturdays", "Mo, We, Fr" */
-function daysLabel(days: number[]) {
-  if (days.length === 7) return "Every day";
-  if (days.length === 1) return `${DAY_LONG[days[0]]}s only`;
-  return WEEK.filter((d) => days.includes(d)).map((d) => DAY_SHORT[d]).join(", ");
-}
-
 type Coverage = {
   routeId: string;
   slug: string;
@@ -39,6 +33,19 @@ type Coverage = {
   sharedEnabled: boolean;
 };
 
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+// Lunes primero, que es como se lee la semana en Costa Rica
+const WEEK = [1, 2, 3, 4, 5, 6, 0];
+const DAY_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const DAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** "Every day", "Saturdays only", "Mo, We, Fr" */
+function daysLabel(days: number[]) {
+  if (days.length === 7) return "Every day";
+  if (days.length === 1) return `${DAY_LONG[days[0]]}s only`;
+  return WEEK.filter((d) => days.includes(d)).map((d) => DAY_SHORT[d]).join(", ");
+}
+
 const emptyDraft = { departureTime: "", priceShared: "", capacity: "10", daysOfWeek: ALL_DAYS };
 
 export default function SchedulesContent() {
@@ -47,9 +54,13 @@ export default function SchedulesContent() {
   const [generating, setGenerating] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-  // Borrador del formulario de alta, uno por ruta
-  const [drafts, setDrafts] = useState<Record<string, typeof emptyDraft>>({});
-  const [savingRoute, setSavingRoute] = useState<string | null>(null);
+  // Ruta a la que se le está agregando un horario (la hoja de alta)
+  const [adding, setAdding] = useState<Coverage | null>(null);
+  const [draft, setDraft] = useState(emptyDraft);
+  const [saving, setSaving] = useState(false);
+
+  const clearNotice = useCallback(() => setNotice(""), []);
+  const clearError = useCallback(() => setError(""), []);
 
   const load = () =>
     apiFetch("/schedules/coverage")
@@ -61,26 +72,25 @@ export default function SchedulesContent() {
     load();
   }, []);
 
-  const draftFor = (routeId: string) => drafts[routeId] ?? emptyDraft;
+  const openAdd = (route: Coverage) => {
+    setDraft(emptyDraft);
+    setError("");
+    setAdding(route);
+  };
 
-  const setDraft = (routeId: string, patch: Partial<typeof emptyDraft>) =>
-    setDrafts((prev) => ({
-      ...prev,
-      [routeId]: { ...(prev[routeId] ?? emptyDraft), ...patch },
-    }));
-
-  const addSchedule = async (route: Coverage) => {
-    const draft = draftFor(route.routeId);
+  const addSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adding) return;
     if (!draft.departureTime || !draft.priceShared) {
       setError("Enter the departure time and the price");
       return;
     }
 
-    setSavingRoute(route.routeId);
+    setSaving(true);
     setError("");
     setNotice("");
     try {
-      await apiFetch(`/routes/${route.routeId}/schedules`, {
+      await apiFetch(`/routes/${adding.routeId}/schedules`, {
         method: "POST",
         body: JSON.stringify({
           departureTime: draft.departureTime,
@@ -89,21 +99,19 @@ export default function SchedulesContent() {
           daysOfWeek: draft.daysOfWeek,
         }),
       });
-      setDrafts((prev) => ({ ...prev, [route.routeId]: emptyDraft }));
       // Las salidas de ese horario todavía no existen: se generan en el acto
       // para que el horario nuevo se pueda vender sin esperar al job nocturno
       const result = await apiFetch("/schedules/generate", {
         method: "POST",
-        body: JSON.stringify({ routeId: route.routeId }),
+        body: JSON.stringify({ routeId: adding.routeId }),
       });
-      setNotice(
-        `Schedule added. ${result.created} departures are ready to sell.`,
-      );
+      setNotice(`Departure time added. ${result.created} departures are ready to sell.`);
+      setAdding(null);
       await load();
-    } catch (err: any) {
-      setError(err.message || "Could not add the schedule");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add the schedule");
     } finally {
-      setSavingRoute(null);
+      setSaving(false);
     }
   };
 
@@ -115,8 +123,8 @@ export default function SchedulesContent() {
         body: JSON.stringify({ isActive: !schedule.isActive }),
       });
       await load();
-    } catch (err: any) {
-      setError(err.message || "Could not update the schedule");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update the schedule");
     }
   };
 
@@ -134,9 +142,7 @@ export default function SchedulesContent() {
       });
       setNotice(
         `${schedule.departureTime} now runs: ${daysLabel(result.daysOfWeek)}.` +
-          (result.movedTrips
-            ? ` ${result.movedTrips} empty departures on other days were removed.`
-            : "") +
+          (result.movedTrips ? ` ${result.movedTrips} empty departures on other days were removed.` : "") +
           " Departures that already have passengers are kept.",
       );
       await load();
@@ -155,15 +161,11 @@ export default function SchedulesContent() {
     setError("");
     setNotice("");
     try {
-      const result = await apiFetch(`/schedules/${schedule.id}`, {
-        method: "DELETE",
-      });
-      setNotice(
-        `Schedule removed. ${result.deletedTrips} future departures with no bookings were deleted.`,
-      );
+      const result = await apiFetch(`/schedules/${schedule.id}`, { method: "DELETE" });
+      setNotice(`Schedule removed. ${result.deletedTrips} future departures with no bookings were deleted.`);
       await load();
-    } catch (err: any) {
-      setError(err.message || "Could not remove the schedule");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove the schedule");
     }
   };
 
@@ -172,18 +174,15 @@ export default function SchedulesContent() {
     setError("");
     setNotice("");
     try {
-      const result = await apiFetch("/schedules/generate", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
+      const result = await apiFetch("/schedules/generate", { method: "POST", body: JSON.stringify({}) });
       setNotice(
         result.created === 0
           ? `All caught up: departures already cover the next ${result.windowDays} days.`
           : `${result.created} departures generated for the next ${result.windowDays} days.`,
       );
       await load();
-    } catch (err: any) {
-      setError(err.message || "Could not generate departures");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not generate departures");
     } finally {
       setGenerating(false);
     }
@@ -194,123 +193,127 @@ export default function SchedulesContent() {
 
   return (
     <div>
-      <div style={header}>
-        <div>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 500 }}>Schedules</h1>
-          <p style={subtitle}>
-            Set a departure time and the days it runs, and the system creates
-            those departures for you. No more adding trips one at a time.
-          </p>
-        </div>
-        <button
-          onClick={generateAll}
-          disabled={generating}
-          style={{ ...btnPrimary, opacity: generating ? 0.6 : 1 }}
-        >
-          <RefreshCw size={14} style={{ marginRight: 6, verticalAlign: "-2px" }} />
-          {generating ? "Generating..." : "Generate departures"}
-        </button>
-      </div>
+      <PageHeader
+        title="Schedules"
+        subtitle="Set a departure time and the days it runs. The system creates those departures for the next 60 days."
+        actions={
+          <button type="button" onClick={generateAll} disabled={generating} className={`${ui.btn} ${ui.secondary}`}>
+            <RefreshCw size={15} className={generating ? "spin" : undefined} />
+            {generating ? "Generating..." : "Generate departures"}
+          </button>
+        }
+      />
 
-      {notice && <div style={noticeBox}>{notice}</div>}
-      {error && <div style={errorBox}>{error}</div>}
+      {notice && <Toast message={notice} onClose={clearNotice} />}
+      {error && !adding && <Toast message={error} tone="error" onClose={clearError} />}
 
-      {loading && <div style={muted}>Loading schedules...</div>}
+      {loading && <div className={ui.skeleton} style={{ height: 280 }} aria-hidden="true" />}
 
-      {!loading && shared.map((route) => (
-        <section key={route.routeId} style={card}>
-          <div style={cardHead}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-              <strong style={{ fontSize: "0.95rem" }}>{route.origin}</strong>
-              <ArrowRight size={15} color="var(--brand-gold)" />
-              <strong style={{ fontSize: "0.95rem" }}>{route.destination}</strong>
+      {!loading &&
+        shared.map((route) => (
+          <section key={route.routeId} className={`${ui.card} ${s.routeCard}`}>
+            <div className={s.routeHead}>
+              <div style={{ minWidth: 0 }}>
+                <div className={s.routeName}>
+                  {route.origin} <span className={s.arrow} aria-hidden="true">→</span> {route.destination}
+                </div>
+                <CoverageLine route={route} />
+              </div>
             </div>
-            <CoverageBadge route={route} />
-          </div>
 
-          <table style={table}>
-            <thead>
-              <tr>
-                <th style={th}>Departs</th>
-                <th style={th}>Days</th>
-                <th style={th}>Price</th>
-                <th style={th}>Seats</th>
-                <th style={th}>Status</th>
-                <th style={{ ...th, textAlign: "right" }}>Remove</th>
-              </tr>
-            </thead>
-            <tbody>
-              {route.schedules.map((s) => (
-                <tr key={s.id}>
-                  <td style={{ ...td, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
-                    {s.departureTime}
-                  </td>
-                  <td style={td}>
-                    <DayPicker
-                      days={s.daysOfWeek}
-                      onChange={(days) => changeDays(s, days)}
-                    />
-                    <div style={{ fontSize: "0.7rem", color: "var(--brand-gray)", marginTop: "3px" }}>
-                      {daysLabel(s.daysOfWeek)}
-                    </div>
-                  </td>
-                  <td style={td}>${Number(s.priceShared).toFixed(2)}</td>
-                  <td style={td}>{s.capacity}</td>
-                  <td style={td}>
-                    <button onClick={() => toggleSchedule(s)} style={badge(s.isActive)}>
-                      {s.isActive ? "Active" : "Paused"}
-                    </button>
-                  </td>
-                  <td style={{ ...td, textAlign: "right" }}>
-                    <button
-                      onClick={() => removeSchedule(route, s)}
-                      style={iconBtn}
-                      aria-label={`Remove the ${s.departureTime} departure`}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            {route.schedules.map((sc) => (
+              <div key={sc.id} className={`${s.slot} ${sc.isActive ? "" : s.slotPaused}`}>
+                <div className={s.slotInfo}>
+                  <div className={s.slotTime}>{sc.departureTime}</div>
+                  <div className={s.slotMeta}>
+                    {money(sc.priceShared)} per seat · {sc.capacity} seats
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeSchedule(route, sc)}
+                  className={`${ui.iconBtn} ${ui.iconDanger} ${s.slotRemove}`}
+                  aria-label={`Remove the ${sc.departureTime} departure`}
+                >
+                  <Trash2 size={17} />
+                </button>
+                <div className={s.slotDays}>
+                  <DayPicker days={sc.daysOfWeek} onChange={(days) => changeDays(sc, days)} />
+                </div>
+                <div className={s.slotSwitch}>
+                  <span className={s.daysLabel}>{daysLabel(sc.daysOfWeek)}</span>
+                  <Switch checked={sc.isActive} onChange={() => toggleSchedule(sc)} label={sc.isActive ? "Selling" : "Paused"} />
+                </div>
+              </div>
+            ))}
 
-          <AddRow
-            draft={draftFor(route.routeId)}
-            saving={savingRoute === route.routeId}
-            onChange={(patch) => setDraft(route.routeId, patch)}
-            onAdd={() => addSchedule(route)}
-          />
-        </section>
-      ))}
+            <div className={s.addBar}>
+              <button type="button" onClick={() => openAdd(route)} className={`${ui.btn} ${ui.secondary} ${ui.block}`}>
+                <Plus size={16} strokeWidth={2.5} /> Add departure time
+              </button>
+            </div>
+          </section>
+        ))}
 
       {!loading && privateOnly.length > 0 && (
-        <section style={{ ...card, background: "var(--surface)" }}>
-          <h2 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.35rem" }}>
-            Private only
-          </h2>
-          <p style={{ ...subtitle, marginBottom: "1.25rem" }}>
-            These routes have no shared service. Add a departure time to start
-            selling individual seats.
-          </p>
-
+        <section className={`${ui.card} ${s.routeCard}`}>
+          <div className={s.routeHead}>
+            <div>
+              <div className={s.routeName}>Private only</div>
+              <div className={s.coverage}>No shared service yet. Add a departure time to start selling seats.</div>
+            </div>
+          </div>
           {privateOnly.map((route) => (
-            <div key={route.routeId} style={privateRow}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: "0.9rem" }}>{route.origin}</span>
-                <ArrowRight size={13} color="var(--brand-gray)" />
-                <span style={{ fontSize: "0.9rem" }}>{route.destination}</span>
-              </div>
-              <AddRow
-                compact
-                draft={draftFor(route.routeId)}
-                saving={savingRoute === route.routeId}
-                onChange={(patch) => setDraft(route.routeId, patch)}
-                onAdd={() => addSchedule(route)}
-              />
+            <div key={route.routeId} className={s.privateRow}>
+              <span style={{ fontSize: "0.9rem", fontWeight: 600, minWidth: 0, overflowWrap: "anywhere" }}>
+                {route.origin} → {route.destination}
+              </span>
+              <button type="button" onClick={() => openAdd(route)} className={`${ui.btn} ${ui.secondary} ${ui.small}`}>
+                <Plus size={15} strokeWidth={2.5} /> Add
+              </button>
             </div>
           ))}
         </section>
+      )}
+
+      {adding && (
+        <Sheet
+          title="Add departure time"
+          subtitle={`${adding.origin} → ${adding.destination}`}
+          onClose={() => setAdding(null)}
+        >
+          <form onSubmit={addSchedule} className={ui.form}>
+            <div className={ui.fields2}>
+              <div className={ui.field}>
+                <label className={ui.label} htmlFor="sched-time">Departs at</label>
+                <input id="sched-time" type="time" required className={ui.input} value={draft.departureTime} onChange={(e) => setDraft((d) => ({ ...d, departureTime: e.target.value }))} />
+              </div>
+              <div className={ui.field}>
+                <label className={ui.label} htmlFor="sched-seats">Seats</label>
+                <input id="sched-seats" inputMode="numeric" required className={ui.input} value={draft.capacity} onChange={(e) => setDraft((d) => ({ ...d, capacity: e.target.value }))} />
+              </div>
+            </div>
+            <div className={ui.field}>
+              <label className={ui.label} htmlFor="sched-price">Price per seat</label>
+              <div className={ui.affix}>
+                <span>$</span>
+                <input id="sched-price" inputMode="decimal" required placeholder="30" value={draft.priceShared} onChange={(e) => setDraft((d) => ({ ...d, priceShared: e.target.value }))} />
+              </div>
+            </div>
+            <div className={ui.field}>
+              <span className={ui.label}>Runs on</span>
+              <DayPicker days={draft.daysOfWeek} onChange={(daysOfWeek) => daysOfWeek.length > 0 && setDraft((d) => ({ ...d, daysOfWeek }))} />
+              <span className={ui.hint}>{daysLabel(draft.daysOfWeek)}</span>
+            </div>
+            {error && <div className={`${ui.notice} ${ui.noticeError}`} style={{ marginBottom: 0 }}>{error}</div>}
+            <div className={ui.sheetActions}>
+              <button type="button" onClick={() => setAdding(null)} className={`${ui.btn} ${ui.secondary}`}>Cancel</button>
+              <button type="submit" disabled={saving} className={`${ui.btn} ${ui.primary}`}>
+                {saving ? "Adding..." : "Add departure time"}
+              </button>
+            </div>
+          </form>
+        </Sheet>
       )}
     </div>
   );
@@ -322,255 +325,41 @@ export default function SchedulesContent() {
  * Es el dato que hay que poder ver sin buscarlo: cuando el catálogo se vence,
  * la web deja de tener qué vender y nada más lo avisa.
  */
-function CoverageBadge({ route }: { route: Coverage }) {
+function CoverageLine({ route }: { route: Coverage }) {
   const until = route.generatedUntil ? new Date(route.generatedUntil) : null;
-  const daysLeft = until
-    ? Math.ceil((until.getTime() - Date.now()) / 86400000)
-    : 0;
+  // eslint-disable-next-line react-hooks/purity -- "días que quedan" depende de la hora actual a propósito
+  const daysLeft = until ? Math.ceil((until.getTime() - Date.now()) / 86400000) : 0;
   const low = daysLeft < 14;
 
   return (
-    <div style={{ textAlign: "right", fontSize: "0.75rem", color: "var(--brand-gray)" }}>
-      <div style={{ fontWeight: 600, color: low ? "#c0392b" : "var(--brand-gray)" }}>
-        {route.upcomingTrips} departures · {daysLeft} days of inventory
-      </div>
-      {until && (
-        <div>
-          through{" "}
-          {until.toLocaleDateString("en-US", { day: "numeric", month: "short" })}
-        </div>
-      )}
-      {low && <div style={{ color: "#c0392b" }}>Generate departures to extend</div>}
+    <div className={`${s.coverage} ${low ? s.coverageLow : ""}`}>
+      {route.upcomingTrips} departures ready
+      {until && ` · through ${until.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+      {low && " · generate departures to extend"}
     </div>
   );
 }
 
-function AddRow({
-  draft,
-  saving,
-  compact,
-  onChange,
-  onAdd,
-}: {
-  draft: typeof emptyDraft;
-  saving: boolean;
-  compact?: boolean;
-  onChange: (patch: Partial<typeof emptyDraft>) => void;
-  onAdd: () => void;
-}) {
-  return (
-    <div style={{ ...addRow, marginTop: compact ? 0 : "1rem", borderTop: compact ? "none" : "1px solid var(--border-soft)", paddingTop: compact ? 0 : "1rem" }}>
-      <input
-        type="time"
-        value={draft.departureTime}
-        onChange={(e) => onChange({ departureTime: e.target.value })}
-        style={{ ...input, width: compact ? "110px" : "130px" }}
-        aria-label="Departure time"
-      />
-      <input
-        type="number"
-        min="0"
-        step="0.01"
-        placeholder="Price"
-        value={draft.priceShared}
-        onChange={(e) => onChange({ priceShared: e.target.value })}
-        style={{ ...input, width: "100px" }}
-        aria-label="Price per seat"
-      />
-      <input
-        type="number"
-        min="1"
-        placeholder="Seats"
-        value={draft.capacity}
-        onChange={(e) => onChange({ capacity: e.target.value })}
-        style={{ ...input, width: "100px" }}
-        aria-label="Seats in the vehicle"
-      />
-      <DayPicker
-        days={draft.daysOfWeek}
-        onChange={(daysOfWeek) => daysOfWeek.length > 0 && onChange({ daysOfWeek })}
-      />
-      <button onClick={onAdd} disabled={saving} style={{ ...btnSecondary, opacity: saving ? 0.6 : 1 }}>
-        <Plus size={14} style={{ marginRight: 4, verticalAlign: "-2px" }} />
-        {saving ? "Adding..." : "Add"}
-      </button>
-    </div>
-  );
-}
-
-/** Los 7 días como botones que se prenden y apagan, lunes primero */
-function DayPicker({
-  days,
-  onChange,
-}: {
-  days: number[];
-  onChange: (days: number[]) => void;
-}) {
+/** Los 7 días como botones grandes que se prenden y apagan, lunes primero */
+function DayPicker({ days, onChange }: { days: number[]; onChange: (days: number[]) => void }) {
   const toggle = (d: number) =>
     onChange(days.includes(d) ? days.filter((x) => x !== d) : [...days, d].sort((a, b) => a - b));
 
   return (
-    <div role="group" aria-label="Days of the week" style={{ display: "inline-flex", gap: "3px" }}>
-      {WEEK.map((d) => {
-        const on = days.includes(d);
-        return (
-          <button
-            key={d}
-            type="button"
-            onClick={() => toggle(d)}
-            aria-pressed={on}
-            aria-label={DAY_LONG[d]}
-            title={DAY_LONG[d]}
-            style={dayBtn(on)}
-          >
-            {DAY_SHORT[d]}
-          </button>
-        );
-      })}
+    <div className={s.days} role="group" aria-label="Days of the week">
+      {WEEK.map((d) => (
+        <button
+          key={d}
+          type="button"
+          onClick={() => toggle(d)}
+          aria-pressed={days.includes(d)}
+          aria-label={DAY_LONG[d]}
+          title={DAY_LONG[d]}
+          className={s.day}
+        >
+          {DAY_SHORT[d]}
+        </button>
+      ))}
     </div>
   );
 }
-
-// Styles
-const dayBtn = (on: boolean): React.CSSProperties => ({
-  width: "28px",
-  height: "26px",
-  borderRadius: "6px",
-  border: on ? "1px solid #1a6b4a" : "1px solid var(--border-strong)",
-  background: on ? "#1a6b4a" : "var(--surface)",
-  color: on ? "#fff" : "var(--brand-gray)",
-  fontSize: "0.7rem",
-  fontWeight: 600,
-  cursor: "pointer",
-  padding: 0,
-});
-const header: React.CSSProperties = {
-  marginBottom: "1.5rem",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "1rem",
-  flexWrap: "wrap",
-};
-const subtitle: React.CSSProperties = {
-  fontSize: "0.85rem",
-  color: "var(--brand-gray)",
-  marginTop: "0.35rem",
-  maxWidth: "52ch",
-  lineHeight: 1.5,
-};
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  borderRadius: "14px",
-  padding: "1.5rem",
-  border: "1px solid var(--border-strong)",
-  marginBottom: "1rem",
-};
-const cardHead: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "1rem",
-  flexWrap: "wrap",
-  marginBottom: "1rem",
-};
-const table: React.CSSProperties = {
-  width: "100%",
-  borderCollapse: "collapse",
-  fontSize: "0.85rem",
-};
-const th: React.CSSProperties = {
-  textAlign: "left",
-  padding: "0.5rem 0.75rem 0.5rem 0",
-  fontSize: "0.7rem",
-  textTransform: "uppercase",
-  letterSpacing: "0.04em",
-  color: "var(--brand-gray)",
-  fontWeight: 600,
-  borderBottom: "1px solid var(--border-soft)",
-};
-const td: React.CSSProperties = {
-  padding: "0.6rem 0.75rem 0.6rem 0",
-  borderBottom: "1px solid var(--border-soft)",
-};
-const addRow: React.CSSProperties = {
-  display: "flex",
-  gap: "0.5rem",
-  alignItems: "center",
-  flexWrap: "wrap",
-};
-const privateRow: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "1rem",
-  flexWrap: "wrap",
-  padding: "0.75rem 0",
-  borderTop: "1px solid var(--border-soft)",
-};
-const btnPrimary: React.CSSProperties = {
-  background: "var(--brand-gold)",
-  color: "var(--brand-dark)",
-  border: "none",
-  borderRadius: "8px",
-  padding: "8px 16px",
-  fontSize: "0.875rem",
-  fontWeight: 600,
-  cursor: "pointer",
-};
-const btnSecondary: React.CSSProperties = {
-  padding: "8px 14px",
-  borderRadius: "8px",
-  border: "1px solid var(--border-strong)",
-  background: "var(--surface)",
-  fontSize: "0.875rem",
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-};
-const input: React.CSSProperties = {
-  padding: "8px 12px",
-  borderRadius: "8px",
-  border: "1px solid var(--border-strong)",
-  fontSize: "0.875rem",
-  boxSizing: "border-box",
-};
-const iconBtn: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  padding: "0 2px",
-  color: "var(--brand-gray)",
-};
-const muted: React.CSSProperties = {
-  padding: "2rem",
-  color: "var(--brand-gray)",
-  fontSize: "0.875rem",
-};
-const noticeBox: React.CSSProperties = {
-  background: "#f0faf5",
-  color: "#1a6b4a",
-  border: "1px solid #cdeadd",
-  borderRadius: "10px",
-  padding: "0.75rem 1rem",
-  fontSize: "0.85rem",
-  marginBottom: "1rem",
-};
-const errorBox: React.CSSProperties = {
-  background: "#fff0f0",
-  color: "#c0392b",
-  border: "1px solid #f5d2d2",
-  borderRadius: "10px",
-  padding: "0.75rem 1rem",
-  fontSize: "0.85rem",
-  marginBottom: "1rem",
-};
-const badge = (active: boolean): React.CSSProperties => ({
-  background: active ? "#f0faf5" : "#fff7e6",
-  color: active ? "#1a6b4a" : "#8a6100",
-  padding: "3px 10px",
-  borderRadius: "100px",
-  fontSize: "0.75rem",
-  fontWeight: 500,
-  border: "none",
-  cursor: "pointer",
-});

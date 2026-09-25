@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, CircleAlert, CreditCard, PlugZap, ShieldCheck } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import PageHeader from "./ui/PageHeader";
+import Switch from "./ui/Switch";
+import Toast from "./ui/Toast";
+import ui from "./ui/ui.module.css";
 
 type Method = {
   provider: "PAYPAL" | "BAC_CREDOMATIC";
@@ -32,6 +36,7 @@ export default function PaymentsContent() {
   const [saving, setSaving] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
   const [tests, setTests] = useState<Record<string, TestResult>>({});
+  const clearError = useCallback(() => setError(""), []);
 
   const load = () =>
     apiFetch("/payments/config")
@@ -57,8 +62,8 @@ export default function PaymentsContent() {
         body: JSON.stringify({ isEnabled: next }),
       });
       await load();
-    } catch (err: any) {
-      setError(err.message || `Could not update ${m.label}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Could not update ${m.label}`);
     } finally {
       setSaving(null);
     }
@@ -67,14 +72,12 @@ export default function PaymentsContent() {
   const test = async (m: Method) => {
     setTesting(m.provider);
     try {
-      const result = await apiFetch(`/payments/config/${m.provider}/verify`, {
-        method: "POST",
-      });
+      const result = await apiFetch(`/payments/config/${m.provider}/verify`, { method: "POST" });
       setTests((prev) => ({ ...prev, [m.provider]: result }));
-    } catch (err: any) {
+    } catch (err) {
       setTests((prev) => ({
         ...prev,
-        [m.provider]: { ok: false, detail: err.message || "Connection test failed" },
+        [m.provider]: { ok: false, detail: err instanceof Error ? err.message : "Connection test failed" },
       }));
     } finally {
       setTesting(null);
@@ -87,298 +90,131 @@ export default function PaymentsContent() {
 
   return (
     <div>
-      <div style={header}>
-        <div>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 500 }}>Payments</h1>
-          <p style={subtitle}>
-            Choose which payment methods customers can use at checkout.
-          </p>
-        </div>
-      </div>
-
-      {error && <div style={errorBox}>{error}</div>}
+      <PageHeader title="Payments" subtitle="Choose which payment methods customers can use at checkout." />
 
       {!loading && !anyEnabled && (
-        <div style={warnBox}>
-          <CircleAlert size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <div className={`${ui.notice} ${ui.noticeWarn}`}>
+          <CircleAlert size={17} style={{ flexShrink: 0, marginTop: 2 }} />
           <span>
-            <strong>No payment method is on.</strong> Customers can book but
-            cannot pay. Turn on a method below to start taking payments.
+            <strong>No payment method is on.</strong> Customers can book but cannot pay. Turn on a method below to start
+            taking payments.
           </span>
         </div>
       )}
 
       {!loading && anySandboxOn && !anyLive && (
-        <div style={infoBox}>
-          <CircleAlert size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <div className={`${ui.notice} ${ui.noticeInfo}`}>
+          <CircleAlert size={17} style={{ flexShrink: 0, marginTop: 2 }} />
           <span>
-            <strong>Test mode.</strong> Payments go through the PayPal sandbox
-            and no real money moves. Switch to live credentials on the server
-            before launch.
+            <strong>Test mode.</strong> Payments go through the PayPal sandbox and no real money moves. Switch to live
+            credentials on the server before launch.
           </span>
         </div>
       )}
 
-      {loading && <div style={muted}>Loading payment methods...</div>}
+      {loading && <div className={ui.skeleton} style={{ height: 260 }} aria-hidden="true" />}
 
-      <div style={grid}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 340px), 1fr))", gap: "0.85rem", marginBottom: "1rem" }}>
         {methods.map((m) => {
           const result = tests[m.provider];
           const canEnable = m.isSupported && m.hasCredentials;
 
           return (
-            <section key={m.provider} style={card}>
-              <div style={cardHead}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                  <CreditCard size={18} color="var(--brand-gold)" />
-                  <h2 style={{ fontSize: "1.05rem", fontWeight: 600 }}>{m.label}</h2>
+            <section key={m.provider} className={ui.card} style={{ display: "flex", flexDirection: "column" }}>
+              <div className={ui.cardPad} style={{ display: "flex", flexDirection: "column", gap: "0.9rem", flex: 1 }}>
+                <div className={ui.cardHead}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+                    <span style={{ width: 38, height: 38, borderRadius: 10, background: "#fbf3e3", color: "var(--brand-gold)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                      <CreditCard size={19} />
+                    </span>
+                    <h2 className={ui.cardTitle}>{m.label}</h2>
+                  </div>
+                  {!m.isSupported ? (
+                    <span className={`${ui.pill} ${ui.pillGray}`}>Coming soon</span>
+                  ) : m.mode ? (
+                    <span className={`${ui.pill} ${m.mode === "live" ? ui.pillGreen : ui.pillBlue}`}>
+                      {m.mode === "live" ? "Live" : "Sandbox"}
+                    </span>
+                  ) : null}
                 </div>
+
                 {m.isSupported ? (
-                  <span style={pill(m.isEnabled ? "on" : "off")}>
-                    {m.isEnabled ? "On" : "Off"}
-                  </span>
+                  <>
+                    <dl className={ui.facts}>
+                      <div className={ui.fact}>
+                        <dt>Credentials</dt>
+                        <dd style={{ color: m.hasCredentials ? "#1a6b4a" : "#c0392b" }}>
+                          {m.hasCredentials ? "Loaded on the server" : "Missing on the server"}
+                        </dd>
+                      </div>
+                      <div className={ui.fact}>
+                        <dt>Client ID</dt>
+                        <dd className={ui.mono} style={{ fontSize: "0.8rem" }}>{m.publicKeyHint ?? "—"}</dd>
+                      </div>
+                    </dl>
+
+                    {result && (
+                      <div className={`${ui.notice} ${result.ok ? ui.noticeOk : ui.noticeError}`} style={{ margin: 0 }}>
+                        {result.ok ? <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: 2 }} /> : <CircleAlert size={16} style={{ flexShrink: 0, marginTop: 2 }} />}
+                        <span>{result.detail}</span>
+                      </div>
+                    )}
+
+                    {!m.hasCredentials && (
+                      <p className={ui.hint} style={{ margin: 0 }}>
+                        Add <code>PAYPAL_CLIENT_ID</code> and <code>PAYPAL_CLIENT_SECRET</code> to the API server
+                        environment, then restart it.
+                      </p>
+                    )}
+                  </>
                 ) : (
-                  <span style={pill("soon")}>Coming soon</span>
+                  <p className={ui.hint} style={{ margin: 0 }}>
+                    Card payments through BAC Credomatic are planned. PayPal already accepts credit and debit cards from
+                    customers without a PayPal account.
+                  </p>
                 )}
               </div>
 
-              {m.isSupported ? (
-                <>
-                  <dl style={facts}>
-                    <div style={fact}>
-                      <dt style={factLabel}>Mode</dt>
-                      <dd style={factValue}>
-                        {m.mode ? (
-                          <span style={pill(m.mode === "live" ? "live" : "sandbox")}>
-                            {m.mode === "live" ? "Live" : "Sandbox"}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </dd>
-                    </div>
-                    <div style={fact}>
-                      <dt style={factLabel}>Credentials</dt>
-                      <dd style={{ ...factValue, color: m.hasCredentials ? "#1a6b4a" : "#c0392b" }}>
-                        {m.hasCredentials ? "Loaded on the server" : "Missing on the server"}
-                      </dd>
-                    </div>
-                    <div style={fact}>
-                      <dt style={factLabel}>Client ID</dt>
-                      <dd style={{ ...factValue, fontFamily: "monospace", fontSize: "0.8rem" }}>
-                        {m.publicKeyHint ?? "—"}
-                      </dd>
-                    </div>
-                  </dl>
-
-                  {result && (
-                    <div style={result.ok ? okBox : errorBox}>
-                      {result.ok ? <CheckCircle2 size={15} /> : <CircleAlert size={15} />}
-                      <span>{result.detail}</span>
-                    </div>
-                  )}
-
-                  <div style={actions}>
-                    <button
-                      onClick={() => test(m)}
-                      disabled={testing === m.provider || !m.hasCredentials}
-                      style={{ ...btnSecondary, opacity: testing === m.provider || !m.hasCredentials ? 0.55 : 1 }}
-                    >
-                      <PlugZap size={14} style={{ marginRight: 6, verticalAlign: "-2px" }} />
-                      {testing === m.provider ? "Testing..." : "Test connection"}
-                    </button>
-                    <button
-                      onClick={() => toggle(m)}
+              {m.isSupported && (
+                <div className={ui.cardFooter} style={{ flexWrap: "wrap" }}>
+                  <div style={{ marginRight: "auto" }}>
+                    <Switch
+                      checked={m.isEnabled}
                       disabled={saving === m.provider || (!m.isEnabled && !canEnable)}
-                      style={{
-                        ...(m.isEnabled ? btnSecondary : btnPrimary),
-                        opacity: saving === m.provider || (!m.isEnabled && !canEnable) ? 0.55 : 1,
-                      }}
-                    >
-                      {saving === m.provider
-                        ? "Saving..."
-                        : m.isEnabled
-                          ? "Turn off"
-                          : "Turn on"}
-                    </button>
+                      onChange={() => toggle(m)}
+                      label={saving === m.provider ? "Saving..." : m.isEnabled ? "Accepting payments" : "Turned off"}
+                    />
                   </div>
-
-                  {!m.hasCredentials && (
-                    <p style={hint}>
-                      Add <code>PAYPAL_CLIENT_ID</code> and <code>PAYPAL_CLIENT_SECRET</code> to
-                      the API server environment, then restart it.
-                    </p>
-                  )}
-                </>
-              ) : (
-                <p style={hint}>
-                  Card payments through BAC Credomatic are planned. PayPal already
-                  accepts credit and debit cards from customers without a PayPal account.
-                </p>
+                  <button
+                    type="button"
+                    onClick={() => test(m)}
+                    disabled={testing === m.provider || !m.hasCredentials}
+                    className={`${ui.btn} ${ui.secondary} ${ui.small}`}
+                  >
+                    <PlugZap size={15} className={testing === m.provider ? "spin" : undefined} />
+                    {testing === m.provider ? "Testing..." : "Test connection"}
+                  </button>
+                </div>
               )}
             </section>
           );
         })}
       </div>
 
-      <section style={securityNote}>
-        <ShieldCheck size={18} color="#1a6b4a" style={{ flexShrink: 0, marginTop: 2 }} />
-        <div>
-          <h3 style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.35rem" }}>
-            Why credentials aren&apos;t edited here
-          </h3>
-          <p style={{ fontSize: "0.85rem", color: "var(--brand-gray)", lineHeight: 1.6 }}>
-            Payment secrets stay in the server environment and never reach the
-            browser, so a leaked database backup or a compromised admin session
-            can&apos;t expose them. To switch from sandbox to live, replace the
-            PayPal variables on the server with your live credentials, set{" "}
-            <code>PAYPAL_MODE=live</code>, and restart the API.
-          </p>
-        </div>
-      </section>
+      {/* Explicación para quien lo pregunte: plegada, que en el teléfono ocupaba media pantalla */}
+      <details className={`${ui.card} ${ui.cardPad}`} style={{ boxShadow: "none" }}>
+        <summary style={{ display: "flex", alignItems: "center", gap: "0.6rem", minHeight: 28, cursor: "pointer", fontSize: "0.88rem", fontWeight: 600 }}>
+          <ShieldCheck size={18} color="#1a6b4a" style={{ flexShrink: 0 }} />
+          Why credentials aren&apos;t edited here
+        </summary>
+        <p style={{ fontSize: "0.84rem", color: "var(--text-3)", lineHeight: 1.6, marginTop: "0.6rem" }}>
+          Payment secrets stay in the server environment and never reach the browser, so a leaked database backup or a
+          compromised admin session can&apos;t expose them. To switch from sandbox to live, replace the PayPal variables on
+          the server with your live credentials, set <code>PAYPAL_MODE=live</code>, and restart the API.
+        </p>
+      </details>
+
+      {error && <Toast message={error} tone="error" onClose={clearError} />}
     </div>
   );
 }
-
-// Styles
-const header: React.CSSProperties = { marginBottom: "1.5rem" };
-const subtitle: React.CSSProperties = {
-  fontSize: "0.85rem",
-  color: "var(--brand-gray)",
-  marginTop: "0.35rem",
-};
-const grid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-  gap: "1rem",
-  marginBottom: "1.25rem",
-};
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  borderRadius: "14px",
-  padding: "1.5rem",
-  border: "1px solid var(--border-strong)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "1rem",
-};
-const cardHead: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "1rem",
-};
-const facts: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "0.55rem",
-  margin: 0,
-  paddingTop: "0.9rem",
-  borderTop: "1px solid var(--border-soft)",
-};
-const fact: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "1rem",
-};
-const factLabel: React.CSSProperties = {
-  fontSize: "0.72rem",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-  color: "var(--brand-gray)",
-  fontWeight: 600,
-};
-const factValue: React.CSSProperties = { margin: 0, fontSize: "0.85rem", textAlign: "right" };
-const actions: React.CSSProperties = { display: "flex", gap: "0.5rem", flexWrap: "wrap" };
-const hint: React.CSSProperties = {
-  fontSize: "0.8rem",
-  color: "var(--brand-gray)",
-  lineHeight: 1.55,
-  margin: 0,
-};
-const btnPrimary: React.CSSProperties = {
-  background: "var(--brand-gold)",
-  color: "var(--brand-dark)",
-  border: "none",
-  borderRadius: "8px",
-  padding: "8px 16px",
-  fontSize: "0.875rem",
-  fontWeight: 600,
-  cursor: "pointer",
-};
-const btnSecondary: React.CSSProperties = {
-  padding: "8px 14px",
-  borderRadius: "8px",
-  border: "1px solid var(--border-strong)",
-  background: "var(--surface)",
-  fontSize: "0.875rem",
-  cursor: "pointer",
-};
-const muted: React.CSSProperties = {
-  padding: "2rem",
-  color: "var(--brand-gray)",
-  fontSize: "0.875rem",
-};
-const boxBase: React.CSSProperties = {
-  display: "flex",
-  gap: "0.5rem",
-  alignItems: "flex-start",
-  borderRadius: "10px",
-  padding: "0.7rem 0.9rem",
-  fontSize: "0.85rem",
-  lineHeight: 1.5,
-};
-const errorBox: React.CSSProperties = {
-  ...boxBase,
-  background: "#fff0f0",
-  color: "#c0392b",
-  border: "1px solid #f5d2d2",
-  marginBottom: "0.25rem",
-};
-const okBox: React.CSSProperties = {
-  ...boxBase,
-  background: "#f0faf5",
-  color: "#1a6b4a",
-  border: "1px solid #cdeadd",
-};
-const warnBox: React.CSSProperties = {
-  ...boxBase,
-  background: "#fff4e5",
-  color: "#8a4b00",
-  border: "1px solid #f3d7ab",
-  marginBottom: "1rem",
-};
-const infoBox: React.CSSProperties = {
-  ...boxBase,
-  background: "#eef5ff",
-  color: "#1d4a86",
-  border: "1px solid #cfe0f7",
-  marginBottom: "1rem",
-};
-const securityNote: React.CSSProperties = {
-  display: "flex",
-  gap: "0.75rem",
-  background: "var(--surface)",
-  border: "1px solid var(--border-soft)",
-  borderRadius: "12px",
-  padding: "1rem 1.25rem",
-};
-const pill = (kind: "on" | "off" | "soon" | "live" | "sandbox"): React.CSSProperties => {
-  const map = {
-    on: { bg: "#f0faf5", fg: "#1a6b4a" },
-    off: { bg: "#f3f1ec", fg: "#6b7b74" },
-    soon: { bg: "#f3f1ec", fg: "#6b7b74" },
-    live: { bg: "#fff0f0", fg: "#b3261e" },
-    sandbox: { bg: "#eef5ff", fg: "#1d4a86" },
-  }[kind];
-  return {
-    background: map.bg,
-    color: map.fg,
-    padding: "3px 10px",
-    borderRadius: "100px",
-    fontSize: "0.72rem",
-    fontWeight: 600,
-    whiteSpace: "nowrap",
-  };
-};

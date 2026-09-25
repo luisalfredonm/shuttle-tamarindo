@@ -1,56 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, PenLine, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import RouteImage from "./RouteImage";
-
-type Route = {
-  id: string;
-  slug: string;
-  origin: string;
-  destination: string;
-  durationMin: number;
-  distanceKm: number;
-  pricePrivate: number;
-  pricePrivateRoundTrip: number | null;
-  isActive: boolean;
-  imageUrl: string | null;
-};
-
-/** Igual que en el API: así se ve antes de guardar cómo va a quedar el slug */
-const toSlug = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-const emptyForm = { slug: "", origin: "", destination: "", durationMin: "", distanceKm: "", pricePrivate: "", pricePrivateRoundTrip: "" };
-
-const FIELDS: { label: string; key: keyof typeof emptyForm; placeholder: string; optional?: boolean; hint?: string }[] = [
-  { label: "Slug", key: "slug", placeholder: "tamarindo-liberia-airport" },
-  { label: "Origin", key: "origin", placeholder: "Tamarindo" },
-  { label: "Destination", key: "destination", placeholder: "Aeropuerto Liberia (LIR)" },
-  { label: "Duration (min)", key: "durationMin", placeholder: "90" },
-  { label: "Distance (km)", key: "distanceKm", placeholder: "78" },
-  { label: "Private one way ($)", key: "pricePrivate", placeholder: "100" },
-  {
-    label: "Private round trip ($)",
-    key: "pricePrivateRoundTrip",
-    placeholder: "180",
-    optional: true,
-    hint: "Se copia a la ruta inversa. Vacío = no se vende ida y vuelta privado.",
-  },
-];
+import RouteCard from "./routes/RouteCard";
+import RouteFormModal from "./routes/RouteFormModal";
+import { emptyRouteForm, type AdminRoute } from "./routes/types";
+import PageHeader from "./ui/PageHeader";
+import ui from "./ui/ui.module.css";
+import s from "./routes/routes.module.css";
 
 export default function RoutesContent() {
-  const [routes, setRoutes] = useState<Route[]>([]);
+  const [routes, setRoutes] = useState<AdminRoute[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<Route | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [editing, setEditing] = useState<AdminRoute | null>(null);
+  const [form, setForm] = useState(emptyRouteForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -64,12 +29,12 @@ export default function RoutesContent() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm(emptyForm);
+    setForm(emptyRouteForm);
     setError("");
     setShowForm(true);
   };
 
-  const openEdit = (r: Route) => {
+  const openEdit = (r: AdminRoute) => {
     setEditing(r);
     setForm({
       slug: r.slug,
@@ -104,14 +69,14 @@ export default function RoutesContent() {
       // Se recarga todo: guardar el round trip también cambia la ruta inversa
       load();
       setShowForm(false);
-    } catch (err: any) {
-      setError(err.message || "Error al guardar");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al guardar");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (r: Route) => {
+  const handleDelete = async (r: AdminRoute) => {
     if (!confirm(`¿Eliminar la ruta "${r.origin} → ${r.destination}"?`)) return;
     try {
       await apiFetch(`/routes/${r.id}`, { method: "DELETE" });
@@ -121,7 +86,7 @@ export default function RoutesContent() {
     }
   };
 
-  const toggleActive = async (r: Route) => {
+  const toggleActive = async (r: AdminRoute) => {
     try {
       const updated = await apiFetch(`/routes/${r.id}`, {
         method: "PATCH",
@@ -133,128 +98,69 @@ export default function RoutesContent() {
     }
   };
 
+  const live = routes.filter((r) => r.isActive).length;
+  const withRoundTrip = routes.filter((r) => r.pricePrivateRoundTrip !== null).length;
+
   return (
     <div>
-      {/* Header */}
-      <div style={{ marginBottom: "1.75rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: "1.6rem", fontWeight: 500 }}>Routes</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <span style={{ fontSize: "0.875rem", color: "var(--brand-gray)" }}>{routes.length} routes</span>
-          <button onClick={openCreate} style={btnPrimary}>+ New Route</button>
-        </div>
-      </div>
+      <PageHeader
+        title="Routes"
+        subtitle="The trips customers can book on the website, with the photo and private prices they see."
+        summary={
+          !loading && routes.length > 0 && (
+            <>
+              <span className={ui.chip}><span className={ui.chipDot} /> {live} of {routes.length} live</span>
+              <span className={ui.chip}>{withRoundTrip} with private round trip</span>
+            </>
+          )
+        }
+        actions={
+          <button type="button" onClick={openCreate} className={`${ui.btn} ${ui.primary}`}>
+            <Plus size={16} strokeWidth={2.5} /> New route
+          </button>
+        }
+      />
 
-      {/* Modal */}
       {showForm && (
-        <div style={overlay}>
-          <div style={modal}>
-            <h2 style={{ fontSize: "1.2rem", fontWeight: 600, marginBottom: "1.5rem" }}>
-              {editing ? "Edit Route" : "New Route"}
-            </h2>
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              {FIELDS.map(({ label, key, placeholder, optional, hint }) => (
-                <div key={key}>
-                  <label style={{ fontSize: "0.8rem", fontWeight: 500, display: "block", marginBottom: "4px" }}>{label}</label>
-                  <input
-                    required={!optional}
-                    placeholder={placeholder}
-                    value={form[key]}
-                    onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                    style={input}
-                  />
-                  {hint && (
-                    <p style={{ fontSize: "0.75rem", color: "var(--brand-gray)", marginTop: "4px" }}>{hint}</p>
-                  )}
-                  {key === "slug" && form.slug && toSlug(form.slug) !== form.slug && (
-                    <p style={{ fontSize: "0.75rem", color: "var(--brand-gray)", marginTop: "4px" }}>
-                      Se guardará como: <code>{toSlug(form.slug) || "—"}</code>
-                    </p>
-                  )}
-                </div>
-              ))}
-              {error && <p style={{ color: "#c0392b", fontSize: "0.8rem" }}>{error}</p>}
-              <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end", marginTop: "0.5rem" }}>
-                <button type="button" onClick={() => setShowForm(false)} style={btnSecondary}>Cancel</button>
-                <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
-                  {saving ? "Saving..." : editing ? "Save Changes" : "Create Route"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <RouteFormModal
+          editing={!!editing}
+          form={form}
+          saving={saving}
+          error={error}
+          onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+          onSubmit={handleSubmit}
+          onClose={() => setShowForm(false)}
+        />
       )}
 
-      {/* Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem" }}>
-        {loading && <div style={{ padding: "2rem", color: "var(--brand-gray)", fontSize: "0.875rem" }}>Loading routes...</div>}
-        {!loading && routes.map((r) => (
-          <div key={r.id} style={{ background: "var(--surface)", borderRadius: "14px", padding: "1.5rem", border: "1px solid var(--border-strong)" }}>
-            <RouteImage
-              routeId={r.id}
-              imageUrl={r.imageUrl}
-              label={`${r.origin} → ${r.destination}`}
-              onChange={(updated) => setRoutes((prev) => prev.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)))}
-            />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
-              <div>
-                <div style={{ fontWeight: 500, fontSize: "0.95rem", marginBottom: "2px" }}>{r.origin}</div>
-                <div style={{ color: "var(--brand-gold)", marginBottom: "2px" }}><ArrowDown size={15} /></div>
-                <div style={{ fontWeight: 500, fontSize: "0.95rem" }}>{r.destination}</div>
-              </div>
-              <button onClick={() => toggleActive(r)} style={badge(r.isActive)}>
-                {r.isActive ? "Active" : "Inactive"}
-              </button>
-            </div>
-            <div style={{ paddingTop: "1rem", borderTop: "1px solid var(--border-soft)", fontSize: "0.8rem", color: "var(--brand-gray)" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem 1.25rem", marginBottom: "0.6rem" }}>
-                <span>{Math.floor(r.durationMin / 60)}h {r.durationMin % 60 > 0 ? (r.durationMin % 60) + "m" : ""}</span>
-                <span>{r.distanceKm} km</span>
-                <span>Private ${r.pricePrivate}</span>
-                <span>Round trip {r.pricePrivateRoundTrip === null ? "—" : `$${r.pricePrivateRoundTrip}`}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ fontFamily: "monospace", fontSize: "0.75rem", flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{r.slug}</span>
-                <button onClick={() => openEdit(r)} style={iconBtn} aria-label="Edit route"><PenLine size={14} /></button>
-                <button onClick={() => handleDelete(r)} style={iconBtn} aria-label="Delete route"><Trash2 size={14} /></button>
-              </div>
-            </div>
+      <div className={s.grid} aria-busy={loading}>
+        {loading &&
+          [0, 1, 2].map((i) => <div key={i} className={s.skeleton} aria-hidden="true" />)}
+
+        {!loading && routes.length === 0 && (
+          <div className={s.empty}>
+            <h2>No routes yet</h2>
+            <p>Add the first route to start selling transfers on the website.</p>
+            <button type="button" onClick={openCreate} className={`${ui.btn} ${ui.primary}`}>
+              <Plus size={16} strokeWidth={2.5} /> New route
+            </button>
           </div>
-        ))}
+        )}
+
+        {!loading &&
+          routes.map((r) => (
+            <RouteCard
+              key={r.id}
+              route={r}
+              onEdit={() => openEdit(r)}
+              onDelete={() => handleDelete(r)}
+              onToggleActive={() => toggleActive(r)}
+              onImageChange={(updated) =>
+                setRoutes((prev) => prev.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)))
+              }
+            />
+          ))}
       </div>
     </div>
   );
 }
-
-// Styles
-const btnPrimary: React.CSSProperties = {
-  background: "var(--brand-gold)", color: "var(--brand-dark)", border: "none",
-  borderRadius: "8px", padding: "8px 16px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer",
-};
-const btnSecondary: React.CSSProperties = {
-  padding: "8px 16px", borderRadius: "8px", border: "1px solid var(--border-strong)",
-  background: "var(--surface)", fontSize: "0.875rem", cursor: "pointer",
-};
-const input: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", borderRadius: "8px",
-  border: "1px solid var(--border-strong)", fontSize: "0.875rem", boxSizing: "border-box",
-};
-const overlay: React.CSSProperties = {
-  position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
-  display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
-  padding: "1rem",
-};
-const modal: React.CSSProperties = {
-  background: "var(--surface)", borderRadius: "16px", padding: "2rem",
-  width: "100%", maxWidth: "480px", boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
-};
-const iconBtn: React.CSSProperties = {
-  background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", padding: "0 2px",
-};
-const badge = (active: boolean): React.CSSProperties => ({
-  background: active ? "#f0faf5" : "#fff0f0",
-  color: active ? "#1a6b4a" : "#c0392b",
-  padding: "3px 10px", borderRadius: "100px",
-  fontSize: "0.75rem", fontWeight: 500, border: "none", cursor: "pointer",
-});
-
-

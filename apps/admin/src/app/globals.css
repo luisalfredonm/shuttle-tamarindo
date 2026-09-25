@@ -18,6 +18,15 @@
   --border:        #DDE6E1;
   --border-strong: #C8D8D0;
 
+  /* Nombres que usan varias pantallas y nunca se habian definido: sin esto
+     el texto gris salia negro y los separadores no se dibujaban */
+  --brand-gray:    #6B8A7A;
+  --border-soft:   #E6EDE9;
+  --surface-muted: #F7FAF8;
+
+  /* Alto de la barra de pestanas del telefono; 0 donde no existe */
+  --tabbar-h:      0px;
+
   /* Text */
   --text:          #0D1F17;
   --text-2:        #3D5A4C;
@@ -304,6 +313,34 @@ input, select, button, textarea { font: inherit; }
 /* Solo tiene sentido cuando el rail es un drawer que hay que poder cerrar */
 .sidebar-close-btn { display: none; }
 
+/* Icono girando mientras algo se procesa */
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+
+.mobile-topbar-logo {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+  background: var(--brand-green); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.9rem; font-weight: 700;
+}
+
+/* Barra de pestanas del telefono: oculta fuera de la medida de telefono */
+.tabbar { display: none; }
+.tabbar-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  min-height: 56px; padding: 6px 2px;
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,0.55); font-size: 0.66rem; font-weight: 600; letter-spacing: 0.01em;
+  -webkit-tap-highlight-color: transparent; position: relative;
+}
+.tabbar-item.active { color: #fff; }
+.tabbar-item.active::before {
+  content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 28px; height: 3px; border-radius: 0 0 3px 3px; background: var(--brand-gold);
+}
+.tabbar-item:focus-visible { outline: 2px solid var(--brand-gold); outline-offset: -4px; border-radius: 10px; }
+
 /* Responsive */
 @media (max-width: 980px) {
   :root { --sidebar-w: 72px; }
@@ -314,19 +351,40 @@ input, select, button, textarea { font: inherit; }
 /* Telefono: la barra lateral pasa a ser un drawer que se desliza sobre el
    contenido en vez de robarle ancho permanentemente a la pantalla */
 @media (max-width: 640px) {
-  :root { --sidebar-w: 0px; }
+  :root {
+    --sidebar-w: 0px;
+    --tabbar-h: calc(60px + env(safe-area-inset-bottom));
+  }
 
-  .admin-main { padding: 1rem; padding-top: calc(56px + 1rem); }
+  .admin-main {
+    padding: 1rem;
+    padding-top: calc(60px + 1rem);
+    padding-bottom: calc(var(--tabbar-h) + 1.5rem);
+  }
 
-  .mobile-topbar { display: flex; }
+  .mobile-topbar { display: flex; height: 60px; }
+
+  .tabbar {
+    display: flex;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    padding: 2px 4px env(safe-area-inset-bottom);
+    background: var(--sidebar-bg);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 -6px 24px rgba(13,31,23,0.18);
+  }
 
   .admin-sidebar {
-    width: 260px !important;
+    width: 280px !important;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
+  }
+  /* La sombra solo con el drawer abierto: cerrado asomaba como una franja
+     gris en el borde izquierdo de todas las pantallas */
+  .admin-sidebar.mobile-open {
+    transform: translateX(0);
     box-shadow: 12px 0 32px rgba(0,0,0,0.25);
   }
-  .admin-sidebar.mobile-open { transform: translateX(0); }
+  .admin-sidebar .nav-link { min-height: 48px; font-size: 0.95rem; }
 
   /* El rail vuelve a mostrar las etiquetas: es un drawer completo, no un
      icon-rail angosto como en tablet */

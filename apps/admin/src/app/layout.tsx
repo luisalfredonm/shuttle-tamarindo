@@ -16,9 +16,14 @@ const geistMono = Geist_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#1a6b4a",
+  // Igual que la barra de arriba del panel, para que el teléfono no muestre
+  // una franja de otro color sobre ella
+  themeColor: "#0d1f17",
   width: "device-width",
   initialScale: 1,
+  // Deja usar env(safe-area-inset-*): la barra de pestañas no queda debajo
+  // de la raya de inicio del iPhone
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
