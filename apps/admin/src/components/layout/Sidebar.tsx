@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, BookOpenCheck, Bus, CalendarClock, CreditCard, Route, Tag, UserRound, LogOut, ArrowUpRight, Menu, X } from 'lucide-react';
 
 /** Lo del día a día, a un toque en la barra de abajo del teléfono. El resto va en "More". */
-const TABS = ['/dashboard', '/bookings', '/trips', '/schedules'];
+const TABS = ['/dashboard', '/bookings', '/routes', '/schedules'];
 
 /** Sitio publico al que apunta "View website". En produccion hay que
  *  cargar NEXT_PUBLIC_SITE_URL: sin eso el link manda al localhost del que mira. */
@@ -73,7 +73,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="tabbar" aria-label="Main">
-        {NAV.filter((n) => TABS.includes(n.href)).map((item) => {
+        {TABS.map((href) => NAV.find((n) => n.href === href)!).map((item) => {
           const active = pathname.startsWith(item.href);
           const Icon = item.icon;
           return (
