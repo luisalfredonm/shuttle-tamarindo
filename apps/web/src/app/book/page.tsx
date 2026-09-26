@@ -4,6 +4,12 @@ import BookResults from "@/components/BookResults";
 export const metadata = {
   title: "Book Your Transfer",
   description: "Select your departure time and complete your shuttle booking.",
+  // Resultados de búsqueda por parámetros: miles de URLs casi iguales que no
+  // deben competir con las páginas de ruta
+  robots: { index: false, follow: true },
+  // Canonical propio: con el de la home heredado, el noindex quedaba mezclado
+  // con una señal que decía "esta página es la home"
+  alternates: { canonical: "/book" },
 };
 
 export default function BookPage() {

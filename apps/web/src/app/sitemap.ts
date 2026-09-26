@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next";
 import { BLOG_POSTS } from "@/app/blog/posts";
 import { getActiveRoutes } from "@/lib/api";
+import { pairRoutes } from "@/lib/route-pairs";
 import { SITE_URL as BASE_URL } from "@/lib/brand";
 
 /**
@@ -25,7 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: BASE_URL + "/terms", lastModified: new Date(), priority: 0.3 },
   ];
 
-  const routePages = routes.map((r) => ({
+  // Una URL por par de ciudades: el sentido inverso redirige y no se lista
+  const routePages = pairRoutes(routes).map(({ route: r }) => ({
     url: `${BASE_URL}/routes/${r.slug}`,
     lastModified: new Date(),
     priority: 0.9,

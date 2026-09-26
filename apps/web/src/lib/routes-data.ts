@@ -1,5 +1,7 @@
 export interface RouteData {
   slug: string;
+  /** Slugs anteriores de la misma página: el contenido se encuentra igual antes de renombrar la ruta en el panel */
+  aliases?: string[];
   origin: string;
   destination: string;
   durationMin: number;
@@ -29,83 +31,62 @@ export interface RouteData {
  */
 export const ROUTES_DATA: RouteData[] = [
   {
-    slug: "tamarindo-liberia-airport",
-    origin: "Tamarindo",
-    destination: "Liberia Airport (LIR)",
-    durationMin: 90,
-    distanceKm: 78,
-    priceShared: 30,
-    pricePrivate: 120,
-    departureHours: ["9:00 AM", "2:00 PM", "6:00 PM"],
-    metaTitle: "Tamarindo to Liberia Airport Shuttle",
-    metaDescription:
-      "Shared shuttle and private transfers from Tamarindo to Liberia Airport (LIR). Door-to-door pickup, flight tracking and air-conditioned vehicles. Book online in 2 minutes.",
-    highlights: [
-      "Door-to-door pickup in Tamarindo",
-      "Flight tracking included",
-      "Air-conditioned vehicles",
-      "1.5 hour direct route",
-    ],
-    faqs: [
-      {
-        q: "How long is the ride from Tamarindo to Liberia Airport?",
-        a: "The trip takes approximately 1.5 hours under normal traffic conditions.",
-      },
-      {
-        q: "Where exactly is the pickup in Tamarindo?",
-        a: "We pick you up directly at your hotel or accommodation in Tamarindo.",
-      },
-      {
-        q: "What if my flight is delayed?",
-        a: "For airport pickups, we track your flight and adjust the pickup time accordingly at no extra charge.",
-      },
-      {
-        q: "How much luggage can I bring?",
-        a: "Each passenger can bring one large suitcase and one carry-on bag.",
-      },
-    ],
-    nearbyAttractions: [
-      "Playa Tamarindo",
-      "Playa Grande",
-      "Las Baulas National Park",
-    ],
-  },
-  {
-    slug: "liberia-airport-tamarindo",
+    // Una sola página para los dos sentidos: "liberia airport to tamarindo" y
+    // su inversa son la misma búsqueda. La página es la del sentido que sale
+    // del aeropuerto; el otro redirige acá (ver lib/route-pairs.ts)
+    slug: "liberia-airport-to-tamarindo",
+    aliases: ["liberia-airport-tamarindo"],
     origin: "Liberia Airport (LIR)",
     destination: "Tamarindo",
     durationMin: 90,
     distanceKm: 78,
     priceShared: 30,
     pricePrivate: 120,
-    departureHours: ["10:00 AM", "3:00 PM", "7:00 PM"],
+    departureHours: [],
     metaTitle: "Liberia Airport to Tamarindo Shuttle",
     metaDescription:
-      "Shared shuttle and private transfers from Liberia Airport (LIR) to Tamarindo. Your driver meets you at arrivals and tracks your flight. Book online in 2 minutes.",
+      "Shared shuttle and private transfers between Liberia Airport (LIR) and Tamarindo, both ways. Meet & greet at arrivals, flight tracking, and hotel pickup for your flight home.",
     highlights: [
-      "Meet & greet at arrivals",
-      "Flight tracking — we wait for you",
-      "Air-conditioned vehicles",
-      "Direct to your hotel in Tamarindo",
+      "Meet & greet at LIR arrivals with your name on a sign",
+      "Flight tracking — we wait if you land late",
+      "Hotel pickup in Tamarindo for your return flight",
+      "Air-conditioned vans, about 1.5 hours door to door",
     ],
     faqs: [
       {
+        q: "How long is the shuttle from Liberia Airport to Tamarindo?",
+        a: "About 1 hour and 30 minutes (78 km) under normal traffic, the same in both directions.",
+      },
+      {
         q: "Where do I meet the driver at Liberia Airport?",
-        a: "Your driver will be waiting at the arrivals exit with a sign showing your name.",
+        a: "Your driver waits at the arrivals exit of Liberia International Airport (LIR) with a sign showing your name.",
       },
       {
         q: "What if my flight arrives late?",
-        a: "We track all flights in real time. Your driver will be there when you land.",
+        a: "We track every flight in real time and adjust the pickup at no extra charge, so your driver is there when you land.",
+      },
+      {
+        q: "How early do you pick me up in Tamarindo for my flight?",
+        a: "We pick you up at your hotel or rental in Tamarindo. For international flights, plan to reach Liberia Airport about 3 hours before departure; we set the pickup time with you when you book.",
       },
       {
         q: "Do you cover hotels outside central Tamarindo?",
-        a: "Yes, we cover all areas including Playa Langosta, Playa Avellanas and nearby zones.",
+        a: "Yes. We cover Playa Langosta, Playa Grande, Playa Avellanas and nearby areas.",
+      },
+      {
+        q: "Shared shuttle or private transfer: which should I book?",
+        a: "The shared shuttle is priced per person on fixed departures. A private transfer is priced per van, leaves at the time you choose, and is usually better value for families and groups.",
+      },
+      {
+        q: "How much luggage can I bring?",
+        a: "Each passenger can bring one large suitcase and one carry-on. Surfboards and extra luggage: let us know in the booking notes.",
       },
     ],
     nearbyAttractions: [
       "Playa Tamarindo",
+      "Playa Grande",
       "Playa Langosta",
-      "Tamarindo Wildlife Refuge",
+      "Las Baulas National Park",
     ],
   },
   {
@@ -255,5 +236,5 @@ export const ROUTES_DATA: RouteData[] = [
 ];
 
 export function getRouteBySlug(slug: string): RouteData | undefined {
-  return ROUTES_DATA.find((r) => r.slug === slug);
+  return ROUTES_DATA.find((r) => r.slug === slug || r.aliases?.includes(slug));
 }

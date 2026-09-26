@@ -12,6 +12,8 @@ export const metadata: Metadata = {
     "tamarindo travel blog",
     "costa rica shuttle guide",
   ],
+  // Sin esto hereda el canonical del layout, que apunta a la home
+  alternates: { canonical: "/blog" },
 };
 
 export default function BlogIndexPage() {

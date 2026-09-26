@@ -10,10 +10,13 @@ import { privateQuote, range } from "@/lib/private-price";
 import { daysPhrase, isEveryDay, sharedScheduleText } from "@/lib/days";
 
 interface Props {
+  /** Sentido dueño de la página (el que sale del aeropuerto) */
   route: RouteView;
+  /** El sentido inverso: se vende desde esta misma página */
+  reverse?: RouteView;
 }
 
-export default function RouteDetail({ route }: Props) {
+export default function RouteDetail({ route, reverse }: Props) {
   const router = useRouter();
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState("");
@@ -24,59 +27,39 @@ export default function RouteDetail({ route }: Props) {
     route.sharedEnabled ? "SHARED" : "PRIVATE",
   );
   const [pricing, setPricing] = useState(DEFAULT_PRICING);
+  // Qué sentido se reserva en el formulario: la página cubre los dos
+  const [backwards, setBackwards] = useState(false);
+  const active = backwards && reverse ? reverse : route;
+  // Si el sentido elegido no tiene compartido, se reserva privado
+  const bookType = active.sharedEnabled ? type : "PRIVATE";
 
   useEffect(() => {
     getPricing().then(setPricing);
   }, []);
 
   // Recortado al leerlo: 10 de compartido no entran en una van privada de 8
-  const maxPassengers = type === "PRIVATE" ? pricing.vehicleCapacity : 10;
+  const maxPassengers = bookType === "PRIVATE" ? pricing.vehicleCapacity : 10;
   const paxCount = Math.min(Number(passengers), maxPassengers);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!date) return;
-    if (type === "PRIVATE" && !time) return;
+    if (bookType === "PRIVATE" && !time) return;
 
     const qs = new URLSearchParams({
-      route: route.slug,
+      route: active.slug,
       date,
       passengers: String(paxCount),
-      type,
+      type: bookType,
     });
     // La hora viaja con la reserva: es lo que define la salida del privado
-    if (type === "PRIVATE") qs.set("time", time);
+    if (bookType === "PRIVATE") qs.set("time", time);
 
     router.push(`/book?${qs.toString()}`);
   }
 
-  const price = type === "SHARED" ? route.priceShared : route.pricePrivate;
-
   return (
     <>
-      {/* Schema markup para Google */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Service",
-            name: `${route.origin} to ${route.destination} Shuttle`,
-            description: route.metaDescription,
-            provider: {
-              "@type": "Organization",
-              name: "Retana Services Tamarindo",
-            },
-            offers: {
-              "@type": "Offer",
-              price: route.sharedEnabled ? route.priceShared : route.pricePrivate,
-              priceCurrency: "USD",
-            },
-            areaServed: "Costa Rica",
-          }),
-        }}
-      />
-
       <main style={{ paddingTop: "68px" }}>
         {/* Hero */}
         <section
@@ -172,7 +155,7 @@ export default function RouteDetail({ route }: Props) {
               {route.origin} to
               <br />
               <span style={{ color: "var(--brand-gold)" }}>
-                {route.destination}
+                {route.destination} Shuttle
               </span>
             </h1>
 
@@ -185,6 +168,7 @@ export default function RouteDetail({ route }: Props) {
                 lineHeight: 1.7,
               }}
             >
+              {reverse && "Both ways · "}
               {Math.floor(route.durationMin / 60)}h
               {route.durationMin % 60 > 0 ? ` ${route.durationMin % 60}m` : ""}{" "}
               · {route.distanceKm} km
@@ -262,8 +246,43 @@ export default function RouteDetail({ route }: Props) {
                 textAlign: "center",
               }}
             >
-              Book This Route
+              {reverse ? "Book your transfer, either way" : "Book This Route"}
             </h2>
+
+            {/* Sentido del viaje: la página es una sola para ida y vuelta */}
+            {reverse && (
+              <div
+                role="group"
+                aria-label="Direction"
+                style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}
+              >
+                {[route, reverse].map((r, i) => {
+                  const on = backwards === (i === 1);
+                  return (
+                    <button
+                      key={r.slug}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setBackwards(i === 1)}
+                      style={{
+                        minHeight: "44px",
+                        padding: "0 18px",
+                        borderRadius: "999px",
+                        border: on ? "1px solid var(--brand-dark)" : "1px solid #d9d3c7",
+                        background: on ? "var(--brand-dark)" : "#fff",
+                        color: on ? "#fff" : "var(--brand-dark)",
+                        fontFamily: "DM Sans, sans-serif",
+                        fontSize: "0.9rem",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {r.origin} → {r.destination}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Type toggle */}
             <div
@@ -273,7 +292,7 @@ export default function RouteDetail({ route }: Props) {
                 marginBottom: "1.5rem",
               }}
             >
-              {(route.sharedEnabled
+              {(active.sharedEnabled
                 ? (["SHARED", "PRIVATE"] as const)
                 : (["PRIVATE"] as const)
               ).map((t) => (
@@ -284,12 +303,12 @@ export default function RouteDetail({ route }: Props) {
                     padding: "9px 24px",
                     border: "1px solid var(--brand-green)",
                     background:
-                      type === t ? "var(--brand-green)" : "transparent",
-                    color: type === t ? "#fff" : "var(--brand-green)",
+                      bookType === t ? "var(--brand-green)" : "transparent",
+                    color: bookType === t ? "#fff" : "var(--brand-green)",
                     cursor: "pointer",
                     fontFamily: "DM Sans, sans-serif",
                     fontSize: "0.9rem",
-                    borderRadius: !route.sharedEnabled
+                    borderRadius: !active.sharedEnabled
                       ? "8px"
                       : t === "SHARED"
                         ? "8px 0 0 8px"
@@ -298,8 +317,8 @@ export default function RouteDetail({ route }: Props) {
                   }}
                 >
                   {t === "SHARED"
-                    ? `Shared — $${route.priceShared}/person`
-                    : `Private — $${route.pricePrivate}`}
+                    ? `Shared — $${active.priceShared}/person`
+                    : `Private — $${active.pricePrivate}`}
                 </button>
               ))}
             </div>
@@ -327,7 +346,7 @@ export default function RouteDetail({ route }: Props) {
 
               {/* El privado sale a la hora que pida el cliente, asi que hay
                   que preguntarla acá: sin ella la reserva no se puede armar */}
-              {type === "PRIVATE" && (
+              {bookType === "PRIVATE" && (
                 <div>
                   <label style={labelStyle}>Pickup time</label>
                   <input
@@ -342,7 +361,7 @@ export default function RouteDetail({ route }: Props) {
 
               <div>
                 <label style={labelStyle}>
-                  {type === "PRIVATE" ? "Passengers (age 3+)" : "Passengers"}
+                  {bookType === "PRIVATE" ? "Passengers (age 3+)" : "Passengers"}
                 </label>
                 <select
                   value={paxCount}
@@ -371,9 +390,9 @@ export default function RouteDetail({ route }: Props) {
                   }}
                 >
                   $
-                  {type === "SHARED"
-                    ? route.priceShared * paxCount
-                    : privateQuote(route.pricePrivate, paxCount, pricing).total}{" "}
+                  {bookType === "SHARED"
+                    ? active.priceShared * paxCount
+                    : privateQuote(active.pricePrivate, paxCount, pricing).total}{" "}
                   USD
                 </div>
               </div>
@@ -461,87 +480,12 @@ export default function RouteDetail({ route }: Props) {
               </div>
             )}
 
-            {/* Departures */}
-            {route.sharedEnabled && (
-              <div
-                style={{
-                  background: "var(--brand-dark)",
-                  borderRadius: "16px",
-                  padding: "2rem",
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: "1.2rem",
-                    marginBottom: "1.25rem",
-                    color: "#fff",
-                  }}
-                >
-                  {isEveryDay(route.sharedDays)
-                    ? "Daily Departures"
-                    : `Departures on ${daysPhrase(route.sharedDays)}`}
-                </h3>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.75rem",
-                  }}
-                >
-                  {route.departureHours.map((h) => (
-                    <div
-                      key={h}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        borderRadius: "10px",
-                        padding: "12px 16px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: "Playfair Display, serif",
-                          fontSize: "1.2rem",
-                          fontWeight: 700,
-                          color: "#fff",
-                        }}
-                      >
-                        {h}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--brand-gold)",
-                          fontFamily: "DM Sans, sans-serif",
-                          background: "rgba(201,151,58,0.15)",
-                          padding: "3px 10px",
-                          borderRadius: "100px",
-                        }}
-                      >
-                        {isEveryDay(route.sharedDays)
-                          ? "Daily"
-                          : daysPhrase(route.sharedDays)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <p
-                  style={{
-                    marginTop: "1rem",
-                    fontSize: "0.8rem",
-                    color: "rgba(255,255,255,0.4)",
-                    fontFamily: "DM Sans, sans-serif",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  A shared departure opens once three passengers are confirmed.
-                  After that anyone can join it, even travelling alone.
-                </p>
-              </div>
-            )}
+            {/* Salidas de cada sentido que vende compartido */}
+            {[route, ...(reverse ? [reverse] : [])]
+              .filter((r) => r.sharedEnabled)
+              .map((r) => (
+                <Departures key={r.slug} route={r} showDirection={!!reverse} />
+              ))}
           </div>
         </section>
 
@@ -630,7 +574,7 @@ export default function RouteDetail({ route }: Props) {
               fontSize: "1rem",
             }}
           >
-            Book your {route.origin} to {route.destination} transfer today.
+            Book your {route.origin} {reverse ? "↔" : "to"} {route.destination} transfer today.
           </p>
           <Link
             href={"/#book"}
@@ -651,6 +595,66 @@ export default function RouteDetail({ route }: Props) {
         </section>
       </main>
     </>
+  );
+}
+
+/** Horarios del compartido de un sentido */
+function Departures({ route, showDirection }: { route: RouteView; showDirection: boolean }) {
+  const everyDay = isEveryDay(route.sharedDays);
+  return (
+    <div style={{ background: "var(--brand-dark)", borderRadius: "16px", padding: "2rem" }}>
+      <h3 style={{ fontSize: "1.2rem", marginBottom: "1.25rem", color: "#fff" }}>
+        {showDirection
+          ? `Departures from ${route.origin}`
+          : everyDay
+            ? "Daily Departures"
+            : `Departures on ${daysPhrase(route.sharedDays)}`}
+      </h3>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        {route.departureHours.map((h) => (
+          <div
+            key={h}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "10px",
+              padding: "12px 16px",
+            }}
+          >
+            <span style={{ fontFamily: "Playfair Display, serif", fontSize: "1.2rem", fontWeight: 700, color: "#fff" }}>
+              {h}
+            </span>
+            <span
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--brand-gold)",
+                fontFamily: "DM Sans, sans-serif",
+                background: "rgba(201,151,58,0.15)",
+                padding: "3px 10px",
+                borderRadius: "100px",
+              }}
+            >
+              {everyDay ? "Daily" : daysPhrase(route.sharedDays)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p
+        style={{
+          marginTop: "1rem",
+          fontSize: "0.8rem",
+          color: "rgba(255,255,255,0.4)",
+          fontFamily: "DM Sans, sans-serif",
+          lineHeight: 1.5,
+        }}
+      >
+        ${route.priceShared} per person. A shared departure opens once three passengers are confirmed. After that anyone
+        can join it, even travelling alone.
+      </p>
+    </div>
   );
 }
 

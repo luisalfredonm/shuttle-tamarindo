@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MessageCircle } from 'lucide-react';
 import { getActiveRoutes } from "@/lib/api";
+import { pairRoutes } from "@/lib/route-pairs";
 import { BRAND_LOGO, BRAND_FOUNDED, BRAND_WHATSAPP } from "@/lib/brand";
 
 const COMPANY = [
@@ -24,7 +25,7 @@ const SUPPORT = [
 export default async function Footer() {
   // Las rutas del pie salen de la base: un link a una ruta dada de baja es un
   // 404 servido desde todas las paginas del sitio.
-  const ROUTES = (await getActiveRoutes()).slice(0, 6).map((route) => ({
+  const ROUTES = pairRoutes(await getActiveRoutes()).slice(0, 6).map(({ route }) => ({
     label: `${route.origin} -> ${route.destination}`,
     href: `/routes/${route.slug}`,
   }));

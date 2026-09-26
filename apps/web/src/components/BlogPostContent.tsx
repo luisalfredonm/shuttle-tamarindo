@@ -389,26 +389,18 @@ export default function BlogPostContent({ post, related }: Props) {
                 >
                   Popular routes
                 </h4>
+                {/* Solo rutas que tienen página: Arenal y Monteverde enlazaban a
+                    rutas que no se venden y daban 404 */}
                 {[
                   {
-                    label: "Tamarindo → LIR",
-                    price: "$30",
-                    href: "/routes/tamarindo-liberia-airport",
+                    label: "Liberia Airport ↔ Tamarindo",
+                    price: "from $30",
+                    href: "/routes/liberia-airport-to-tamarindo",
                   },
                   {
-                    label: "LIR → Tamarindo",
-                    price: "$30",
-                    href: "/routes/liberia-airport-tamarindo",
-                  },
-                  {
-                    label: "Tamarindo → Arenal",
-                    price: "$55",
-                    href: "/routes/tamarindo-arenal",
-                  },
-                  {
-                    label: "Tamarindo → Monteverde",
-                    price: "$45",
-                    href: "/routes/tamarindo-monteverde",
+                    label: "All routes & prices",
+                    price: "→",
+                    href: "/routes",
                   },
                 ].map((r) => (
                   <Link
