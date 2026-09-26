@@ -1,6 +1,4 @@
-"use client";
-
-import { motion, useReducedMotion } from "motion/react";
+import Reveal from "@/components/Reveal";
 import { MapPinned, CalendarClock, ShieldCheck, Car } from "lucide-react";
 
 const STEPS = [
@@ -31,7 +29,6 @@ const STEPS = [
 ];
 
 export default function HowItWorks() {
-  const reduceMotion = useReducedMotion();
 
   return (
     <section id="how-it-works" style={{ background: "#fff", padding: "5.5rem 2rem" }}>
@@ -74,12 +71,7 @@ export default function HowItWorks() {
             {STEPS.map((s, i) => {
               const Icon = s.icon;
               return (
-                <motion.div
-                  key={s.num}
-                  initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.5 }}
-                  transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                <Reveal key={s.num} amount={0.5} delay={i * 0.1} duration={0.5}
                   style={{ textAlign: "center" }}
                 >
                   <div
@@ -133,7 +125,7 @@ export default function HowItWorks() {
                   >
                     {s.desc}
                   </p>
-                </motion.div>
+                </Reveal>
               );
             })}
           </div>

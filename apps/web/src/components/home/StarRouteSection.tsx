@@ -57,7 +57,7 @@ export default function StarRouteSection({ star }: { star: NonNullable<HomeData[
               src={r.heroImage}
               alt="Shuttle van from Liberia Airport to Tamarindo"
               fill
-              sizes="(max-width: 860px) 100vw, 50vw"
+              sizes="(max-width: 860px) calc(100vw - 2.5rem), 50vw"
               style={{ objectFit: "cover" }}
             />
           </div>

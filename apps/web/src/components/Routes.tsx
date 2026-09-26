@@ -1,8 +1,6 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useReducedMotion } from "motion/react";
+import Reveal from "@/components/Reveal";
 import { ArrowUpRight, Clock } from "lucide-react";
 import { displayPrice, type RouteView } from "@/lib/route-view";
 
@@ -14,7 +12,6 @@ const formatDuration = (minutes: number) => {
 };
 
 export default function Routes({ routes = [] }: { routes?: RouteView[] }) {
-  const reduceMotion = useReducedMotion();
   const [featured, ...rest] = routes;
 
   // Sin rutas cargadas la seccion no tiene nada que mostrar: se omite entera
@@ -54,7 +51,7 @@ export default function Routes({ routes = [] }: { routes?: RouteView[] }) {
         </div>
 
         {/* Ruta insignia en formato ancho, el resto en grilla de fotos */}
-        <FeaturedRouteCard route={featured} reduceMotion={!!reduceMotion} />
+        <FeaturedRouteCard route={featured} />
 
         <div
           style={{
@@ -65,7 +62,7 @@ export default function Routes({ routes = [] }: { routes?: RouteView[] }) {
           }}
         >
           {rest.map((r, i) => (
-            <RouteCard key={r.slug} route={r} index={i} reduceMotion={!!reduceMotion} />
+            <RouteCard key={r.slug} route={r} index={i} />
           ))}
         </div>
       </div>
@@ -83,18 +80,11 @@ export default function Routes({ routes = [] }: { routes?: RouteView[] }) {
 
 function FeaturedRouteCard({
   route: r,
-  reduceMotion,
 }: {
   route: RouteView;
-  reduceMotion: boolean;
 }) {
   return (
-    <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <Reveal amount={0.3}>
       <Link href={"/routes/" + r.slug} style={{ textDecoration: "none" }} className="rt-card">
         <div
           style={{
@@ -112,7 +102,7 @@ function FeaturedRouteCard({
               src={r.heroImage}
               alt={`${r.origin} to ${r.destination} shuttle route`}
               fill
-              sizes="(max-width: 900px) 100vw, 50vw"
+              sizes="(max-width: 900px) calc(100vw - 4rem), 50vw"
               style={{ objectFit: "cover" }}
               className="rt-img"
             />
@@ -210,26 +200,19 @@ function FeaturedRouteCard({
           .rt-featured { grid-template-columns: 1fr !important; }
         }
       `}</style>
-    </motion.div>
+    </Reveal>
   );
 }
 
 function RouteCard({
   route: r,
   index,
-  reduceMotion,
 }: {
   route: RouteView;
   index: number;
-  reduceMotion: boolean;
 }) {
   return (
-    <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration: 0.5, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <Reveal amount={0.3} delay={index * 0.06} duration={0.5}>
       <Link href={"/routes/" + r.slug} style={{ textDecoration: "none" }} className="rt-card">
         <div
           style={{
@@ -325,6 +308,6 @@ function RouteCard({
           </div>
         </div>
       </Link>
-    </motion.div>
+    </Reveal>
   );
 }

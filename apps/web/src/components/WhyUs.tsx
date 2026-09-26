@@ -1,6 +1,4 @@
-"use client";
-
-import { motion, useReducedMotion } from "motion/react";
+import Reveal from "@/components/Reveal";
 import { HeartHandshake, Timer, Receipt, Waves } from "lucide-react";
 import { BRAND_FOUNDED } from "@/lib/brand";
 
@@ -25,7 +23,6 @@ const FEATURES = [
 ];
 
 export default function WhyUs() {
-  const reduceMotion = useReducedMotion();
 
   return (
     <section id="why-us" style={{ background: "var(--brand-dark)", padding: "5.5rem 2rem" }}>
@@ -56,11 +53,7 @@ export default function WhyUs() {
         <div style={{ display: "grid", gap: "1.25rem" }}>
           {/* Diferenciador principal, en banner ancho: la historia de la
               familia, que es lo que ninguna plataforma de reservas tiene */}
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          <Reveal amount={0.4}
             style={{
               position: "relative",
               overflow: "hidden",
@@ -129,7 +122,7 @@ export default function WhyUs() {
             >
               {BRAND_FOUNDED}
             </div>
-          </motion.div>
+          </Reveal>
 
           <div
             style={{
@@ -141,12 +134,7 @@ export default function WhyUs() {
             {FEATURES.map((f, i) => {
               const Icon = f.icon;
               return (
-                <motion.div
-                  key={f.title}
-                  initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.4 }}
-                  transition={{ duration: 0.5, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                <Reveal key={f.title} amount={0.4} delay={i * 0.08} duration={0.5}
                   style={{
                     background: "rgba(255,255,255,0.05)",
                     border: "1px solid rgba(255,255,255,0.08)",
@@ -190,7 +178,7 @@ export default function WhyUs() {
                   >
                     {f.desc}
                   </p>
-                </motion.div>
+                </Reveal>
               );
             })}
           </div>

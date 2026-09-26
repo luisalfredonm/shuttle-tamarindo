@@ -1,7 +1,7 @@
 "use client";
 import { cloneElement, useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, useReducedMotion } from "motion/react";
+import Reveal from "@/components/Reveal";
 import { MapPin, CalendarDays, Clock, Users, Baby, Search } from "lucide-react";
 import { DEFAULT_PRICING, getPricing, type Route } from "@/lib/api";
 import { range } from "@/lib/private-price";
@@ -30,7 +30,6 @@ const SHARED_MIN_PASSENGERS = 3;
 
 export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
   const router = useRouter();
-  const reduceMotion = useReducedMotion();
   const [route, setRoute] = useState("");
   const [date, setDate] = useState("");
   const [passengers, setPass] = useState("1");
@@ -118,11 +117,7 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
   return (
     <section id="book" style={{ background: "#fdfcfa", padding: "5.5rem 2rem" }}>
       <div style={{ maxWidth: "980px", margin: "0 auto" }}>
-        <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 28 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        <Reveal amount={0.3} y={28}
           style={{
             background: "#fff",
             borderRadius: "24px",
@@ -154,8 +149,7 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
             </p>
           </div>
 
-          {/* Type toggle: pill de fondo animado con el mismo layoutId para
-              que se deslice entre opciones en vez de saltar */}
+          {/* Type toggle: el fondo de la opción activa hace un fundido por CSS */}
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
             <div style={segmentTrackStyle}>
               {(["SHARED", "PRIVATE"] as const).map((t) => (
@@ -165,13 +159,6 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
                   onClick={() => setType(t)}
                   style={segmentButtonStyle(type === t)}
                 >
-                  {type === t && (
-                    <motion.span
-                      layoutId="booking-type-pill"
-                      transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                      style={segmentPillStyle}
-                    />
-                  )}
                   <span style={segmentLabelStyle}>
                     {t === "SHARED" ? <Users size={15} strokeWidth={2} /> : <MapPin size={15} strokeWidth={2} />}
                     {t === "SHARED" ? "Shared Shuttle" : "Private Transfer"}
@@ -200,15 +187,8 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
                     key={tt}
                     type="button"
                     onClick={() => setTripType(tt)}
-                    style={segmentButtonStyle(tripType === tt)}
+                    style={segmentButtonStyle(tripType === tt, "var(--brand-dark)")}
                   >
-                    {tripType === tt && (
-                      <motion.span
-                        layoutId="booking-trip-pill"
-                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                        style={{ ...segmentPillStyle, background: "var(--brand-dark)" }}
-                      />
-                    )}
                     <span style={segmentLabelStyle}>
                       {tt === "ONE_WAY" ? "One way" : "Round trip"}
                     </span>
@@ -373,7 +353,7 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
               per van.
             </p>
           )}
-        </motion.div>
+        </Reveal>
       </div>
 
       <style>{`
@@ -497,11 +477,14 @@ const segmentTrackStyle: React.CSSProperties = {
   gap: "2px",
 };
 
-function segmentButtonStyle(active: boolean): React.CSSProperties {
+function segmentButtonStyle(
+  active: boolean,
+  activeBg = "var(--brand-green)",
+): React.CSSProperties {
   return {
     position: "relative",
     border: "none",
-    background: "transparent",
+    background: active ? activeBg : "transparent",
     cursor: "pointer",
     padding: "9px 20px",
     borderRadius: "9px",
@@ -509,16 +492,9 @@ function segmentButtonStyle(active: boolean): React.CSSProperties {
     fontSize: "0.88rem",
     fontWeight: 500,
     color: active ? "#fff" : "var(--brand-gray)",
+    transition: "background-color 0.25s ease, color 0.25s ease",
   };
 }
-
-const segmentPillStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "var(--brand-green)",
-  borderRadius: "9px",
-  zIndex: 0,
-};
 
 const segmentLabelStyle: React.CSSProperties = {
   position: "relative",
