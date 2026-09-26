@@ -8,9 +8,14 @@ import { LayoutDashboard, BookOpenCheck, Bus, CalendarClock, CreditCard, Route, 
 /** Lo del día a día, a un toque en la barra de abajo del teléfono. El resto va en "More". */
 const TABS = ['/dashboard', '/bookings', '/routes', '/schedules'];
 
-/** Sitio publico al que apunta "View website". En produccion hay que
- *  cargar NEXT_PUBLIC_SITE_URL: sin eso el link manda al localhost del que mira. */
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+/** Sitio publico al que apunta "View website". En produccion nunca debe
+ *  abrir localhost, aunque esa variable haya quedado configurada por error. */
+const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const SITE_URL = process.env.NODE_ENV === 'production'
+  ? (configuredSiteUrl && !configuredSiteUrl.startsWith('http://localhost')
+    ? configuredSiteUrl
+    : 'https://retanaservices.com/')
+  : configuredSiteUrl || 'http://localhost:3000';
 
 const NAV = [
   { label: 'Home',      href: '/dashboard', icon: LayoutDashboard },
