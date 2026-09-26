@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import { MessageCircle } from "lucide-react";
+import { BRAND_FOUNDED, BRAND_WHATSAPP } from "@/lib/brand";
 
 const HERO_IMAGE = "/hero-shuttle-tamarindo-sunset.jpg";
 
@@ -10,13 +12,31 @@ const HERO_IMAGE = "/hero-shuttle-tamarindo-sunset.jpg";
 const BLUR_PLACEHOLDER =
   "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%237b5a86'/%3E%3Cstop offset='0.45' stop-color='%23e2894f'/%3E%3Cstop offset='0.78' stop-color='%23a8734b'/%3E%3Cstop offset='1' stop-color='%232b2119'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='12' height='8' fill='url(%23g)'/%3E%3C/svg%3E";
 
-const STATS = [
-  { num: "$30", label: "Per person, shared" },
-  { num: "6+", label: "Daily routes" },
-  { num: "24/7", label: "Support" },
-];
+interface Props {
+  /** Precio compartido más bajo por persona; null si ninguna ruta lo vende */
+  sharedFrom: number | null;
+  /** Precio privado más bajo por van */
+  privateFrom: number | null;
+}
 
-export default function Hero() {
+/**
+ * Portada. El H1 lleva la keyword de la home ("Tamarindo shuttle"); los
+ * números salen de la base. Antes decía "6+ daily routes" y "24/7 support",
+ * que el negocio no podía respaldar.
+ */
+export default function Hero({ sharedFrom, privateFrom }: Props) {
+  const stats = [
+    ...(sharedFrom !== null ? [{ num: `$${sharedFrom}`, label: "Per person, shared" }] : []),
+    ...(privateFrom !== null ? [{ num: `$${privateFrom}`, label: "Per van, private" }] : []),
+    { num: BRAND_FOUNDED, label: "Family-run since" },
+  ];
+  const pill = [
+    sharedFrom !== null ? `Shared from $${sharedFrom}` : null,
+    privateFrom !== null ? `Private from $${privateFrom}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <section
       style={{
@@ -104,7 +124,7 @@ export default function Hero() {
             textTransform: "uppercase",
           }}
         >
-          Shared seats from $30 · Private any time
+          {pill || "Shared & private transfers"}
         </span>
 
         <h1
@@ -119,9 +139,9 @@ export default function Hero() {
             textShadow: "0 2px 24px rgba(0,0,0,0.35)",
           }}
         >
-          Your ride awaits
+          Tamarindo Shuttle
           <br />
-          <span style={{ color: "var(--brand-gold)" }}>in Guanacaste</span>
+          <span style={{ color: "var(--brand-gold)" }}>&amp; Private Transfers</span>
         </h1>
 
         <p
@@ -134,18 +154,24 @@ export default function Hero() {
             marginBottom: "2.25rem",
           }}
         >
-          Shared shuttles and private transfers from Tamarindo to Liberia
-          Airport and every major destination. Always on time, always door to
-          door.
+          Shared shuttles and private transfers between Liberia Airport (LIR),
+          Tamarindo and the beaches nearby. Fixed prices, door-to-door, run by a
+          local family since {BRAND_FOUNDED}.
         </p>
 
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
           <Link href="#book" className="hero-cta" style={ctaPrimary}>
-            Book your transfer
+            Book your shuttle
           </Link>
-          <Link href="#routes" className="hero-cta" style={ctaSecondary}>
-            View routes
-          </Link>
+          <a
+            href={`https://wa.me/${BRAND_WHATSAPP}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hero-cta"
+            style={{ ...ctaSecondary, display: "inline-flex", alignItems: "center", gap: "8px" }}
+          >
+            <MessageCircle size={18} /> WhatsApp us
+          </a>
         </div>
 
         <dl
@@ -158,7 +184,7 @@ export default function Hero() {
             borderTop: "1px solid rgba(255,255,255,0.18)",
           }}
         >
-          {STATS.map((s) => (
+          {stats.map((s) => (
             // Flex column + order: en un <dl> el <dt> debe preceder al <dd>
             // en el DOM, pero visualmente queremos el número arriba
             <div

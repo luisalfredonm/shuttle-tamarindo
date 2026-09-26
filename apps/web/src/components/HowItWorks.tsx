@@ -20,7 +20,7 @@ const STEPS = [
     num: "03",
     icon: ShieldCheck,
     title: "Pay Securely",
-    desc: "Complete your booking with our secure payment system.",
+    desc: "Pay online with PayPal. Card accepted, no PayPal account needed.",
   },
   {
     num: "04",

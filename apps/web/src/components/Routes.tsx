@@ -34,7 +34,7 @@ export default function Routes({ routes = [] }: { routes?: RouteView[] }) {
               marginBottom: "0.6rem",
             }}
           >
-            Popular Routes
+            Shuttle routes from Tamarindo
           </h2>
           <p
             style={{
@@ -45,8 +45,11 @@ export default function Routes({ routes = [] }: { routes?: RouteView[] }) {
               margin: "0 auto",
             }}
           >
-            Shared shuttles run on a fixed daily schedule. Private transfers
-            leave whenever you do.
+            Shared shuttles run on fixed departures. Private transfers leave
+            whenever you do.{" "}
+            <Link href="/routes" style={{ color: "var(--brand-green)", fontWeight: 600, whiteSpace: "nowrap" }}>
+              See all routes &amp; prices →
+            </Link>
           </p>
         </div>
 
@@ -137,7 +140,7 @@ function FeaturedRouteCard({
                 marginBottom: "0.75rem",
               }}
             >
-              Most booked
+              Featured route
             </span>
             <h3
               style={{

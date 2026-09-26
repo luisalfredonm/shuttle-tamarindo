@@ -141,7 +141,7 @@ export default function BookingSearch({ routes = [] }: { routes?: Route[] }) {
                 marginBottom: "0.5rem",
               }}
             >
-              Find Your Transfer
+              Book your Tamarindo shuttle
             </h2>
             <p
               style={{

@@ -305,6 +305,20 @@ export async function getPricing(): Promise<PricingSettings> {
   }
 }
 
+/**
+ * Reglas del privado para páginas del servidor (la home). Se revalidan cada
+ * 5 minutos como las rutas, para que la página siga siendo estática.
+ */
+export async function getPricingCached(): Promise<PricingSettings> {
+  try {
+    const res = await fetch(`${API_URL}/pricing`, { next: { revalidate: 300 } });
+    if (!res.ok) return DEFAULT_PRICING;
+    return await res.json();
+  } catch {
+    return DEFAULT_PRICING;
+  }
+}
+
 export async function getRoutes(): Promise<Route[]> {
   const res = await fetch(`${API_URL}/routes`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch routes");

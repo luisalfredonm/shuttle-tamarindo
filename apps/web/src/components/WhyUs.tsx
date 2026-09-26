@@ -1,23 +1,26 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import { ShieldCheck, Timer, Receipt, Snowflake } from "lucide-react";
+import { HeartHandshake, Timer, Receipt, Waves } from "lucide-react";
+import { BRAND_FOUNDED } from "@/lib/brand";
 
+// Solo lo que el negocio respalda: sin reseñas todavía, no se promete
+// "el más confiable" ni se muestran estrellas
 const FEATURES = [
   {
     icon: Timer,
-    title: "Always On Time",
-    desc: "Professional drivers tracking your flight. We wait for you.",
+    title: "Flight tracking",
+    desc: "If your flight is late, we wait, at no extra cost.",
   },
   {
     icon: Receipt,
-    title: "Transparent Pricing",
-    desc: "No hidden fees. The price you see is the price you pay.",
+    title: "Fixed prices, no surprises",
+    desc: "The price you see is the price you pay.",
   },
   {
-    icon: Snowflake,
-    title: "Air Conditioned",
-    desc: "Modern, comfortable vehicles with A/C for every journey.",
+    icon: Waves,
+    title: "Surfboards travel free",
+    desc: "Bring your board and extra luggage at no extra charge.",
   },
 ];
 
@@ -37,7 +40,7 @@ export default function WhyUs() {
               marginBottom: "0.6rem",
             }}
           >
-            Why Choose Us
+            Why travel with Retana Services
           </h2>
           <p
             style={{
@@ -46,13 +49,13 @@ export default function WhyUs() {
               fontSize: "1rem",
             }}
           >
-            The most reliable shuttle service in Guanacaste
+            A local family business, not a booking platform
           </p>
         </div>
 
         <div style={{ display: "grid", gap: "1.25rem" }}>
-          {/* Diferenciador principal, en banner ancho: es el mismo dato del
-              stat "100%" del Hero, aca se explica por que importa */}
+          {/* Diferenciador principal, en banner ancho: la historia de la
+              familia, que es lo que ninguna plataforma de reservas tiene */}
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -85,7 +88,7 @@ export default function WhyUs() {
                 color: "var(--brand-gold)",
               }}
             >
-              <ShieldCheck size={30} strokeWidth={1.75} />
+              <HeartHandshake size={30} strokeWidth={1.75} />
             </div>
 
             <div style={{ flex: "1 1 260px" }}>
@@ -98,7 +101,7 @@ export default function WhyUs() {
                   marginBottom: "0.4rem",
                 }}
               >
-                Shared Seats from $30
+                Family-run since {BRAND_FOUNDED}
               </h3>
               <p
                 style={{
@@ -109,9 +112,8 @@ export default function WhyUs() {
                   maxWidth: "56ch",
                 }}
               >
-                A shared departure opens once three passengers are confirmed.
-                After that anyone can join it, even travelling alone. Prefer
-                your own schedule? A private transfer leaves at any time.
+                Two siblings built this company ride by ride, and we still look
+                after every booking ourselves.
               </p>
             </div>
 
@@ -125,7 +127,7 @@ export default function WhyUs() {
                 flexShrink: 0,
               }}
             >
-              100%
+              {BRAND_FOUNDED}
             </div>
           </motion.div>
 
