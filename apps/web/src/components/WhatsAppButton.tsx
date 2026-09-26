@@ -47,7 +47,17 @@ export default function WhatsAppButton() {
           color: #fff;
           box-shadow: 0 6px 20px -4px rgba(37,211,102,0.6);
           transition: transform 0.15s ease, box-shadow 0.15s ease;
-          /* Pulso suave que llama la atención sin ser molesto */
+        }
+        /* Pulso suave que llama la atención sin ser molesto. Es un anillo
+           aparte que anima transform/opacity (van por la GPU); animar el
+           box-shadow obligaba a repintar en cada cuadro. */
+        .wa-fab::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          border-radius: 50%;
+          background: rgba(37,211,102,0.45);
           animation: wa-pulse 2.4s ease-out infinite;
         }
         .wa-fab:hover {
@@ -55,13 +65,13 @@ export default function WhatsAppButton() {
           box-shadow: 0 10px 26px -4px rgba(37,211,102,0.7);
         }
         @keyframes wa-pulse {
-          0%   { box-shadow: 0 6px 20px -4px rgba(37,211,102,0.6), 0 0 0 0 rgba(37,211,102,0.45); }
-          70%  { box-shadow: 0 6px 20px -4px rgba(37,211,102,0.6), 0 0 0 14px rgba(37,211,102,0); }
-          100% { box-shadow: 0 6px 20px -4px rgba(37,211,102,0.6), 0 0 0 0 rgba(37,211,102,0); }
+          0%   { transform: scale(1);   opacity: 1; }
+          70%  { transform: scale(1.5); opacity: 0; }
+          100% { transform: scale(1.5); opacity: 0; }
         }
         /* Respeta a quien pide menos movimiento */
         @media (prefers-reduced-motion: reduce) {
-          .wa-fab { animation: none; }
+          .wa-fab::after { animation: none; opacity: 0; }
         }
         @media (max-width: 640px) {
           .wa-fab { right: 16px; bottom: 16px; width: 52px; height: 52px; }

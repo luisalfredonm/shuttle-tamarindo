@@ -1,14 +1,5 @@
 ﻿import type { Metadata, Viewport } from "next";
-// Fuentes auto-hospedadas: reemplazan el @import de Google Fonts, que bloqueaba
-// el render. Solo los pesos que se usan (DM Sans 300/400/500, Playfair 500/600/700).
-// @fontsource registra las familias con su nombre real ("DM Sans", "Playfair
-// Display"), así que los estilos inline de los componentes siguen funcionando.
-import "@fontsource/dm-sans/300.css";
-import "@fontsource/dm-sans/400.css";
-import "@fontsource/dm-sans/500.css";
-import "@fontsource/playfair-display/500.css";
-import "@fontsource/playfair-display/600.css";
-import "@fontsource/playfair-display/700.css";
+// Las fuentes se declaran en globals.css (auto-hospedadas en /public/fonts)
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -16,6 +7,17 @@ import { AuthProvider } from "@/lib/auth/auth-context";
 import Analytics from "@/components/Analytics";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { BRAND_HERO_IMAGE, BRAND_LOGO, SITE_URL as BASE_URL } from "@/lib/brand";
+
+// Origen de la API para el preconnect: BookingSearch pide los precios desde el
+// cliente apenas carga la home. En local (localhost) no hace falta.
+const API_ORIGIN = (() => {
+  try {
+    const { origin, hostname } = new URL(process.env.NEXT_PUBLIC_API_URL ?? "");
+    return hostname === "localhost" ? null : origin;
+  } catch {
+    return null;
+  }
+})();
 
 export const viewport: Viewport = {
   themeColor: "#1a6b4a",
@@ -94,6 +96,25 @@ export default function RootLayout({
         <link rel="icon" href={BRAND_LOGO} type="image/png" />
         <link rel="apple-touch-icon" href={BRAND_LOGO} />
         <link rel="manifest" href="/manifest.json" />
+        {/* Solo las fuentes de la portada: el H1 (Playfair 600) es el elemento
+            LCP de la home. Precargar más pesos le quitaría ancho de banda. */}
+        <link
+          rel="preload"
+          href="/fonts/playfair-display-latin-600-normal.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/dm-sans-latin-400-normal.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        {API_ORIGIN && (
+          <link rel="preconnect" href={API_ORIGIN} crossOrigin="anonymous" />
+        )}
       </head>
       {/* suppressHydrationWarning: extensiones del navegador (ColorZilla, Grammarly)
           inyectan atributos en <body> antes de que React hidrate, causando un

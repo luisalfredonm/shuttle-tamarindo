@@ -1,8 +1,45 @@
-/* DM Sans y Playfair Display se auto-hospedan vía @fontsource, importadas en
-   app/layout.tsx. Antes se cargaban con un @import a Google Fonts que bloqueaba
-   el render (peor LCP); ahora llegan self-hosted, sin request bloqueante. */
 @import "tailwindcss";
 
+/* DM Sans y Playfair Display auto-hospedadas en /public/fonts (solo latin, que
+   cubre ñ y tildes). Antes venían de @fontsource: sus @font-face llegaban en un
+   CSS aparte y las fuentes se descubrían recién después de bajarlo, lo que
+   retrasaba el H1 (elemento LCP). Ahora el CSS va inline (inlineCss en
+   next.config) y las de la portada se precargan desde el layout. */
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("/fonts/dm-sans-latin-300-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/dm-sans-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/dm-sans-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/playfair-display-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/playfair-display-latin-700-normal.woff2") format("woff2");
+}
 
 
 :root {

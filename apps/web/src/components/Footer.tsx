@@ -116,14 +116,14 @@ export default async function Footer() {
 
           {/* Routes */}
           <div>
-            <h4 style={{
+            <h2 style={{
               color: '#fff', fontFamily: 'DM Sans, sans-serif',
               fontWeight: 500, fontSize: '0.85rem',
               textTransform: 'uppercase', letterSpacing: '0.08em',
               marginBottom: '1.25rem',
             }}>
               Popular Routes
-            </h4>
+            </h2>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {ROUTES.map(r => (
                 <li key={r.href}>
@@ -141,14 +141,14 @@ export default async function Footer() {
 
           {/* Company */}
           <div>
-            <h4 style={{
+            <h2 style={{
               color: '#fff', fontFamily: 'DM Sans, sans-serif',
               fontWeight: 500, fontSize: '0.85rem',
               textTransform: 'uppercase', letterSpacing: '0.08em',
               marginBottom: '1.25rem',
             }}>
               Company
-            </h4>
+            </h2>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {COMPANY.map(r => (
                 <li key={r.href}>
@@ -166,14 +166,14 @@ export default async function Footer() {
 
           {/* Support */}
           <div>
-            <h4 style={{
+            <h2 style={{
               color: '#fff', fontFamily: 'DM Sans, sans-serif',
               fontWeight: 500, fontSize: '0.85rem',
               textTransform: 'uppercase', letterSpacing: '0.08em',
               marginBottom: '1.25rem',
             }}>
               Support
-            </h4>
+            </h2>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {SUPPORT.map(r => (
                 <li key={r.href}>
