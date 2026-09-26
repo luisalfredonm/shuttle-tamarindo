@@ -46,28 +46,20 @@ export default function HomeSchema({ data, faq }: { data: HomeData; faq: FaqEntr
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "Organization",
+        "@type": ["LocalBusiness", "TransportationAgency", "Organization"],
         "@id": BASE_URL + "/#organization",
         name: BRAND_NAME,
+        description: "Tamarindo shuttle and private transfers from Liberia Airport (LIR), family-run since 2015.",
         url: BASE_URL,
         foundingDate: BRAND_FOUNDED,
         logo: { "@type": "ImageObject", url: BASE_URL + BRAND_LOGO },
+        telephone: BRAND_PHONE,
         contactPoint: {
           "@type": "ContactPoint",
           telephone: BRAND_PHONE,
           contactType: "customer service",
           availableLanguage: ["English", "Spanish"],
         },
-        // sameAs: se agregan los perfiles (Facebook, Instagram, Google Business)
-        // cuando existan. Un sameAs sin perfil real resta credibilidad.
-      },
-      {
-        "@type": "LocalBusiness",
-        "@id": BASE_URL + "/#localbusiness",
-        name: BRAND_NAME,
-        description: "Tamarindo shuttle and private transfers from Liberia Airport (LIR), family-run since 2015.",
-        url: BASE_URL,
-        telephone: BRAND_PHONE,
         ...(prices.length && { priceRange: `$${Math.min(...prices)} - $${Math.max(...prices)}` }),
         address: {
           "@type": "PostalAddress",
@@ -77,7 +69,15 @@ export default function HomeSchema({ data, faq }: { data: HomeData; faq: FaqEntr
         },
         geo: { "@type": "GeoCoordinates", latitude: 10.2994, longitude: -85.8358 },
         areaServed: PICKUP_AREAS.map((name) => ({ "@type": "Place", name: `${name}, Guanacaste, Costa Rica` })),
-        paymentAccepted: "PayPal, Credit Card, Debit Card",
+        paymentAccepted: "PayPal",
+        currenciesAccepted: "USD",
+        openingHoursSpecification: {
+          "@type": "OpeningHoursSpecification",
+          dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+          opens: "06:00",
+          closes: "22:00",
+        },
+        // sameAs: se agregan cuando existan perfiles reales (Facebook, Instagram, Google Business)
         ...(offers.length && {
           hasOfferCatalog: { "@type": "OfferCatalog", name: "Shuttle services", itemListElement: offers },
         }),

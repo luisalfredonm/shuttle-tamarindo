@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BLOG_POSTS, getAllCategories } from "@/app/blog/posts";
+import BlogIndexSchema from "@/app/blog/BlogIndexSchema";
+import { BRAND_NAME, SITE_URL as BASE_URL } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "Travel Blog — Costa Rica Shuttle & Travel Tips",
   description:
     "Travel guides, shuttle tips, and destination guides for Guanacaste and Costa Rica. Everything you need to plan your perfect trip.",
-  keywords: [
-    "costa rica travel tips",
-    "guanacaste travel guide",
-    "tamarindo travel blog",
-    "costa rica shuttle guide",
-  ],
   // Sin esto hereda el canonical del layout, que apunta a la home
   alternates: { canonical: "/blog" },
+  openGraph: {
+    title: "Travel Blog — Costa Rica Shuttle & Travel Tips",
+    description:
+      "Travel guides, shuttle tips, and destination guides for Guanacaste and Costa Rica. Everything you need to plan your perfect trip.",
+    url: BASE_URL + "/blog",
+    type: "website",
+    siteName: BRAND_NAME,
+  },
 };
 
 export default function BlogIndexPage() {
@@ -22,7 +26,9 @@ export default function BlogIndexPage() {
   const rest = BLOG_POSTS.filter((p) => !p.featured);
 
   return (
-    <main
+    <>
+      <BlogIndexSchema />
+      <main
       style={{
         paddingTop: "68px",
         minHeight: "100vh",
@@ -132,6 +138,7 @@ export default function BlogIndexPage() {
         </div>
       </section>
     </main>
+    </>
   );
 }
 

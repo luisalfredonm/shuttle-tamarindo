@@ -5,6 +5,7 @@ import BlogPostContent from "@/components/BlogPostContent";
 import {
   BRAND_NAME,
   BRAND_HERO_IMAGE,
+  BRAND_LOGO,
   BRAND_AUTHOR,
   SITE_URL as BASE_URL,
 } from "@/lib/brand";
@@ -71,11 +72,13 @@ function ArticleSchema({ post }: { post: BlogPost }) {
     articleSection: post.category,
     keywords: post.keywords.join(", "),
     datePublished: post.publishedAt,
-    dateModified: post.publishedAt,
+    dateModified: post.updatedAt ?? post.publishedAt,
     inLanguage: "en",
     author: {
       "@type": "Person",
+      "@id": BASE_URL + "/#author-christian-retana",
       name: BRAND_AUTHOR,
+      url: BASE_URL + "/about",
       worksFor: { "@id": BASE_URL + "/#organization" },
     },
     publisher: {
@@ -83,7 +86,7 @@ function ArticleSchema({ post }: { post: BlogPost }) {
       "@id": BASE_URL + "/#organization",
       name: BRAND_NAME,
       url: BASE_URL,
-      logo: { "@type": "ImageObject", url: BASE_URL + BRAND_HERO_IMAGE },
+      logo: { "@type": "ImageObject", url: BASE_URL + BRAND_LOGO },
     },
   };
 

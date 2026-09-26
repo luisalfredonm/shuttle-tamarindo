@@ -15,6 +15,46 @@
 - [FAQ](https://retanaservices.com/faq): booking, luggage, flight delays and payment
 - [Cancellation policy](https://retanaservices.com/cancellation): refunds and no-show terms
 
+## Pricing
+
+All prices shown in USD. Shared shuttles are priced per person; private transfers per vehicle.
+
+| Route | Shared (per person) | Private (per vehicle) |
+|---|---|---|
+| Liberia Airport (LIR) ↔ Tamarindo | $30 | $120 |
+| Tamarindo ↔ Nosara | $35 | $140 |
+| Tamarindo ↔ Monteverde | $45 | $180 |
+| Tamarindo ↔ Arenal / La Fortuna | $55 | $220 |
+| Tamarindo ↔ San José / SJO Airport | $65 | $260 |
+
+Private transfer pricing: base price covers up to 4 passengers. Groups of 5 or more pay a one-time supplement of $20 (not per person). Payment is accepted via PayPal online at the time of booking.
+
+## Schedules
+
+Service hours: 06:00–22:00 daily. Shared shuttle departure times per route:
+
+- **Liberia Airport ↔ Tamarindo**: daily departures (times vary — check live availability at retanaservices.com/routes)
+- **Tamarindo to Arenal / La Fortuna**: 7:00 AM, 9:00 AM
+- **Tamarindo to Monteverde**: 7:00 AM, 10:00 AM
+- **Tamarindo to San José / SJO**: 6:00 AM, 8:00 AM
+- **Tamarindo to Nosara**: 9:00 AM, 2:00 PM
+
+Private transfers depart at any time the customer chooses, 06:00–22:00.
+
+## Policies
+
+**Booking**: Seats are held while payment is completed. Booking is confirmed once payment is received. Recommend booking at least 24 hours in advance; earlier in high season (December–April).
+
+**Cancellation**: Free cancellation up to 48 hours before departure (full refund, minus any payment processing fees). Cancellations less than 48 hours before departure are non-refundable. No-shows are non-refundable.
+
+**Flight delays**: For airport arrivals, the driver tracks the flight in real time and waits up to 1 hour after landing at no extra charge. For departures to LIR, the maximum wait time at pickup is 15 minutes.
+
+**Baggage**: Each passenger may bring 1 carry-on item and 2 checked bags at no extra charge. Surfboards and oversized items must be declared at booking.
+
+**Infants**: Infants occupy a seat and must be booked as passengers.
+
+**Service area**: Door-to-door pickups and drop-offs in Tamarindo, Playa Langosta, Playa Grande, Playa Avellanas, and surrounding Guanacaste areas.
+
 ## Travel guides
 - [Tamarindo to Liberia Airport: Complete Transfer Guide (2026)](https://retanaservices.com/blog/tamarindo-to-liberia-airport-complete-guide)
 - [Liberia Airport to Tamarindo: Shuttle Guide & Arrival Tips](https://retanaservices.com/blog/liberia-airport-to-tamarindo-guide)
@@ -24,7 +64,7 @@
 - [Tamarindo to Monteverde Shuttle: Complete Travel Guide 2026](https://retanaservices.com/blog/tamarindo-to-monteverde-shuttle-guide)
 
 ## Contact
-- WhatsApp: +506 8318 3226
+- WhatsApp: +50683183226
 - Email: info@retanaservicestamarindo.com
 - Service area: Tamarindo, Guanacaste, Costa Rica
 - Hours: 06:00–22:00 daily

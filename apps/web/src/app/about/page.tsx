@@ -1,19 +1,58 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ContentPage, { contentStyles as s } from "@/components/ContentPage";
-import { BRAND_NAME, BRAND_FOUNDED } from "@/lib/brand";
+import { BRAND_NAME, BRAND_FOUNDED, SITE_URL as BASE_URL } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "About Us — Reliable Shuttle Service in Guanacaste",
   description:
     "Family-run since 2015, Retana Services Tamarindo provides shared shuttles and private transfers across Guanacaste, Costa Rica. Learn who we are and how we operate.",
   alternates: { canonical: "/about" },
+  openGraph: {
+    title: "About Us — Reliable Shuttle Service in Guanacaste",
+    description:
+      "Family-run since 2015, Retana Services Tamarindo provides shared shuttles and private transfers across Guanacaste, Costa Rica. Learn who we are and how we operate.",
+    url: BASE_URL + "/about",
+    type: "website",
+    siteName: BRAND_NAME,
+  },
 };
+
+function AboutSchema() {
+  const url = BASE_URL + "/about";
+  const schema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "AboutPage",
+        "@id": url + "#webpage",
+        url,
+        name: "About Us — Retana Services Tamarindo",
+        description: "Family-run shuttle and transfer service in Guanacaste, Costa Rica since 2015.",
+        inLanguage: "en",
+        isPartOf: { "@id": BASE_URL + "/#website" },
+        about: { "@id": BASE_URL + "/#organization" },
+        breadcrumb: { "@id": url + "#breadcrumb" },
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": url + "#breadcrumb",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
+          { "@type": "ListItem", position: 2, name: "About", item: url },
+        ],
+      },
+    ],
+  };
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />;
+}
 
 export default function AboutPage() {
   return (
-    <ContentPage
-      title="About Retana Services Tamarindo"
+    <>
+      <AboutSchema />
+      <ContentPage
+        title="About Retana Services Tamarindo"
       intro={`Since ${BRAND_FOUNDED}, we have been moving travelers across Guanacaste with fixed daily schedules, fair prices and door-to-door service.`}
     >
       <h2 style={s.h2}>Our story</h2>
@@ -66,5 +105,6 @@ export default function AboutPage() {
         for prices and schedules.
       </p>
     </ContentPage>
+    </>
   );
 }

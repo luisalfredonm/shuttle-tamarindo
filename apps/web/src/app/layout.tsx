@@ -32,18 +32,6 @@ export const metadata: Metadata = {
   },
   description:
     "Shared shuttles and private transfers from Tamarindo to Liberia Airport and across Costa Rica. Shared seats from $30 per person; private transfers any time.",
-  keywords: [
-    "shuttle tamarindo",
-    "transfer liberia airport",
-    "shuttle guanacaste",
-    "tamarindo to liberia airport",
-    "costa rica shuttle service",
-    "tamarindo airport transfer",
-    "liberia airport to tamarindo",
-    "guanacaste transportation",
-    "costa rica private transfer",
-    "tamarindo arenal shuttle",
-  ],
   authors: [{ name: "Retana Services Tamarindo", url: BASE_URL }],
   creator: "Retana Services Tamarindo",
   publisher: "Retana Services Tamarindo",
@@ -87,9 +75,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: BASE_URL,
   },
-  verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION || "",
-  },
+  ...(process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION
+    ? { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION } }
+    : {}),
 };
 
 export default function RootLayout({

@@ -11,6 +11,7 @@ export default function RoutesHubSchema({ routes }: { routes: RouteView[] }) {
     "@graph": [
       {
         "@type": "BreadcrumbList",
+        "@id": `${BASE_URL}/routes#breadcrumb`,
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
           {
@@ -23,12 +24,13 @@ export default function RoutesHubSchema({ routes }: { routes: RouteView[] }) {
       },
       {
         "@type": "ItemList",
+        "@id": `${BASE_URL}/routes#itemlist`,
         name: `${BRAND_NAME} shuttle routes`,
         numberOfItems: routes.length,
         itemListElement: routes.map((r, i) => ({
           "@type": "ListItem",
           position: i + 1,
-          url: `${BASE_URL}/routes/${r.slug}`,
+          item: `${BASE_URL}/routes/${r.slug}`,
           name: `${r.origin} to ${r.destination} shuttle`,
         })),
       },

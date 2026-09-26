@@ -117,6 +117,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** Tarifas reales de un sentido: compartido solo si se vende, privado siempre */
 function offersFor(r: RouteView) {
   const leg = `${r.origin} to ${r.destination}`;
+  const offerUrl = `${BASE_URL}/routes/${r.slug}`;
+  const priceValidUntil = `${new Date().getFullYear()}-12-31`;
   return [
     ...(r.sharedEnabled
       ? [
@@ -126,6 +128,8 @@ function offersFor(r: RouteView) {
             price: String(r.priceShared),
             priceCurrency: "USD",
             availability: "https://schema.org/InStock",
+            url: offerUrl,
+            priceValidUntil,
           },
         ]
       : []),
@@ -135,6 +139,8 @@ function offersFor(r: RouteView) {
       price: String(r.pricePrivate),
       priceCurrency: "USD",
       availability: "https://schema.org/InStock",
+      url: offerUrl,
+      priceValidUntil,
     },
   ];
 }
@@ -186,6 +192,19 @@ function RouteSchema({
           { "@type": "ListItem", position: 3, name, item: url },
         ],
       },
+      ...(route.faqs.length > 0
+        ? [
+            {
+              "@type": "FAQPage",
+              "@id": url + "#faq",
+              mainEntity: route.faqs.map((f) => ({
+                "@type": "Question",
+                name: f.q,
+                acceptedAnswer: { "@type": "Answer", text: f.a },
+              })),
+            },
+          ]
+        : []),
     ],
   };
 

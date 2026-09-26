@@ -7,31 +7,41 @@ interface Props {
   related: BlogPost[];
 }
 
+type ContentBlock = string | { type: "table"; rows: string[] };
+
+function buildBlocks(content: string): ContentBlock[] {
+  const lines = content.trim().split("\n").filter((l) => l.trim() !== "");
+  const blocks: ContentBlock[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (lines[i].startsWith("| ")) {
+      const rows: string[] = [];
+      while (i < lines.length && lines[i].startsWith("| ")) {
+        rows.push(lines[i]);
+        i++;
+      }
+      blocks.push({ type: "table", rows });
+    } else {
+      blocks.push(lines[i]);
+      i++;
+    }
+  }
+  return blocks;
+}
+
+function parseCells(row: string) {
+  return row.split("|").slice(1, -1).map((c) => c.trim());
+}
+
+function isSeparator(row: string) {
+  return /^\|[\s\-|:]+\|$/.test(row.trim());
+}
+
 export default function BlogPostContent({ post, related }: Props) {
-  const paragraphs = post.content
-    .trim()
-    .split("\n")
-    .filter((line) => line.trim() !== "");
+  const contentBlocks = buildBlocks(post.content);
 
   return (
     <>
-      {/* Article schema */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            headline: post.title,
-            description: post.metaDescription,
-            datePublished: post.publishedAt,
-            author: { "@type": "Organization", name: "Retana Services Tamarindo" },
-            publisher: { "@type": "Organization", name: "Retana Services Tamarindo" },
-            keywords: post.keywords.join(", "),
-          }),
-        }}
-      />
-
       <main
         style={{
           paddingTop: "68px",
@@ -142,14 +152,12 @@ export default function BlogPostContent({ post, related }: Props) {
 
         {/* Article content */}
         <section style={{ padding: "3rem 2rem" }}>
+          <style>{`.blog-article-grid{display:grid;grid-template-columns:1fr 280px;gap:3rem;align-items:start}@media(max-width:760px){.blog-article-grid{grid-template-columns:1fr!important}}`}</style>
           <div
+            className="blog-article-grid"
             style={{
               maxWidth: "760px",
               margin: "0 auto",
-              display: "grid",
-              gridTemplateColumns: "1fr 280px",
-              gap: "3rem",
-              alignItems: "start",
             }}
           >
             {/* Main content */}
@@ -162,7 +170,36 @@ export default function BlogPostContent({ post, related }: Props) {
                   border: "1px solid #e8e4dc",
                 }}
               >
-                {paragraphs.map((line, i) => {
+                {contentBlocks.map((block, i) => {
+                  if (typeof block !== "string") {
+                    const dataRows = block.rows.filter((r) => !isSeparator(r));
+                    const [headerRow, ...bodyRows] = dataRows;
+                    const headers = parseCells(headerRow);
+                    return (
+                      <div key={i} style={{ overflowX: "auto", marginBottom: "1rem" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "DM Sans, sans-serif", fontSize: "0.9rem" }}>
+                          <thead>
+                            <tr>
+                              {headers.map((h, ci) => (
+                                <th key={ci} style={{ background: "var(--brand-dark)", color: "#fff", padding: "8px 12px", textAlign: "left", fontWeight: 500 }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {bodyRows.map((row, ri) => (
+                              <tr key={ri} style={{ background: ri % 2 === 0 ? "#fff" : "#f7f3ec" }}>
+                                {parseCells(row).map((cell, ci) => (
+                                  <td key={ci} style={{ padding: "7px 12px", borderBottom: "1px solid #e8e4dc", color: "var(--brand-dark)" }}
+                                    dangerouslySetInnerHTML={{ __html: cell.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") }} />
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  }
+                  const line = block;
                   if (line.startsWith("## ")) {
                     return (
                       <h2
@@ -227,9 +264,6 @@ export default function BlogPostContent({ post, related }: Props) {
                         />
                       </div>
                     );
-                  }
-                  if (line.startsWith("| ")) {
-                    return null;
                   }
                   if (line.startsWith("**")) {
                     return (

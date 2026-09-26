@@ -79,3 +79,8 @@ cd apps/admin && npm run dev -- --port 3001
 ## Variables de entorno
 
 Copia los archivos `.env.example` y completa con tus credenciales. **Nunca subas archivos `.env` al repositorio.**
+
+
+#npm run dev:api     # API    → http://localhost:4000/api
+#npm run dev:web     # Web    → http://localhost:3000
+#npm run dev:admin   # Admin  → http://localhost:3001
