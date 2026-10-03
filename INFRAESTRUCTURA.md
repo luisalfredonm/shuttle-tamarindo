@@ -105,8 +105,8 @@ Cliente (navegador)
 
 | Pieza | Proveedor | Identificador | Plan |
 |---|---|---|---|
-| Web pública | Vercel | `shuttle-tamarindo-web` | Hobby ⚠️ |
-| Panel admin | Vercel | `shuttle-tamarindo-admin` | Hobby ⚠️ |
+| Web pública | Vercel | `shuttle-tamarindo-web` | Pro (desde el 03/10/2026, según Luis) |
+| Panel admin | Vercel | `shuttle-tamarindo-admin` | Pro |
 | API | Render | `shuttle-tamarindo` → `shuttle-tamarindo.onrender.com` | Free ⚠️ |
 | Base de datos | Neon | proyecto `shuttle-tamarindo`, rama `production`, región `us-east-2` | Free ⚠️ |
 | Correos | Resend | cuenta 321 Solutions | Free (1 dominio) |
@@ -244,6 +244,26 @@ Se puede reservar **sin crear cuenta**. En ese caso la web pide el captcha de
 Turnstile y la API lo valida antes de crear la reserva. El cliente recupera su
 reserva después con su correo ("Find my booking").
 
+## Reservas manuales (WhatsApp o teléfono)
+
+Panel → **Bookings → New booking**. El admin elige la ruta, la salida, los
+pasajeros y los datos del cliente, y cómo paga en el sitio: **efectivo,
+tarjeta o SINPE**. La reserva queda **confirmada** al instante y salen los
+mismos dos correos que con PayPal (comprobante al cliente y aviso al admin),
+con el texto "pago en el sitio".
+
+- Endpoint: `POST /bookings/manual`, solo rol ADMIN.
+- El precio es el mismo que en la web; el admin puede escribir un total
+  acordado distinto.
+- Un compartido se puede abrir por debajo del mínimo de 3 pasajeros: decide el
+  admin.
+- El cobro queda en `Payment` con `provider` = `CASH`/`CARD`/`SINPE` y
+  `status` = `PENDING` (por cobrar). Todavía no hay botón para marcarlo cobrado.
+- El correo del cliente es obligatorio: ahí le llega el enlace de su reserva.
+
+El admin también puede **cancelar una reserva confirmada** desde el panel (el
+cliente no). Si se pagó con PayPal, el reembolso se hace aparte en PayPal.
+
 ## Fotos de las rutas
 
 Se suben desde el panel → **Routes** y quedan en Vercel Blob (store público),
@@ -283,7 +303,7 @@ Ordenados por lo que cuesta si no se hace.
 | 2b | Sincronizar reembolsos (`PAYMENT.CAPTURE.REFUNDED`) | Hoy un reembolso hecho en PayPal deja la reserva como pagada en la base y en el panel |
 | 3 | **Confirmar el dominio en Resend** | Los DNS ya están; falta ver **Verified** en Resend y que `EMAIL_FROM` use `@retanaservices.com`. Si no, los clientes **no reciben** sus correos |
 | 4 | **Render Starter (~$7/mes)** | En Free el API se duerme: pagos demorados, clientes que abandonan y el cron de las 3 AM que no corre |
-| 5 | **Vercel Pro ($20/mes)** | El plan Hobby **no permite uso comercial**: riesgo de suspensión |
+| ~~5~~ | ~~Vercel Pro ($20/mes)~~ | Hecho: la cuenta ya está en Pro (03/10/2026) |
 | 6 | **Plan de pago en la base, o respaldos periódicos** | Neon Free solo guarda 6 h de historial |
 | 7 | Revisar las rutas cargadas | Hay 4. `lib-tama` repite Liberia Airport → Tamarindo y no tiene foto (parece de prueba). `tamarindo-avellanas` cobra $50 privado y $180 round trip. Falta cargar el resto |
 | 8 | `NEXT_PUBLIC_GA_ID` real | Hoy es un valor de ejemplo: no se miden visitas |
