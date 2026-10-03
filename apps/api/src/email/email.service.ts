@@ -23,6 +23,15 @@ import {
   totalPanel,
 } from './email.templates';
 
+/** Como se cobra una reserva cargada a mano por el admin */
+export type PayOnSiteMethod = 'CASH' | 'CARD' | 'SINPE';
+
+const PAY_ON_SITE_LABEL: Record<PayOnSiteMethod, string> = {
+  CASH: 'cash',
+  CARD: 'card',
+  SINPE: 'SINPE Móvil',
+};
+
 export interface BookingEmailData {
   name: string;
   bookingId: string;
@@ -36,6 +45,8 @@ export interface BookingEmailData {
   type: string;
   amount: number;
   transactionId?: string;
+  /** Presente cuando no se cobro en linea: se paga el dia del viaje */
+  payOnSite?: PayOnSiteMethod;
   pickupAddress?: string | null;
   flightNumber?: string | null;
   notes?: string | null;
@@ -164,9 +175,11 @@ export class EmailService {
     const html = layout({
       preheader: `${this.routeLine(outbound)} · ${formatDate(outbound.departure)} at ${formatTime(outbound.departure)}`,
       siteUrl: this.siteUrl,
-      eyebrow: 'Payment confirmed',
+      eyebrow: data.payOnSite ? 'Booking confirmed' : 'Payment confirmed',
       title: first ? `You're all set, ${first}` : "You're all set",
-      intro: `We received your payment and your seat${data.passengers > 1 ? 's are' : ' is'} reserved. Here is everything you need for the day of your transfer.`,
+      intro: data.payOnSite
+        ? `Your transfer is booked. You'll pay ${money(data.amount)} by ${PAY_ON_SITE_LABEL[data.payOnSite]} on the day of your transfer. Here is everything you need.`
+        : `We received your payment and your seat${data.passengers > 1 ? 's are' : ' is'} reserved. Here is everything you need for the day of your transfer.`,
       content: `
         ${sectionTitle(ret ? 'Your itinerary' : 'Your transfer')}
         ${itinerary(outbound, { badge: ret ? 'Outbound' : undefined })}
@@ -191,7 +204,7 @@ export class EmailService {
             : []),
         ])}
         ${spacer(12)}
-        ${this.paidPanel(data.amount)}
+        ${this.paidPanel(data)}
         ${spacer(26)}
 
         ${button(this.bookingUrl(data), 'View my booking')}
@@ -320,11 +333,17 @@ export class EmailService {
       preheader: `${data.customerName} · ${this.routeLine(outbound)} · ${money(data.amount)}`,
       siteUrl: this.siteUrl,
       audience: 'admin',
-      eyebrow: 'New booking · paid',
+      eyebrow: data.payOnSite
+        ? 'New booking · pay on site'
+        : 'New booking · paid',
       title: adminFirst ? `New booking, ${adminFirst}` : 'New booking received',
-      intro: `${data.customerName} paid ${money(data.amount)} for ${passengerLabel(
-        data.passengers,
-      )} on ${this.routeLine(outbound)}.`,
+      intro: data.payOnSite
+        ? `${data.customerName} booked ${passengerLabel(data.passengers)} on ${this.routeLine(
+            outbound,
+          )}. Collect ${money(data.amount)} by ${PAY_ON_SITE_LABEL[data.payOnSite]} on the day of the transfer.`
+        : `${data.customerName} paid ${money(data.amount)} for ${passengerLabel(
+            data.passengers,
+          )} on ${this.routeLine(outbound)}.`,
       content: `
         ${sectionTitle(ret ? 'Itinerary' : 'Transfer')}
         ${itinerary(outbound, { badge: ret ? 'Outbound' : undefined })}
@@ -345,7 +364,7 @@ export class EmailService {
             : []),
         ])}
         ${spacer(12)}
-        ${this.paidPanel(data.amount)}
+        ${this.paidPanel(data)}
         ${spacer(26)}
 
         ${button(
@@ -377,8 +396,16 @@ export class EmailService {
     }
   }
 
-  /** Panel del total. Lo comparten el comprobante y el aviso interno. */
-  private paidPanel(amount: number): string {
-    return totalPanel(amount, 'Total paid');
+  /**
+   * Panel del total. Lo comparten el comprobante y el aviso interno; en una
+   * reserva que se cobra en el sitio dice cuanto y como se paga ese dia.
+   */
+  private paidPanel(data: BookingEmailData): string {
+    return data.payOnSite
+      ? totalPanel(
+          data.amount,
+          `To pay on site · ${PAY_ON_SITE_LABEL[data.payOnSite]}`,
+        )
+      : totalPanel(data.amount, 'Total paid');
   }
 }

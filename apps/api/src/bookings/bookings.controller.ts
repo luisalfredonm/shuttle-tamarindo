@@ -12,6 +12,7 @@ import {
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateManualBookingDto } from './dto/create-manual-booking.dto';
 import { LookupBookingsDto } from './dto/lookup-bookings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
@@ -55,6 +56,14 @@ export class BookingsController {
   @Post('lookup')
   lookup(@Request() req: any, @Body() dto: LookupBookingsDto) {
     return this.bookingsService.sendMyBookings(dto, clientIp(req));
+  }
+
+  // Reserva cargada desde el panel (WhatsApp, telefono): se paga en el sitio
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @Post('manual')
+  createManual(@Body() dto: CreateManualBookingDto) {
+    return this.bookingsService.createManual(dto);
   }
 
   // Listado completo con datos de contacto de cada cliente: solo ADMIN

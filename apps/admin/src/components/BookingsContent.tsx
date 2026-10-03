@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, MessageCircle, Phone, Search } from "lucide-react";
+import { Mail, MessageCircle, Phone, Plus, Search } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { bookingPill, dayLabel, digits, money, outboundLeg, ref, time, titleCase } from "@/lib/format";
 import PageHeader from "./ui/PageHeader";
 import Sheet from "./ui/Sheet";
+import Toast from "./ui/Toast";
+import NewBookingSheet from "./bookings/NewBookingSheet";
 import ui from "./ui/ui.module.css";
 
 const STATUS_FILTER = ["ALL", "CONFIRMED", "PENDING", "CANCELLED"];
+
+/** Cobros en el sitio de las reservas cargadas desde el panel */
+const PAY_ON_SITE: Record<string, string> = { CASH: "Cash", CARD: "Card", SINPE: "SINPE" };
 
 type Leg = {
   direction: "OUTBOUND" | "RETURN";
@@ -38,7 +43,7 @@ type Booking = {
   /** Reservada sin cuenta: el contacto es el de la compra, no el de un perfil */
   bookedAsGuest?: boolean;
   legs: Leg[];
-  payment?: { externalId?: string; paidAt?: string; amount: number };
+  payment?: { provider: string; status: string; externalId?: string; paidAt?: string; amount: number };
 };
 
 export default function BookingsContent() {
@@ -48,12 +53,16 @@ export default function BookingsContent() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Booking | null>(null);
 
-  useEffect(() => {
+  const [creating, setCreating] = useState(false);
+  const [toast, setToast] = useState("");
+
+  const load = () =>
     apiFetch("/bookings/user/all")
       .then((data) => setBookings(Array.isArray(data) ? data : []))
       .catch(() => setBookings([]))
       .finally(() => setLoading(false));
-  }, []);
+
+  useEffect(() => { load(); }, []);
 
   const q = search.toLowerCase();
   const matchesSearch = (b: Booking) =>
@@ -68,7 +77,12 @@ export default function BookingsContent() {
   const countFor = (s: string) => bookings.filter((b) => (s === "ALL" || b.status === s) && matchesSearch(b)).length;
 
   const handleCancel = async (b: Booking) => {
-    if (!confirm(`Cancel booking ${ref(b.id)}?`)) return;
+    // Cancelar no devuelve dinero: si se cobró por PayPal, se reembolsa allá
+    const paidOnline = b.status === "CONFIRMED" && b.payment?.provider === "PAYPAL";
+    const msg = paidOnline
+      ? `Cancel booking ${ref(b.id)}? It was paid with PayPal: refund it in PayPal, the panel does not do it.`
+      : `Cancel booking ${ref(b.id)}?`;
+    if (!confirm(msg)) return;
     try {
       await apiFetch(`/bookings/${b.id}/cancel`, { method: "PATCH" });
       setBookings((prev) => prev.map((x) => (x.id === b.id ? { ...x, status: "CANCELLED" } : x)));
@@ -82,7 +96,12 @@ export default function BookingsContent() {
     <div>
       <PageHeader
         title="Bookings"
-        subtitle="Every booking made on the website. Tap one to see pickup details and contact the customer."
+        subtitle="Bookings from the website and the ones you add here. Tap one to see pickup details and contact the customer."
+        actions={
+          <button type="button" onClick={() => setCreating(true)} className={`${ui.btn} ${ui.primary}`}>
+            <Plus size={16} strokeWidth={2.5} /> New booking
+          </button>
+        }
         summary={
           !loading && (
             <>
@@ -171,6 +190,19 @@ export default function BookingsContent() {
         </div>
       )}
 
+      {creating && (
+        <NewBookingSheet
+          onClose={() => setCreating(false)}
+          onCreated={() => {
+            setCreating(false);
+            setToast("Booking confirmed. The confirmation email is on its way.");
+            load();
+          }}
+        />
+      )}
+
+      {toast && <Toast message={toast} onClose={() => setToast("")} />}
+
       {selected && <BookingSheet booking={selected} onClose={() => setSelected(null)} onCancel={() => handleCancel(selected)} />}
     </div>
   );
@@ -244,7 +276,14 @@ function BookingSheet({ booking: b, onClose, onCancel }: { booking: Booking; onC
           </DetailCard>
         )}
 
-        {b.payment && (
+        {b.payment && b.payment.provider !== "PAYPAL" && (
+          <DetailCard title="Payment">
+            <Fact label="Method" value={`${PAY_ON_SITE[b.payment.provider] ?? b.payment.provider} · on site`} />
+            <Fact label="To collect" value={<span className={ui.money}>{money(b.payment.amount)}</span>} />
+          </DetailCard>
+        )}
+
+        {b.payment && b.payment.provider === "PAYPAL" && (
           <DetailCard title="Payment">
             <Fact label="Transaction" value={<span className={ui.mono}>{b.payment.externalId || "—"}</span>} />
             <Fact label="Paid at" value={b.payment.paidAt ? new Date(b.payment.paidAt).toLocaleString("en-US") : "—"} />

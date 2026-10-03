@@ -7,6 +7,9 @@ import { bookingFetch, outboundTrip, passengersLabel } from '@/lib/api';
 import { BRAND_WHATSAPP } from '@/lib/brand';
 import BookingLegs from './BookingLegs';
 
+/** Cobros en el sitio de las reservas que carga el equipo desde el panel */
+const PAY_ON_SITE: Record<string, string> = { CASH: 'cash', CARD: 'card', SINPE: 'SINPE Móvil' };
+
 export default function BookingSuccess() {
   const params    = useSearchParams();
   const bookingId = params.get('bookingId') || '';
@@ -50,6 +53,9 @@ export default function BookingSuccess() {
 
   const dep = new Date(outboundTrip(booking).departureAt);
   const isRoundTrip = booking.tripType === 'ROUND_TRIP';
+  // Reserva cargada por el equipo: no se cobró en línea, se paga el día del viaje
+  const provider = (booking.payment ?? payment)?.provider;
+  const payOnSite = provider && provider !== 'PAYPAL' ? (PAY_ON_SITE[provider] ?? provider) : null;
 
   return (
     <div style={{ maxWidth: '540px', width: '100%' }}>
@@ -69,7 +75,9 @@ export default function BookingSuccess() {
           You're all set!
         </h1>
         <p style={{ color: 'var(--brand-gray)', fontFamily: 'DM Sans, sans-serif', fontSize: '1rem' }}>
-          Payment confirmed. Your transfer is booked.
+          {payOnSite
+            ? `Your transfer is booked. You'll pay on the day of the transfer (${payOnSite}).`
+            : 'Payment confirmed. Your transfer is booked.'}
         </p>
       </div>
 
@@ -125,8 +133,15 @@ export default function BookingSuccess() {
             { label: 'Status',        value: '✓ Confirmed', green: true },
             { label: 'Type',          value: booking.type === 'SHARED' ? 'Shared Shuttle' : 'Private Transfer' },
             { label: 'Passengers',    value: passengersLabel(booking) },
-            { label: 'Amount Paid',   value: `$${booking.totalAmount} USD`, green: true },
-            { label: 'Transaction',   value: payment?.externalId?.slice(0, 16) || '—' },
+            ...(payOnSite
+              ? [
+                  { label: 'To Pay On Site', value: `$${booking.totalAmount} USD`, green: true },
+                  { label: 'Payment',        value: payOnSite },
+                ]
+              : [
+                  { label: 'Amount Paid',   value: `$${booking.totalAmount} USD`, green: true },
+                  { label: 'Transaction',   value: payment?.externalId?.slice(0, 16) || '—' },
+                ]),
           ].map(item => (
             <div key={item.label}>
               <div style={{

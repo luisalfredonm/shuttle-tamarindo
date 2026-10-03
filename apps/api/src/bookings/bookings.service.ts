@@ -7,6 +7,8 @@ import {
 import { Prisma } from '@shuttle/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateManualBookingDto } from './dto/create-manual-booking.dto';
+import { BookingNotifier } from './booking-notifier.service';
 import { RequestUser, assertOwnerOrAdmin } from '../auth/request-user';
 import {
   NO_ACCESS,
@@ -38,6 +40,37 @@ const ACTIVE_STATUSES: Prisma.EnumBookingStatusFilter = {
 
 const NOT_YOURS = NO_ACCESS;
 
+/** Lo que define los tramos y el precio: igual en la web y en el panel */
+type LegsRequest = Pick<
+  CreateBookingDto,
+  | 'type'
+  | 'tripId'
+  | 'routeSlug'
+  | 'departureAt'
+  | 'returnTripId'
+  | 'returnRouteSlug'
+  | 'returnDepartureAt'
+  | 'passengers'
+  | 'infants'
+  | 'notes'
+  | 'flightNumber'
+  | 'pickupAddress'
+>;
+
+interface ReserveRequest extends LegsRequest {
+  userId: string;
+  bookedAsGuest: boolean;
+  contactName: string | null;
+  contactPhone: string | null;
+  agreementSignedName: string | null;
+  /**
+   * Reserva cargada por el admin: queda CONFIRMED sin hold, puede abrir un
+   * compartido por debajo del minimo (el admin decide si la salida corre) y
+   * puede llevar un total acordado distinto del calculado.
+   */
+  manual?: { totalAmount?: number };
+}
+
 const RESERVATION_INCLUDE = {
   // OUTBOUND antes que RETURN
   legs: {
@@ -54,6 +87,7 @@ export class BookingsService {
     private turnstile: TurnstileService,
     private email: EmailService,
     private pricing: PricingService,
+    private notifier: BookingNotifier,
   ) {}
 
   /**
@@ -235,8 +269,9 @@ export class BookingsService {
   private async priceLeg(
     tx: Prisma.TransactionClient,
     tripId: string,
-    dto: CreateBookingDto,
+    dto: Pick<LegsRequest, 'type' | 'passengers'>,
     label: string,
+    enforceSharedMin = true,
   ) {
     const trip = await tx.trip.findUnique({
       where: { id: tripId },
@@ -253,7 +288,7 @@ export class BookingsService {
     const isPrivate = dto.type === 'PRIVATE';
     const seats = isPrivate ? trip.capacity : dto.passengers;
 
-    if (!isPrivate) {
+    if (!isPrivate && enforceSharedMin) {
       const confirmed = await this.confirmedSeats(tx, tripId);
       if (
         confirmed < SHARED_MIN_PASSENGERS &&
@@ -291,7 +326,7 @@ export class BookingsService {
    */
   private async resolveTripId(
     tx: Prisma.TransactionClient,
-    type: CreateBookingDto['type'],
+    type: LegsRequest['type'],
     tripId: string | undefined,
     routeSlug: string | undefined,
     departureAt: string | undefined,
@@ -375,142 +410,14 @@ export class BookingsService {
             phone: dto.guestPhone!.trim(),
           });
 
-      const isPrivate = dto.type === 'PRIVATE';
-      const settings = await this.pricing.get(tx);
-
-      // Los infantes solo existen en privado: en compartido se paga por asiento
-      const infants = isPrivate ? (dto.infants ?? 0) : 0;
-      if (isPrivate && dto.passengers + infants > settings.vehicleCapacity) {
-        throw new BadRequestException(
-          `La van lleva hasta ${settings.vehicleCapacity} personas, contando infantes`,
-        );
-      }
-
-      const tripId = await this.resolveTripId(
-        tx,
-        dto.type,
-        dto.tripId,
-        dto.routeSlug,
-        dto.departureAt,
-        'ida',
-        settings.vehicleCapacity,
-      );
-
-      const isRoundTrip =
-        dto.type === 'PRIVATE'
-          ? !!(dto.returnRouteSlug && dto.returnDepartureAt)
-          : !!dto.returnTripId;
-
-      let returnTripId: string | undefined;
-      if (isRoundTrip) {
-        returnTripId = await this.resolveTripId(
-          tx,
-          dto.type,
-          dto.returnTripId,
-          dto.returnRouteSlug,
-          dto.returnDepartureAt,
-          'regreso',
-          settings.vehicleCapacity,
-        );
-
-        if (returnTripId === tripId) {
-          throw new BadRequestException(
-            'El regreso no puede ser la misma salida que la ida',
-          );
-        }
-      }
-
-      const outbound = await this.priceLeg(tx, tripId, dto, 'ida');
-
-      let inbound: Awaited<ReturnType<typeof this.priceLeg>> | null = null;
-      if (isRoundTrip) {
-        inbound = await this.priceLeg(tx, returnTripId!, dto, 'regreso');
-
-        if (inbound.trip.departureAt <= outbound.trip.departureAt) {
-          throw new BadRequestException(
-            'El regreso debe salir después de la ida',
-          );
-        }
-
-        // El regreso tiene que deshacer el camino de la ida
-        if (inbound.trip.route.origin !== outbound.trip.route.destination) {
-          throw new BadRequestException(
-            `El regreso debe salir desde ${outbound.trip.route.destination}`,
-          );
-        }
-      }
-
-      let outboundAmount = outbound.amount;
-      let returnAmount = inbound?.amount ?? 0;
-
-      if (isPrivate) {
-        const base = isRoundTrip
-          ? outbound.trip.route.pricePrivateRoundTrip
-          : outbound.trip.route.pricePrivate;
-
-        // Sin precio propio no se vende: sumar dos one way no es la tarifa
-        if (base === null) {
-          throw new BadRequestException(
-            'Esta ruta todavía no tiene precio de ida y vuelta privado',
-          );
-        }
-
-        const { total } = privateTotal(Number(base), dto.passengers, settings);
-        [outboundAmount, returnAmount] = isRoundTrip
-          ? splitInTwo(total)
-          : [total, 0];
-      }
-
-      const totalAmount = outboundAmount + returnAmount;
-
-      const heldUntil = new Date();
-      heldUntil.setMinutes(heldUntil.getMinutes() + HOLD_MINUTES);
-
-      const reservation = await tx.reservation.create({
-        data: {
-          userId,
-          accessToken: newAccessToken(),
-          bookedAsGuest: isGuest,
-          contactName: isGuest ? dto.guestName!.trim() : null,
-          contactPhone: isGuest ? dto.guestPhone!.trim() : null,
-          type: dto.type,
-          tripType: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
-          passengers: dto.passengers,
-          infants,
-          totalAmount,
-          heldUntil,
-          notes: dto.notes,
-          flightNumber: dto.flightNumber,
-          pickupAddress: dto.pickupAddress,
-          agreementSignedName: dto.agreementSignedName,
-          agreementSignedAt: new Date(),
-          status: 'PENDING',
-          legs: {
-            create: [
-              {
-                tripId,
-                direction: 'OUTBOUND',
-                passengers: outbound.seats,
-                amount: outboundAmount,
-              },
-              ...(inbound
-                ? [
-                    {
-                      tripId: returnTripId!,
-                      direction: 'RETURN' as const,
-                      passengers: inbound.seats,
-                      amount: returnAmount,
-                    },
-                  ]
-                : []),
-            ],
-          },
-        },
-        include: RESERVATION_INCLUDE,
+      const reservation = await this.reserve(tx, {
+        ...dto,
+        userId,
+        bookedAsGuest: isGuest,
+        contactName: isGuest ? dto.guestName!.trim() : null,
+        contactPhone: isGuest ? dto.guestPhone!.trim() : null,
+        agreementSignedName: dto.agreementSignedName,
       });
-
-      await this.syncBookedSeats(tx, tripId);
-      if (isRoundTrip) await this.syncBookedSeats(tx, returnTripId!);
 
       return {
         ...reservation,
@@ -518,6 +425,228 @@ export class BookingsService {
         message: `Tienes ${HOLD_MINUTES} minutos para completar el pago`,
       };
     });
+  }
+
+  /**
+   * Reserva cargada por el admin (cliente de WhatsApp o telefono).
+   *
+   * Queda CONFIRMED de una vez y el cobro se registra como pendiente en el
+   * sitio (efectivo, tarjeta o SINPE). Se cuelga del cliente igual que una
+   * reserva de invitado, asi el comprobante trae su enlace secreto y el
+   * cliente la puede abrir sin cuenta. Los correos salen igual que con un
+   * pago en linea.
+   */
+  async createManual(dto: CreateManualBookingDto) {
+    const reservation = await this.prisma.$transaction(async (tx) => {
+      const contact = {
+        name: dto.customerName.trim(),
+        email: dto.customerEmail.trim(),
+        phone: dto.customerPhone.trim(),
+      };
+      const userId = await this.resolveGuestUserId(tx, contact);
+
+      const created = await this.reserve(tx, {
+        ...dto,
+        userId,
+        bookedAsGuest: true,
+        contactName: contact.name,
+        contactPhone: contact.phone,
+        // La politica de cancelacion la acepta el cliente en la web; aca no
+        // hay firma suya que guardar
+        agreementSignedName: null,
+        manual: { totalAmount: dto.totalAmount },
+      });
+
+      // Cobro pendiente en el sitio: provider dice como, status que falta
+      await tx.payment.create({
+        data: {
+          reservationId: created.id,
+          provider: dto.paymentMethod,
+          amount: created.totalAmount,
+          status: 'PENDING',
+        },
+      });
+
+      return created;
+    });
+
+    // Fuera de la transaccion: un correo que falla no deshace la reserva
+    await this.notifier.notifyConfirmed(reservation.id, {
+      payOnSite: dto.paymentMethod,
+    });
+
+    return this.prisma.reservation.findUnique({
+      where: { id: reservation.id },
+      include: RESERVATION_INCLUDE,
+    });
+  }
+
+  /**
+   * Arma la reserva con sus tramos dentro de una transaccion: resuelve las
+   * salidas, valida asientos, calcula el precio y ocupa las plazas. Es comun
+   * a la web y al panel; lo que difiere entre los dos llega en `req`.
+   */
+  private async reserve(tx: Prisma.TransactionClient, req: ReserveRequest) {
+    const isPrivate = req.type === 'PRIVATE';
+    const isManual = !!req.manual;
+    const settings = await this.pricing.get(tx);
+
+    // Los infantes solo existen en privado: en compartido se paga por asiento
+    const infants = isPrivate ? (req.infants ?? 0) : 0;
+    if (isPrivate && req.passengers + infants > settings.vehicleCapacity) {
+      throw new BadRequestException(
+        `La van lleva hasta ${settings.vehicleCapacity} personas, contando infantes`,
+      );
+    }
+
+    const tripId = await this.resolveTripId(
+      tx,
+      req.type,
+      req.tripId,
+      req.routeSlug,
+      req.departureAt,
+      'ida',
+      settings.vehicleCapacity,
+    );
+
+    const isRoundTrip =
+      req.type === 'PRIVATE'
+        ? !!(req.returnRouteSlug && req.returnDepartureAt)
+        : !!req.returnTripId;
+
+    let returnTripId: string | undefined;
+    if (isRoundTrip) {
+      returnTripId = await this.resolveTripId(
+        tx,
+        req.type,
+        req.returnTripId,
+        req.returnRouteSlug,
+        req.returnDepartureAt,
+        'regreso',
+        settings.vehicleCapacity,
+      );
+
+      if (returnTripId === tripId) {
+        throw new BadRequestException(
+          'El regreso no puede ser la misma salida que la ida',
+        );
+      }
+    }
+
+    const outbound = await this.priceLeg(tx, tripId, req, 'ida', !isManual);
+
+    let inbound: Awaited<ReturnType<typeof this.priceLeg>> | null = null;
+    if (isRoundTrip) {
+      inbound = await this.priceLeg(
+        tx,
+        returnTripId!,
+        req,
+        'regreso',
+        !isManual,
+      );
+
+      if (inbound.trip.departureAt <= outbound.trip.departureAt) {
+        throw new BadRequestException(
+          'El regreso debe salir después de la ida',
+        );
+      }
+
+      // El regreso tiene que deshacer el camino de la ida
+      if (inbound.trip.route.origin !== outbound.trip.route.destination) {
+        throw new BadRequestException(
+          `El regreso debe salir desde ${outbound.trip.route.destination}`,
+        );
+      }
+    }
+
+    let outboundAmount = outbound.amount;
+    let returnAmount = inbound?.amount ?? 0;
+
+    if (isPrivate) {
+      const base = isRoundTrip
+        ? outbound.trip.route.pricePrivateRoundTrip
+        : outbound.trip.route.pricePrivate;
+
+      // Sin precio propio no se vende: sumar dos one way no es la tarifa.
+      // Con un total acordado por el admin la tarifa de lista no hace falta.
+      if (base === null && req.manual?.totalAmount === undefined) {
+        throw new BadRequestException(
+          'Esta ruta todavía no tiene precio de ida y vuelta privado',
+        );
+      }
+
+      const { total } = privateTotal(
+        Number(base ?? 0),
+        req.passengers,
+        settings,
+      );
+      [outboundAmount, returnAmount] = isRoundTrip
+        ? splitInTwo(total)
+        : [total, 0];
+    }
+
+    // Total acordado a mano: reemplaza al calculado y se reparte entre tramos
+    if (req.manual?.totalAmount !== undefined) {
+      [outboundAmount, returnAmount] = isRoundTrip
+        ? splitInTwo(req.manual.totalAmount)
+        : [req.manual.totalAmount, 0];
+    }
+
+    const totalAmount = outboundAmount + returnAmount;
+
+    let heldUntil: Date | null = null;
+    if (!isManual) {
+      heldUntil = new Date();
+      heldUntil.setMinutes(heldUntil.getMinutes() + HOLD_MINUTES);
+    }
+
+    const reservation = await tx.reservation.create({
+      data: {
+        userId: req.userId,
+        accessToken: newAccessToken(),
+        bookedAsGuest: req.bookedAsGuest,
+        contactName: req.contactName,
+        contactPhone: req.contactPhone,
+        type: req.type,
+        tripType: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
+        passengers: req.passengers,
+        infants,
+        totalAmount,
+        heldUntil,
+        notes: req.notes,
+        flightNumber: req.flightNumber,
+        pickupAddress: req.pickupAddress,
+        agreementSignedName: req.agreementSignedName,
+        agreementSignedAt: req.agreementSignedName ? new Date() : null,
+        status: isManual ? 'CONFIRMED' : 'PENDING',
+        legs: {
+          create: [
+            {
+              tripId,
+              direction: 'OUTBOUND',
+              passengers: outbound.seats,
+              amount: outboundAmount,
+            },
+            ...(inbound
+              ? [
+                  {
+                    tripId: returnTripId!,
+                    direction: 'RETURN' as const,
+                    passengers: inbound.seats,
+                    amount: returnAmount,
+                  },
+                ]
+              : []),
+          ],
+        },
+      },
+      include: RESERVATION_INCLUDE,
+    });
+
+    await this.syncBookedSeats(tx, tripId);
+    if (isRoundTrip) await this.syncBookedSeats(tx, returnTripId!);
+
+    return reservation;
   }
 
   async findByUser(userId: string, user: RequestUser) {
@@ -557,7 +686,10 @@ export class BookingsService {
       if (!reservation) throw new NotFoundException('Reserva no encontrada');
       assertCanAccessReservation(reservation, user, token);
 
-      if (reservation.status === 'CONFIRMED') {
+      // El cliente no puede deshacer una reserva confirmada; el admin si, para
+      // corregir una cargada a mano o una cancelada por telefono. Si se cobro
+      // por PayPal, el reembolso se hace aparte en PayPal.
+      if (reservation.status === 'CONFIRMED' && user?.role !== 'ADMIN') {
         throw new BadRequestException(
           'No se puede cancelar una reserva confirmada. Contacta soporte.',
         );
