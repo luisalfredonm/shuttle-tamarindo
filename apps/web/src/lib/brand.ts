@@ -15,8 +15,8 @@ export const BRAND_FORMER_NAME = "Retana Services Tamarindo";
  * Antes vivía duplicada como BASE_URL en layout, sitemap, robots, el schema y
  * las landings de ruta: cada cambio de dominio se olvidaba en alguno y quedaban
  * canonical/OG/sitemap apuntando a distintos lados. El fallback es el dominio
- * real del cliente (retanatransfers.com; el anterior, retanaservices.com,
- * redirige aquí). shuttletamarindo.com es de un tercero y está en parking, así
+ * real del cliente (retanatransfers.com; el anterior se dio de baja sin
+ * redirección). shuttletamarindo.com es de un tercero y está en parking, así
  * que apuntarle era regalarle señales. En producción lo pisa
  * NEXT_PUBLIC_SITE_URL.
  */

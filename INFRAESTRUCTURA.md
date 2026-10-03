@@ -13,17 +13,18 @@ qué falta por hacer. Última revisión: **2 de octubre de 2026**.
 Decisión del cliente (octubre de 2026): cambian **la marca** ("Retana Services
 Tamarindo" → "Retana Transfers Tamarindo") **y el dominio**
 (`retanaservices.com` → `retanatransfers.com`). Todo lo demás de este archivo
-describe lo que está **en producción hoy**, con el dominio viejo. Al terminar la
+describe lo que estaba en producción con el dominio viejo. Al terminar la
 migración, actualizar el archivo entero y borrar esta sección.
 
 `retanatransfers.com` se compró el 02/10/2026 en GoDaddy (vence en octubre de
-2027, con DNS en GoDaddy). `retanaservices.com` **no se deja vencer**: de
-él dependen las redirecciones y los enlaces de los correos ya enviados.
+2027, con DNS en GoDaddy).
 
-El código ya está cambiado en el working tree (marca, dominio por defecto,
-`llms.txt`, correos de contacto y `alternateName` con el nombre viejo en el
-schema), pero **no se puede publicar antes de la fase 1**: apunta a un dominio y
-a un buzón que todavía no funcionan.
+**`retanaservices.com` se da de baja sin redirección** (decisión de Luis,
+03/10/2026: el sitio es nuevo y no se quiere conservar). Consecuencia aceptada:
+los enlaces de los correos ya enviados y las URLs viejas que tenga Google dejan
+de funcionar, y no se usa el Cambio de dirección de Search Console. El registro
+del dominio conviene renovarlo igual aunque no apunte a nada, para que nadie
+más lo compre con el nombre "Retana".
 
 ### Fase 0 — Decisiones
 - [x] Comprar `retanatransfers.com`
@@ -47,28 +48,31 @@ a un buzón que todavía no funcionan.
 
 ### Fase 2 — El cambio
 - [ ] Logo nuevo en el repo (renombrar `logo-retana-services-tamarindo.png` y actualizar `BRAND_LOGO`, `ADMIN_ICON` y `BRAND.logoPath`)
-- [ ] Commit y push del código
-- [ ] Vercel web y admin: `NEXT_PUBLIC_SITE_URL=https://retanatransfers.com` y `NEXT_PUBLIC_API_URL=https://api.retanatransfers.com/api` (admin: también `API_URL`), y **Redeploy**
-- [ ] Vercel: `retanatransfers.com` como principal; `retanaservices.com` y `www` con **Redirect 308** a `retanatransfers.com`. Igual con el admin
+- [x] Commit y push del código — `9262348`, 02/10 (logo viejo provisional)
+- [x] Vercel web y admin: `NEXT_PUBLIC_SITE_URL=https://retanatransfers.com` y `NEXT_PUBLIC_API_URL=https://api.retanatransfers.com/api` (admin: también `API_URL`), y **Redeploy** — comprobado: canonical, og:url, sitemap y preconnect ya usan el dominio nuevo
 - [ ] Render: `SITE_URL=https://retanatransfers.com` y `EMAIL_FROM=reservas@retanatransfers.com`
 
-### Fase 3 — Verificar
-- [ ] `retanaservices.com/routes` redirige a `retanatransfers.com/routes` (conserva la ruta)
-- [ ] Canonical, `og:url`, schema, `sitemap.xml` y `robots.txt` con el dominio nuevo
-- [ ] Reserva sin cuenta (captcha), cobro real y correo recibido
-
-### Fase 4 — SEO
-- [ ] Search Console: enviar el sitemap nuevo y, en la propiedad **vieja**, Configuración → Cambio de dirección
-- [ ] Google Business Profile, WhatsApp Business, redes y directorios con la marca y la web nuevas
-- [ ] Contar con 2 a 6 semanas de fluctuación en el posicionamiento
-
-### Fase 5 — Limpieza (1 a 3 meses después)
-- [ ] PayPal: si el webhook live se creó con `api.retanaservices.com`, crear uno en `https://api.retanatransfers.com/api/payments/webhook/paypal`, cargar su `PAYPAL_WEBHOOK_ID` en Render y borrar el viejo. Mejor: crearlo así desde el principio (pendiente #1)
-- [ ] `CORS_ORIGINS` solo con `https://retanatransfers.com,https://www.retanatransfers.com,https://admin.retanatransfers.com`
-- [ ] Render: quitar `api.retanaservices.com` de Custom Domains y luego borrar el CNAME `api` del DNS viejo
+### Fase 3 — Dar de baja `retanaservices.com` (en este orden)
+- [ ] Confirmar en Vercel admin que `NEXT_PUBLIC_API_URL` (y `API_URL` si existe) ya dicen `api.retanatransfers.com`: el proxy del panel deja de funcionar si todavía usa el API viejo
+- [ ] Render `CORS_ORIGINS` solo con `https://retanatransfers.com,https://www.retanatransfers.com,https://admin.retanatransfers.com`
+- [ ] Vercel web: quitar `retanaservices.com` y `www.retanaservices.com`
+- [ ] Vercel admin: quitar `admin.retanaservices.com`
+- [ ] Render: quitar `api.retanaservices.com` de Custom Domains
 - [ ] Turnstile: quitar `retanaservices.com` de los hostnames
-- [ ] Vercel admin: quitar `admin.retanaservices.com` y borrar el CNAME `admin` del DNS viejo (el panel no tiene enlaces externos)
-- [ ] Del dominio viejo quedan **solo** el A `@` y el CNAME `www` → Vercel, con la redirección 308. Renovación automática, para siempre
+- [ ] Resend: quitar `retanaservices.com` si sigue
+- [ ] GoDaddy, DNS de `retanaservices.com`: borrar A `@`, CNAME `www`, `admin` y `api`, y los de Resend (`resend._domainkey`, `send`)
+- [ ] Search Console, propiedad vieja: Removals → "Remove all URLs with this prefix" → `https://retanaservices.com/`, para que deje de salir en Google ya y no en semanas
+
+### Fase 4 — Verificar
+- [ ] `retanaservices.com` ya no abre nada
+- [ ] Canonical, `og:url`, schema, `sitemap.xml`, `robots.txt` y `llms.txt` con el dominio nuevo
+- [ ] Reserva sin cuenta (captcha) y correo recibido
+- [ ] Cobro real (con PayPal, 03/10)
+
+### Fase 5 — SEO y perfiles
+- [ ] Search Console: verificar la propiedad nueva y enviar `https://retanatransfers.com/sitemap.xml`
+- [ ] PayPal: webhook live en `https://api.retanatransfers.com/api/payments/webhook/paypal` (pendiente #1)
+- [ ] Google Business Profile, WhatsApp Business, redes y directorios con la marca y la web nuevas
 - [ ] Reescribir este archivo con el dominio nuevo y borrar esta sección
 
 ---
