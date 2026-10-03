@@ -95,7 +95,7 @@ export default function Navbar() {
               lineHeight: 1.15,
             }}
           >
-            Retana Services
+            Retana Transfers
             <span style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "var(--brand-gold)", letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "DM Sans, sans-serif" }}>
               Tamarindo
             </span>

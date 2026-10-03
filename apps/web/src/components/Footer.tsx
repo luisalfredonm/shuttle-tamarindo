@@ -76,7 +76,7 @@ export default async function Footer() {
                 fontSize: '1.05rem', fontWeight: 700, color: '#fff',
                 lineHeight: 1.2,
               }}>
-                Retana Services
+                Retana Transfers
                 <span style={{
                   display: 'block', fontFamily: 'DM Sans, sans-serif',
                   fontSize: '0.72rem', fontWeight: 500, letterSpacing: '0.14em',
@@ -193,7 +193,7 @@ export default async function Footer() {
         {/* Divider */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.8rem', color: 'rgba(255,255,255,0.62)' }}>
-            © {new Date().getFullYear()} Retana Services Tamarindo. All rights reserved.
+            © {new Date().getFullYear()} Retana Transfers Tamarindo. All rights reserved.
             {' '}Site by{' '}
             <a
               href="https://321solutions.net/"

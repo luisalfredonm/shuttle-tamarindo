@@ -6,12 +6,12 @@ import { BRAND_NAME, BRAND_FOUNDED, SITE_URL as BASE_URL } from "@/lib/brand";
 export const metadata: Metadata = {
   title: "About Us — Reliable Shuttle Service in Guanacaste",
   description:
-    "Family-run since 2015, Retana Services Tamarindo provides shared shuttles and private transfers across Guanacaste, Costa Rica. Learn who we are and how we operate.",
+    "Family-run since 2015, Retana Transfers Tamarindo provides shared shuttles and private transfers across Guanacaste, Costa Rica. Learn who we are and how we operate.",
   alternates: { canonical: "/about" },
   openGraph: {
     title: "About Us — Reliable Shuttle Service in Guanacaste",
     description:
-      "Family-run since 2015, Retana Services Tamarindo provides shared shuttles and private transfers across Guanacaste, Costa Rica. Learn who we are and how we operate.",
+      "Family-run since 2015, Retana Transfers Tamarindo provides shared shuttles and private transfers across Guanacaste, Costa Rica. Learn who we are and how we operate.",
     url: BASE_URL + "/about",
     type: "website",
     siteName: BRAND_NAME,
@@ -27,7 +27,7 @@ function AboutSchema() {
         "@type": "AboutPage",
         "@id": url + "#webpage",
         url,
-        name: "About Us — Retana Services Tamarindo",
+        name: "About Us — Retana Transfers Tamarindo",
         description: "Family-run shuttle and transfer service in Guanacaste, Costa Rica since 2015.",
         inLanguage: "en",
         isPartOf: { "@id": BASE_URL + "/#website" },
@@ -52,7 +52,7 @@ export default function AboutPage() {
     <>
       <AboutSchema />
       <ContentPage
-        title="About Retana Services Tamarindo"
+        title="About Retana Transfers Tamarindo"
       intro={`Since ${BRAND_FOUNDED}, we have been moving travelers across Guanacaste with fixed daily schedules, fair prices and door-to-door service.`}
     >
       <h2 style={s.h2}>Our story</h2>

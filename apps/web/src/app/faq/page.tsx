@@ -7,12 +7,12 @@ import { BRAND_NAME, SITE_URL as BASE_URL } from "@/lib/brand";
 export const metadata: Metadata = {
   title: "Frequently Asked Questions — Shuttle Bookings & Travel",
   description:
-    "Answers to common questions about Retana Services Tamarindo shuttles: booking, luggage, flight delays, pickup times, payment and cancellations in Guanacaste, Costa Rica.",
+    "Answers to common questions about Retana Transfers Tamarindo shuttles: booking, luggage, flight delays, pickup times, payment and cancellations in Guanacaste, Costa Rica.",
   alternates: { canonical: "/faq" },
   openGraph: {
     title: "Frequently Asked Questions — Shuttle Bookings & Travel",
     description:
-      "Answers to common questions about Retana Services Tamarindo shuttles: booking, luggage, flight delays, pickup times, payment and cancellations in Guanacaste, Costa Rica.",
+      "Answers to common questions about Retana Transfers Tamarindo shuttles: booking, luggage, flight delays, pickup times, payment and cancellations in Guanacaste, Costa Rica.",
     url: BASE_URL + "/faq",
     type: "website",
     siteName: BRAND_NAME,

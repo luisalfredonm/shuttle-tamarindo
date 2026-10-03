@@ -72,7 +72,7 @@ export class EmailService {
       this.config.get<string>('EMAIL_FROM') || 'onboarding@resend.dev';
     // Sin barra final: los enlaces la agregan al armar la ruta
     this.siteUrl = (
-      this.config.get<string>('SITE_URL') || 'https://retanaservices.com'
+      this.config.get<string>('SITE_URL') || 'https://retanatransfers.com'
     ).replace(/\/$/, '');
   }
 

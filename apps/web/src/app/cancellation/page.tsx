@@ -2,7 +2,7 @@ import Link from "next/link";
 import CancellationPolicy from "@/components/CancellationPolicy";
 
 export const metadata = {
-  title: "Cancellation Policy — Retana Services Tamarindo",
+  title: "Cancellation Policy — Retana Transfers Tamarindo",
   description:
     "Our cancellation and no-show policy: free cancellation up to 48 hours before departure, flight delay handling, and payment terms.",
   // Sin esto hereda el canonical del layout, que apunta a la home, y Google

@@ -1,6 +1,13 @@
 /** Datos de marca en un solo lugar, para que no se desincronicen entre vistas. */
 
-export const BRAND_NAME = "Retana Services Tamarindo";
+export const BRAND_NAME = "Retana Transfers Tamarindo";
+
+/**
+ * Nombre anterior (hasta octubre de 2026). Va como alternateName en el schema
+ * para que Google y los buscadores con IA traten las menciones viejas (perfiles,
+ * directorios, correos ya enviados) como la misma empresa y no como otra.
+ */
+export const BRAND_FORMER_NAME = "Retana Services Tamarindo";
 
 /**
  * URL base del sitio, fuente única.
@@ -8,12 +15,13 @@ export const BRAND_NAME = "Retana Services Tamarindo";
  * Antes vivía duplicada como BASE_URL en layout, sitemap, robots, el schema y
  * las landings de ruta: cada cambio de dominio se olvidaba en alguno y quedaban
  * canonical/OG/sitemap apuntando a distintos lados. El fallback es el dominio
- * real del cliente (retanaservices.com); shuttletamarindo.com es de un tercero
- * y está en parking, así que apuntarle era regalarle señales. En producción lo
- * pisa NEXT_PUBLIC_SITE_URL.
+ * real del cliente (retanatransfers.com; el anterior, retanaservices.com,
+ * redirige aquí). shuttletamarindo.com es de un tercero y está en parking, así
+ * que apuntarle era regalarle señales. En producción lo pisa
+ * NEXT_PUBLIC_SITE_URL.
  */
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://retanaservices.com";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://retanatransfers.com";
 
 /** Sello circular. Artwork verde oscuro sobre crema: necesita fondo claro. */
 export const BRAND_LOGO = "/logo-retana-services-tamarindo.png";

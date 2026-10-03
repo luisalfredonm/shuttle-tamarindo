@@ -15,7 +15,7 @@
 import { CR_UTC_OFFSET_HOURS } from '../schedules/schedule-time';
 
 export const BRAND = {
-  name: 'Retana Services Tamarindo',
+  name: 'Retana Transfers Tamarindo',
   tagline: 'Private & shared airport transfers · Guanacaste, Costa Rica',
   since: '2015',
   phone: '+50683183226',

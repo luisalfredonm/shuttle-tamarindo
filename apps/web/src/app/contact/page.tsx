@@ -7,7 +7,7 @@ import { SUPPORT_EMAIL } from "@/components/CancellationPolicy";
 export const metadata: Metadata = {
   title: "Contact Us — Shuttle Bookings & Support",
   description:
-    "Get in touch with Retana Services Tamarindo. Reach us on WhatsApp at +506 8318 3226 or by email for shuttle bookings, changes and support in Guanacaste, Costa Rica.",
+    "Get in touch with Retana Transfers Tamarindo. Reach us on WhatsApp at +506 8318 3226 or by email for shuttle bookings, changes and support in Guanacaste, Costa Rica.",
   alternates: { canonical: "/contact" },
 };
 

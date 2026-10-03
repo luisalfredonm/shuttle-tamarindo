@@ -37,7 +37,7 @@ export default function WhyUs() {
               marginBottom: "0.6rem",
             }}
           >
-            Why travel with Retana Services
+            Why travel with Retana Transfers
           </h2>
           <p
             style={{

@@ -1,6 +1,7 @@
 import {
   BRAND_LOGO,
   BRAND_FOUNDED,
+  BRAND_FORMER_NAME,
   BRAND_NAME,
   BRAND_PHONE,
   SITE_URL as BASE_URL,
@@ -49,6 +50,7 @@ export default function HomeSchema({ data, faq }: { data: HomeData; faq: FaqEntr
         "@type": ["LocalBusiness", "TransportationAgency", "Organization"],
         "@id": BASE_URL + "/#organization",
         name: BRAND_NAME,
+        alternateName: BRAND_FORMER_NAME,
         description: "Tamarindo shuttle and private transfers from Liberia Airport (LIR), family-run since 2015.",
         url: BASE_URL,
         foundingDate: BRAND_FOUNDED,

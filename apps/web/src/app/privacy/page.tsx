@@ -6,7 +6,7 @@ import { SUPPORT_EMAIL } from "@/components/CancellationPolicy";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "How Retana Services Tamarindo collects, uses and protects your personal data when you book a shuttle or create an account.",
+    "How Retana Transfers Tamarindo collects, uses and protects your personal data when you book a shuttle or create an account.",
   alternates: { canonical: "/privacy" },
   robots: { index: true, follow: true },
 };

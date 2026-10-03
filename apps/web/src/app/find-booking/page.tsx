@@ -4,7 +4,7 @@ import FindBookingForm from "@/components/FindBookingForm";
 export const metadata: Metadata = {
   title: "Find My Booking",
   description:
-    "Lost your confirmation email? Get a link to your Retana Services Tamarindo booking sent to your inbox.",
+    "Lost your confirmation email? Get a link to your Retana Transfers Tamarindo booking sent to your inbox.",
   // Utilidad para clientes, no una pagina de captacion: no aporta nada en
   // buscadores y ensuciaria el indice
   robots: { index: false, follow: true },

@@ -3,7 +3,7 @@ import RegisterForm from "@/components/RegisterForm";
 
 export const metadata: Metadata = {
   title: "Create Account",
-  description: "Create your Retana Services Tamarindo account to manage bookings.",
+  description: "Create your Retana Transfers Tamarindo account to manage bookings.",
   robots: { index: false, follow: true },
   // Canonical propio: con el de la home heredado, el noindex quedaba mezclado
   // con una señal que decía "esta página es la home"

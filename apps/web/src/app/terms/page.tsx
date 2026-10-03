@@ -7,7 +7,7 @@ import { SUPPORT_EMAIL } from "@/components/CancellationPolicy";
 export const metadata: Metadata = {
   title: "Terms of Service",
   description:
-    "The terms and conditions that govern bookings and transfers with Retana Services Tamarindo in Guanacaste, Costa Rica.",
+    "The terms and conditions that govern bookings and transfers with Retana Transfers Tamarindo in Guanacaste, Costa Rica.",
   alternates: { canonical: "/terms" },
   robots: { index: true, follow: true },
 };

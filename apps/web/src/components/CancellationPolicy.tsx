@@ -1,6 +1,6 @@
 import { BRAND_NAME } from "@/lib/brand";
 
-export const SUPPORT_EMAIL = "info@retanaservicestamarindo.com";
+export const SUPPORT_EMAIL = "reservas@retanatransfers.com";
 
 /**
  * Texto legal compartido entre el paso de firma en la reserva y la página

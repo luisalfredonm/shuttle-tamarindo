@@ -37,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     // absolute: el template "%s | …" del layout no se aplica a la home (mismo
     // segmento), así que la marca va escrita acá. ~55 caracteres, no se corta.
-    title: { absolute: `${TITLE} | Retana Services` },
+    title: { absolute: `${TITLE} | Retana Transfers` },
     description,
     openGraph: {
       type: "website",

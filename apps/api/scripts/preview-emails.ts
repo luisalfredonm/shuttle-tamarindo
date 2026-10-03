@@ -16,7 +16,7 @@ const OUT = path.resolve(__dirname, '..', '.email-preview');
 const config = {
   get: (key: string) =>
     ({
-      SITE_URL: process.env.SITE_URL || 'https://retanaservices.com',
+      SITE_URL: process.env.SITE_URL || 'https://retanatransfers.com',
       RESEND_API_KEY: 're_preview_key',
       EMAIL_FROM: 'preview@example.com',
     })[key],

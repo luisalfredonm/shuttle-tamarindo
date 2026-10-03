@@ -60,7 +60,7 @@ export default function LoginPage() {
             boxShadow: "0 2px 8px rgba(26,107,74,0.35)",
           }}>S</div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text)" }}>Retana Services Tamarindo</div>
+            <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text)" }}>Retana Transfers Tamarindo</div>
             <div style={{ fontSize: "0.72rem", color: "var(--text-3)", marginTop: "1px" }}>Admin Panel</div>
           </div>
         </div>

@@ -10,6 +10,7 @@ import {
   PaymentMethod,
 } from "@/lib/api";
 import BookingLegs from "./BookingLegs";
+import { SUPPORT_EMAIL } from "./CancellationPolicy";
 
 declare global {
   interface Window {
@@ -465,8 +466,7 @@ export default function PaymentForm() {
               }}
             >
               Online payment is unavailable right now. Your seats are held —
-              write to us at reservas@retanaservices.com to confirm this
-              booking.
+              write to us at {SUPPORT_EMAIL} to confirm this booking.
             </div>
           )}
 

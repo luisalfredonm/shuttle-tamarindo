@@ -32,11 +32,11 @@ export const metadata: Metadata = {
   // Las demas paginas ponen su titulo ("Bookings", "Trips") y el template les
   // agrega la marca.
   title: {
-    default: "Retana Services Tamarindo · Admin",
-    template: "%s · Retana Services Tamarindo",
+    default: "Retana Transfers Tamarindo · Admin",
+    template: "%s · Retana Transfers Tamarindo",
   },
   description: "Panel interno de reservas, rutas y horarios.",
-  // El panel es privado: sin esto Google puede indexar admin.retanaservices.com
+  // El panel es privado: sin esto Google puede indexar admin.retanatransfers.com
   // y dejar las URLs internas a la vista en los resultados de busqueda.
   robots: {
     index: false,

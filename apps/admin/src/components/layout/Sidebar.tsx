@@ -14,7 +14,7 @@ const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 const SITE_URL = process.env.NODE_ENV === 'production'
   ? (configuredSiteUrl && !configuredSiteUrl.startsWith('http://localhost')
     ? configuredSiteUrl
-    : 'https://retanaservices.com/')
+    : 'https://retanatransfers.com/')
   : configuredSiteUrl || 'http://localhost:3000';
 
 const NAV = [
@@ -68,7 +68,7 @@ export default function Sidebar() {
           <div className="mobile-topbar-logo">S</div>
           <div style={{ minWidth: 0 }}>
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.66rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              Retana Services
+              Retana Transfers
             </div>
             <div style={{ color: '#fff', fontSize: '0.95rem', fontWeight: 650, lineHeight: 1.2 }}>
               {NAV.find((n) => pathname.startsWith(n.href))?.label ?? 'Admin'}
@@ -130,7 +130,7 @@ export default function Sidebar() {
               boxShadow: '0 2px 8px rgba(26,107,74,0.4)',
             }}>S</div>
             <div className="sidebar-brand-text">
-              <div style={{ color: '#fff', fontSize: '0.88rem', fontWeight: 600, lineHeight: 1.2 }}>Retana Services Tamarindo</div>
+              <div style={{ color: '#fff', fontSize: '0.88rem', fontWeight: 600, lineHeight: 1.2 }}>Retana Transfers Tamarindo</div>
               <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.68rem', marginTop: '2px' }}>Admin Panel</div>
             </div>
           </div>

@@ -54,7 +54,7 @@ export default function Hero({ sharedFrom, privateFrom }: Props) {
     >
       <Image
         src={HERO_IMAGE}
-        alt="Retana Services Tamarindo passenger van parked on the black sand of a Guanacaste beach at sunset, palm trees and the Pacific behind it"
+        alt="Retana Transfers Tamarindo passenger van parked on the black sand of a Guanacaste beach at sunset, palm trees and the Pacific behind it"
         fill
         // Es el elemento LCP de la home: se precarga desde el <head>.
         // En Next 16 `priority` quedó deprecado en favor de `preload`.

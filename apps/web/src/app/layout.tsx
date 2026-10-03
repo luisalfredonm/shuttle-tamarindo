@@ -29,14 +29,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
     default:
-      "Retana Services Tamarindo | Guaranteed Transfers in Guanacaste, Costa Rica",
-    template: "%s | Retana Services Tamarindo",
+      "Retana Transfers Tamarindo | Guaranteed Transfers in Guanacaste, Costa Rica",
+    template: "%s | Retana Transfers Tamarindo",
   },
   description:
     "Shared shuttles and private transfers from Tamarindo to Liberia Airport and across Costa Rica. Shared seats from $30 per person; private transfers any time.",
-  authors: [{ name: "Retana Services Tamarindo", url: BASE_URL }],
-  creator: "Retana Services Tamarindo",
-  publisher: "Retana Services Tamarindo",
+  authors: [{ name: "Retana Transfers Tamarindo", url: BASE_URL }],
+  creator: "Retana Transfers Tamarindo",
+  publisher: "Retana Transfers Tamarindo",
   robots: {
     index: true,
     follow: true,
@@ -52,8 +52,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: BASE_URL,
-    siteName: "Retana Services Tamarindo",
-    title: "Retana Services Tamarindo | Guaranteed Transfers in Guanacaste",
+    siteName: "Retana Transfers Tamarindo",
+    title: "Retana Transfers Tamarindo | Guaranteed Transfers in Guanacaste",
     description:
       "Shared shuttles and private transfers from Tamarindo to Liberia Airport. Shared seats from $30 per person, private transfers any time. Book online in 2 minutes.",
     images: [
@@ -63,13 +63,13 @@ export const metadata: Metadata = {
         url: BASE_URL + BRAND_HERO_IMAGE,
         width: 1200,
         height: 630,
-        alt: "Retana Services Tamarindo — Guaranteed Transfers in Guanacaste",
+        alt: "Retana Transfers Tamarindo — Guaranteed Transfers in Guanacaste",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Retana Services Tamarindo | Guaranteed Transfers in Guanacaste",
+    title: "Retana Transfers Tamarindo | Guaranteed Transfers in Guanacaste",
     description:
       "Shared shuttles and private transfers in Guanacaste. Shared seats from $30 per person, private transfers any time.",
     images: [BASE_URL + BRAND_HERO_IMAGE],
