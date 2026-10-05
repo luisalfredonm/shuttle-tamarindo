@@ -30,7 +30,7 @@ más lo compre con el nombre "Retana".
 - [x] Comprar `retanatransfers.com`
 - [x] Confirmar que cambia también la marca
 - [ ] Renovación automática en los dos dominios
-- [ ] **Logo nuevo**: el actual tiene "Retana Services" dentro de la imagen.
+- [x] **Logo nuevo**: el actual tiene "Retana Services" dentro de la imagen.
   Hacen falta el sello grande (hoy 1320×1065), la versión de 180 px del panel y
   los íconos de 192 y 512 px (web y admin). Ideal: el original en SVG
 
@@ -47,7 +47,7 @@ más lo compre con el nombre "Retana".
 - [ ] Comprobar: `https://api.retanatransfers.com/api/health` responde y `retanatransfers.com` abre el sitio
 
 ### Fase 2 — El cambio
-- [ ] Logo nuevo en el repo (renombrar `logo-retana-services-tamarindo.png` y actualizar `BRAND_LOGO`, `ADMIN_ICON` y `BRAND.logoPath`)
+- [x] Logo nuevo en el repo: `logo-retana-transfers-tamarindo.png` (web y admin), `BRAND_LOGO`, `ADMIN_ICON` y `BRAND.logoPath` actualizados; favicon con la van sola
 - [x] Commit y push del código — `9262348`, 02/10 (logo viejo provisional)
 - [x] Vercel web y admin: `NEXT_PUBLIC_SITE_URL=https://retanatransfers.com` y `NEXT_PUBLIC_API_URL=https://api.retanatransfers.com/api` (admin: también `API_URL`), y **Redeploy** — comprobado: canonical, og:url, sitemap y preconnect ya usan el dominio nuevo
 - [ ] Render: `SITE_URL=https://retanatransfers.com` y `EMAIL_FROM=reservas@retanatransfers.com`

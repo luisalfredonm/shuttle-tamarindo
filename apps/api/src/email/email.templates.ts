@@ -20,7 +20,7 @@ export const BRAND = {
   since: '2015',
   phone: '+50683183226',
   whatsapp: '50683183226',
-  logoPath: '/logo-retana-services-tamarindo.png',
+  logoPath: '/logo-retana-transfers-tamarindo.png',
 } as const;
 
 /** Paleta, igual a la de globals.css del sitio */

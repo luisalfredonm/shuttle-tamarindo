@@ -23,8 +23,8 @@ export const BRAND_FORMER_NAME = "Retana Services Tamarindo";
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://retanatransfers.com";
 
-/** Sello circular. Artwork verde oscuro sobre crema: necesita fondo claro. */
-export const BRAND_LOGO = "/logo-retana-services-tamarindo.png";
+/** Sello circular con interior blanco; transparente fuera del anillo. */
+export const BRAND_LOGO = "/logo-retana-transfers-tamarindo.png";
 
 /** Del propio logo ("since 2015"). Alimenta foundingDate en el schema. */
 export const BRAND_FOUNDED = "2015";

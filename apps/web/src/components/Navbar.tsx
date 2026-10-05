@@ -64,15 +64,15 @@ export default function Navbar() {
             gap: "10px",
           }}
         >
-          {/* El logo es artwork oscuro sobre crema: el disco le da el fondo
-              claro que necesita para leerse sobre la barra verde */}
+          {/* Disco blanco: rellena las esquinas transparentes del sello
+              (es levemente ovalado) para que no asome la barra verde */}
           <span
             style={{
               width: "38px",
               height: "38px",
               flexShrink: 0,
               borderRadius: "50%",
-              background: "var(--brand-cream)",
+              background: "#fff",
               display: "block",
               position: "relative",
               overflow: "hidden",

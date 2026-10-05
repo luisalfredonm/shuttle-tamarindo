@@ -90,11 +90,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Apuntan al logo, que existe: /favicon.ico y /apple-touch-icon.png
-            estaban referenciados pero nunca se subieron, y devolvian 404 en
-            cada carga. Conviene generar los tamanos propios mas adelante. */}
-        <link rel="icon" href={BRAND_LOGO} type="image/png" />
-        <link rel="apple-touch-icon" href={BRAND_LOGO} />
+        {/* El favicon usa solo la van: a 16-48px el texto del sello no se lee */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon-48.png" type="image/png" sizes="48x48" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         {/* Solo las fuentes de la portada: el H1 (Playfair 600) es el elemento
             LCP de la home. Precargar más pesos le quitaría ancho de banda. */}

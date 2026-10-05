@@ -57,10 +57,10 @@ export default async function Footer() {
           {/* Brand */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
-              {/* Disco crema: el logo es artwork oscuro y necesita fondo claro */}
+              {/* Disco blanco: rellena las esquinas transparentes del sello */}
               <span style={{
                 width: '52px', height: '52px', flexShrink: 0,
-                borderRadius: '50%', background: 'var(--brand-cream)',
+                borderRadius: '50%', background: '#fff',
                 display: 'block', position: 'relative', overflow: 'hidden',
               }}>
                 <Image

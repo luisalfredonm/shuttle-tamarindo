@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 /** Mismo sello que el sitio, reducido a 180px para no cargar el PNG de 660 KB */
-const ADMIN_ICON = "/logo-retana-services-tamarindo.png";
+const ADMIN_ICON = "/logo-retana-transfers-tamarindo.png";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
