@@ -96,3 +96,30 @@ body {
   outline-offset: 3px;
 }
 
+
+/* Hero: escrim de contraste. Ver Hero.tsx */
+.hero-scrim {
+  background: linear-gradient(
+    to top,
+    rgba(13, 31, 23, 0.94) 0%,
+    rgba(13, 31, 23, 0.82) 20%,
+    rgba(13, 31, 23, 0.42) 45%,
+    rgba(13, 31, 23, 0.1) 68%,
+    rgba(13, 31, 23, 0) 100%
+  );
+}
+
+/* En el teléfono el bloque de texto llega casi hasta arriba y el título queda
+   sobre la ventana clara de la van: se oscurece toda la foto, más abajo */
+@media (max-width: 768px) {
+  .hero-scrim {
+    background: linear-gradient(
+      to top,
+      rgba(13, 31, 23, 0.95) 0%,
+      rgba(13, 31, 23, 0.86) 30%,
+      rgba(13, 31, 23, 0.7) 60%,
+      rgba(13, 31, 23, 0.5) 85%,
+      rgba(13, 31, 23, 0.35) 100%
+    );
+  }
+}

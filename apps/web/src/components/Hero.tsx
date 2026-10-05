@@ -74,16 +74,13 @@ export default function Hero({ sharedFrom, privateFrom }: Props) {
       />
 
       {/* Cama de contraste para el texto: densa abajo, sobre la arena oscura,
-          y transparente arriba para no apagar el cielo */}
+          y transparente arriba para no apagar el cielo. El degradado vive en
+          globals.css (.hero-scrim) porque en el teléfono cambia: ahí el texto
+          sube hasta la ventana de la van y necesita fondo también arriba. */}
       <div
         aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          zIndex: -1,
-          background:
-            "linear-gradient(to top, rgba(13,31,23,0.94) 0%, rgba(13,31,23,0.82) 20%, rgba(13,31,23,0.42) 45%, rgba(13,31,23,0.10) 68%, rgba(13,31,23,0) 100%)",
-        }}
+        className="hero-scrim"
+        style={{ position: "absolute", inset: 0, zIndex: -1 }}
       />
       {/* Refuerzo lateral: sostiene el texto cuando el sol cae a la izquierda */}
       <div
@@ -141,7 +138,16 @@ export default function Hero({ sharedFrom, privateFrom }: Props) {
         >
           Tamarindo Shuttle
           <br />
-          <span style={{ color: "var(--brand-gold)" }}>&amp; Private Transfers</span>
+          <span
+            style={{
+              color: "var(--brand-gold)",
+              // Halo oscuro y ceñido: el dorado tiene poco contraste contra
+              // los reflejos claros de la van
+              textShadow: "0 1px 2px rgba(0,0,0,0.55), 0 0 18px rgba(13,31,23,0.9)",
+            }}
+          >
+            &amp; Private Transfers
+          </span>
         </h1>
 
         <p
