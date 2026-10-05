@@ -16,7 +16,8 @@ import { daysPhrase, isEveryDay } from "@/lib/days";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
 import CancellationPolicy from "./CancellationPolicy";
-import TurnstileWidget from "./TurnstileWidget";
+import TurnstileWidget, { TURNSTILE_ENABLED } from "./TurnstileWidget";
+import { BRAND_WHATSAPP } from "@/lib/brand";
 
 /** Arma el ISO de una salida a partir de la fecha y la hora que eligió el cliente */
 function buildDepartureAt(day: string, time: string) {
@@ -220,6 +221,22 @@ export default function BookResults() {
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [captchaError, setCaptchaError] = useState(false);
+  const [captchaReset, setCaptchaReset] = useState(0);
+
+  // Sin sesión el servidor exige el token: no se deja reservar sin él, si no
+  // el cliente llena todo y recibe un rechazo que no entiende
+  const captchaPending = !user && TURNSTILE_ENABLED && !turnstileToken;
+
+  const handleToken = (token: string) => {
+    setTurnstileToken(token);
+    if (token) setCaptchaError(false);
+  };
+
+  const retryCaptcha = () => {
+    setCaptchaError(false);
+    setCaptchaReset((k) => k + 1);
+  };
 
   const guestReady =
     !!guestName.trim() &&
@@ -335,6 +352,7 @@ export default function BookResults() {
 
   const ready =
     (!!user || guestReady) &&
+    !captchaPending &&
     !!pickupAddress.trim() &&
     agreementChecked &&
     !!signatureName.trim() &&
@@ -398,6 +416,8 @@ export default function BookResults() {
     } catch (e: any) {
       setError(e.message || "Booking failed. Please try again.");
       setBooking(false);
+      // El servidor ya gastó ese token: sin uno nuevo, el reintento falla
+      if (!user && TURNSTILE_ENABLED) retryCaptcha();
     }
   }
 
@@ -955,7 +975,28 @@ export default function BookResults() {
                 </div>
               </div>
 
-              <TurnstileWidget onToken={setTurnstileToken} />
+              <TurnstileWidget
+                onToken={handleToken}
+                onError={() => setCaptchaError(true)}
+                resetKey={captchaReset}
+              />
+              {captchaError ? (
+                <p style={captchaNoteStyle} role="alert">
+                  We couldn&apos;t run the quick security check.{" "}
+                  <button type="button" onClick={retryCaptcha} style={captchaLinkStyle}>
+                    Try again
+                  </button>{" "}
+                  or{" "}
+                  <a href={`https://wa.me/${BRAND_WHATSAPP}`} target="_blank" rel="noopener noreferrer" style={captchaLinkStyle}>
+                    book on WhatsApp
+                  </a>
+                  .
+                </p>
+              ) : (
+                captchaPending && (
+                  <p style={captchaNoteStyle}>Running a quick security check…</p>
+                )
+              )}
             </section>
           )}
 
@@ -1212,6 +1253,24 @@ export default function BookResults() {
     </div>
   );
 }
+
+const captchaNoteStyle: React.CSSProperties = {
+  fontFamily: "DM Sans, sans-serif",
+  fontSize: "0.85rem",
+  color: "var(--brand-gray)",
+  marginTop: "0.6rem",
+  lineHeight: 1.5,
+};
+
+const captchaLinkStyle: React.CSSProperties = {
+  background: "none",
+  border: "none",
+  padding: 0,
+  font: "inherit",
+  color: "var(--brand-green)",
+  textDecoration: "underline",
+  cursor: "pointer",
+};
 
 const paxSelectStyle: React.CSSProperties = {
   padding: "6px 10px",
