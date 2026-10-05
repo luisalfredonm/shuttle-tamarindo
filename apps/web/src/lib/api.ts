@@ -71,6 +71,10 @@ export interface Booking {
   passengers: number;
   /** Infantes de 0 a 2 años: no pagan pero ocupan asiento */
   infants?: number;
+  /** Tarifa sin impuesto; totalAmount = subtotalAmount + taxAmount */
+  subtotalAmount?: number | string;
+  taxRate?: number | string;
+  taxAmount?: number | string;
   totalAmount: number;
   status: string;
   heldUntil: string;
@@ -276,11 +280,15 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
   }
 }
 
-/** Reglas del privado, iguales para todas las rutas. Se editan en el panel. */
+/** Reglas del privado e impuesto, iguales para todas las rutas. Se editan en el panel. */
 export interface PricingSettings {
   includedPassengers: number;
   extraPassengerPrice: number;
   vehicleCapacity: number;
+  /** IVA que se suma encima de la tarifa */
+  taxEnabled: boolean;
+  /** Porcentaje, ej. 13 = 13% */
+  taxRate: number;
 }
 
 /** Valores de la migración: se usan solo si la API no responde */
@@ -288,6 +296,8 @@ export const DEFAULT_PRICING: PricingSettings = {
   includedPassengers: 4,
   extraPassengerPrice: 20,
   vehicleCapacity: 10,
+  taxEnabled: false,
+  taxRate: 13,
 };
 
 /**

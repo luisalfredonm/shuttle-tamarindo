@@ -10,6 +10,7 @@ import {
   PaymentMethod,
 } from "@/lib/api";
 import BookingLegs from "./BookingLegs";
+import { formatMoney, taxRows } from "@/lib/private-price";
 import { SUPPORT_EMAIL } from "./CancellationPolicy";
 
 declare global {
@@ -357,6 +358,7 @@ export default function PaymentForm() {
           },
           { label: "Type", value: booking.type },
           { label: "Passengers", value: passengersLabel(booking) },
+          ...taxRows(booking),
         ].map((item) => (
           <div
             key={item.label}
@@ -406,7 +408,7 @@ export default function PaymentForm() {
               color: "var(--brand-green)",
             }}
           >
-            ${booking.totalAmount}
+            {formatMoney(Number(booking.totalAmount))}
           </span>
         </div>
       </div>

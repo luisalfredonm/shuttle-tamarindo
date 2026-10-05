@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { bookingFetch, passengersLabel } from "@/lib/api";
 import BookingLegs from "./BookingLegs";
+import { formatMoney, taxRows } from "@/lib/private-price";
 
 export default function ConfirmationDetail() {
   const params = useSearchParams();
@@ -167,7 +168,8 @@ export default function ConfirmationDetail() {
             },
             { label: "Passengers", value: passengersLabel(booking) },
             { label: "Type", value: booking.type },
-            { label: "Total", value: `$${booking.totalAmount}` },
+            ...taxRows(booking),
+            { label: "Total", value: formatMoney(Number(booking.totalAmount)) },
           ].map((item) => (
             <div key={item.label}>
               <div
@@ -219,7 +221,7 @@ export default function ConfirmationDetail() {
             fontSize: "1rem",
           }}
         >
-          Complete Payment → ${booking.totalAmount} USD
+          Complete Payment → {formatMoney(Number(booking.totalAmount))} USD
         </button>
         <Link
           href="/"

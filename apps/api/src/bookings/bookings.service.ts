@@ -20,6 +20,7 @@ import { EmailService } from '../email/email.service';
 import { LookupBookingsDto } from './dto/lookup-bookings.dto';
 import { PricingService } from '../pricing/pricing.service';
 import { privateTotal, splitInTwo } from '../pricing/private-price';
+import { applyTax } from '../pricing/tax';
 
 /**
  * Nota de vocabulario: de cara al cliente una "booking" es la compra entera,
@@ -66,7 +67,8 @@ interface ReserveRequest extends LegsRequest {
   /**
    * Reserva cargada por el admin: queda CONFIRMED sin hold, puede abrir un
    * compartido por debajo del minimo (el admin decide si la salida corre) y
-   * puede llevar un total acordado distinto del calculado.
+   * puede llevar un total acordado distinto del calculado (antes de
+   * impuesto).
    */
   manual?: { totalAmount?: number };
 }
@@ -592,7 +594,12 @@ export class BookingsService {
         : [req.manual.totalAmount, 0];
     }
 
-    const totalAmount = outboundAmount + returnAmount;
+    // Los tramos guardan la tarifa sin impuesto; el impuesto va sobre la
+    // reserva entera. Tambien en las manuales: el admin carga el subtotal.
+    const { subtotal, taxRate, taxAmount, total } = applyTax(
+      outboundAmount + returnAmount,
+      settings,
+    );
 
     let heldUntil: Date | null = null;
     if (!isManual) {
@@ -611,7 +618,10 @@ export class BookingsService {
         tripType: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
         passengers: req.passengers,
         infants,
-        totalAmount,
+        subtotalAmount: subtotal,
+        taxRate,
+        taxAmount,
+        totalAmount: total,
         heldUntil,
         notes: req.notes,
         flightNumber: req.flightNumber,

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import PageHeader from "./ui/PageHeader";
 import Stepper from "./ui/Stepper";
+import Switch from "./ui/Switch";
 import Toast from "./ui/Toast";
 import ui from "./ui/ui.module.css";
 
@@ -11,9 +12,11 @@ type Pricing = {
   includedPassengers: number;
   extraPassengerPrice: number;
   vehicleCapacity: number;
+  taxEnabled: boolean;
+  taxRate: number;
 };
 
-type Form = Record<keyof Pricing, string>;
+type Form = Record<Exclude<keyof Pricing, "taxEnabled">, string> & { taxEnabled: boolean };
 
 export default function PricingContent() {
   const [form, setForm] = useState<Form | null>(null);
@@ -29,6 +32,8 @@ export default function PricingContent() {
       includedPassengers: String(p.includedPassengers),
       extraPassengerPrice: String(p.extraPassengerPrice),
       vehicleCapacity: String(p.vehicleCapacity),
+      taxEnabled: p.taxEnabled,
+      taxRate: String(p.taxRate),
     };
     setForm(f);
     setSaved(f);
@@ -40,7 +45,7 @@ export default function PricingContent() {
       .catch(() => setError("Could not load pricing settings"));
   }, []);
 
-  const set = (key: keyof Pricing) => (value: string) => setForm((f) => f && { ...f, [key]: value });
+  const set = (key: Exclude<keyof Form, "taxEnabled">) => (value: string) => setForm((f) => f && { ...f, [key]: value });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +59,8 @@ export default function PricingContent() {
           includedPassengers: Number(form.includedPassengers),
           extraPassengerPrice: Number(form.extraPassengerPrice),
           vehicleCapacity: Number(form.vehicleCapacity),
+          taxEnabled: form.taxEnabled,
+          taxRate: Number(form.taxRate),
         }),
       });
       fill(updated);
@@ -68,12 +75,16 @@ export default function PricingContent() {
   const dirty = !!form && !!saved && JSON.stringify(form) !== JSON.stringify(saved);
   const included = Number(form?.includedPassengers) || 0;
   const extra = Number(form?.extraPassengerPrice) || 0;
+  const taxRate = form?.taxEnabled ? Number(form.taxRate) || 0 : 0;
+  const exampleSubtotal = 100 + 2 * extra;
+  // Mismo redondeo que el API: centavos sobre el subtotal de la reserva
+  const exampleTax = Math.round(exampleSubtotal * taxRate) / 100;
 
   return (
     <div>
       <PageHeader
         title="Pricing"
-        subtitle="Private transfer rules, the same for every route. Shared shuttle prices are set per schedule."
+        subtitle="Private transfer rules and tax, the same for every route. Shared shuttle prices are set per schedule."
       />
 
       {!form && !error && <div className={ui.skeleton} style={{ height: 420 }} aria-hidden="true" />}
@@ -109,13 +120,37 @@ export default function PricingContent() {
               </div>
             </section>
 
+            <section className={`${ui.card} ${ui.cardPad}`}>
+              <div className={ui.field}>
+                <span className={ui.label}>Tax (IVA)</span>
+                <Switch
+                  checked={form.taxEnabled}
+                  onChange={() => setForm((f) => f && { ...f, taxEnabled: !f.taxEnabled })}
+                  label={form.taxEnabled ? "Charging tax on new bookings" : "Not charging tax"}
+                />
+                {form.taxEnabled && (
+                  <div className={ui.affix} style={{ minHeight: 52, maxWidth: 200 }}>
+                    <input id="taxRate" aria-label="Tax rate" inputMode="decimal" required value={form.taxRate} onChange={(e) => set("taxRate")(e.target.value.replace(/[^\d.]/g, ""))} style={{ fontSize: "1.25rem", fontWeight: 700 }} />
+                    <span>%</span>
+                  </div>
+                )}
+                <span className={ui.hint}>Added on top of every price, shared and private, including bookings you add by hand. Past bookings keep the tax they were charged.</span>
+              </div>
+            </section>
+
             {/* Cuenta de ejemplo con los valores del formulario, antes de guardar */}
             <section className={`${ui.notice} ${ui.noticeInfo}`} style={{ margin: 0, display: "block" }}>
               <div className={ui.eyebrow} style={{ color: "inherit", opacity: 0.75, marginBottom: 4 }}>Example</div>
               A route priced at $100 with {included + 2} passengers costs{" "}
               <strong>
-                $100 + 2 × ${extra} = ${100 + 2 * extra}
+                $100 + 2 × ${extra} = ${exampleSubtotal}
               </strong>
+              {taxRate > 0 && (
+                <>
+                  {" "}plus {taxRate}% tax (${exampleTax.toFixed(2)}):{" "}
+                  <strong>${(exampleSubtotal + exampleTax).toFixed(2)}</strong>
+                </>
+              )}
               .
             </section>
           </div>

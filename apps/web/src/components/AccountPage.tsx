@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
 import { authFetch, outboundTrip, passengersLabel } from '@/lib/api';
 import { BRAND_WHATSAPP } from '@/lib/brand';
+import { formatMoney } from '@/lib/private-price';
 
 interface Leg {
   direction: 'OUTBOUND' | 'RETURN';
@@ -187,7 +188,7 @@ function BookingCard({ booking }: { booking: Booking }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '0.7rem', color: 'var(--brand-gray)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Total</div>
-            <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', fontWeight: 700, color: 'var(--brand-green)' }}>${booking.totalAmount}</div>
+            <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', fontWeight: 700, color: 'var(--brand-green)' }}>{formatMoney(Number(booking.totalAmount))}</div>
           </div>
 
           {booking.status === 'PENDING' && (

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { bookingFetch, outboundTrip, passengersLabel } from '@/lib/api';
 import { BRAND_WHATSAPP } from '@/lib/brand';
 import BookingLegs from './BookingLegs';
+import { formatMoney } from '@/lib/private-price';
 
 /** Cobros en el sitio de las reservas que carga el equipo desde el panel */
 const PAY_ON_SITE: Record<string, string> = { CASH: 'cash', CARD: 'card', SINPE: 'SINPE Móvil' };
@@ -135,11 +136,11 @@ export default function BookingSuccess() {
             { label: 'Passengers',    value: passengersLabel(booking) },
             ...(payOnSite
               ? [
-                  { label: 'To Pay On Site', value: `$${booking.totalAmount} USD`, green: true },
+                  { label: 'To Pay On Site', value: `${formatMoney(Number(booking.totalAmount))} USD`, green: true },
                   { label: 'Payment',        value: payOnSite },
                 ]
               : [
-                  { label: 'Amount Paid',   value: `$${booking.totalAmount} USD`, green: true },
+                  { label: 'Amount Paid',   value: `${formatMoney(Number(booking.totalAmount))} USD`, green: true },
                   { label: 'Transaction',   value: payment?.externalId?.slice(0, 16) || '—' },
                 ]),
           ].map(item => (

@@ -26,7 +26,13 @@ type Trip = {
   status: string;
 };
 
-type Pricing = { includedPassengers: number; extraPassengerPrice: number | string; vehicleCapacity: number };
+type Pricing = {
+  includedPassengers: number;
+  extraPassengerPrice: number | string;
+  vehicleCapacity: number;
+  taxEnabled: boolean;
+  taxRate: number | string;
+};
 
 type PayMethod = "CASH" | "CARD" | "SINPE";
 
@@ -140,7 +146,11 @@ export default function NewBookingSheet({ onClose, onCreated }: Props) {
     return Number(base) + extra;
   }, [route, type, roundTrip, outTrip, backTrip, pax, pricing]);
 
-  const total = customTotal !== "" ? Number(customTotal) : systemTotal;
+  // Lo que se escribe es la tarifa; el impuesto se suma encima como en la web
+  const subtotal = customTotal !== "" ? Number(customTotal) : systemTotal;
+  const taxRate = pricing?.taxEnabled ? Number(pricing.taxRate) : 0;
+  const tax = subtotal !== null ? Math.round(subtotal * taxRate) / 100 : 0;
+  const total = subtotal !== null ? subtotal + tax : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,7 +162,7 @@ export default function NewBookingSheet({ onClose, onCreated }: Props) {
     if (type === "SHARED" && roundTrip && !backTrip) return setError("Choose the return departure.");
     if (type === "PRIVATE" && !time) return setError("Set the pickup time.");
     if (type === "PRIVATE" && roundTrip && !returnTime) return setError("Set the return pickup time.");
-    if (total === null || !Number.isFinite(total)) return setError("This route has no price for that option. Type the agreed total.");
+    if (total === null || !Number.isFinite(total)) return setError("This route has no price for that option. Type the agreed price.");
 
     const body = {
       type,
@@ -314,7 +324,7 @@ export default function NewBookingSheet({ onClose, onCreated }: Props) {
             ))}
           </div>
           <div className={ui.field}>
-            <label className={ui.label} htmlFor="nb-total">Total to collect</label>
+            <label className={ui.label} htmlFor="nb-total">{taxRate > 0 ? "Price before tax" : "Total to collect"}</label>
             <div className={ui.affix}>
               <span>$</span>
               <input
@@ -329,6 +339,11 @@ export default function NewBookingSheet({ onClose, onCreated }: Props) {
               {systemTotal !== null
                 ? `Regular price: ${money(systemTotal)}. Leave it empty to charge that, or type a special price.`
                 : "Pick the route and departure to see the regular price."}
+              {taxRate > 0 && subtotal !== null && Number.isFinite(subtotal) && (
+                <>
+                  {" "}Plus {taxRate}% tax ({money(tax)}): <strong>{money(total!)} to collect</strong>.
+                </>
+              )}
             </p>
           </div>
         </fieldset>

@@ -33,6 +33,9 @@ type Booking = {
   passengers: number;
   infants?: number;
   totalAmount: number;
+  subtotalAmount?: number | string;
+  taxRate?: number | string;
+  taxAmount?: number | string;
   createdAt: string;
   notes?: string;
   flightNumber?: string;
@@ -258,13 +261,19 @@ function BookingSheet({ booking: b, onClose, onCancel }: { booking: Booking; onC
             <Fact label="Route" value={`${leg.trip?.route?.origin} → ${leg.trip?.route?.destination}`} />
             <Fact label="Departure" value={`${dayLabel(leg.trip?.departureAt)} · ${time(leg.trip?.departureAt)}`} />
             <Fact label="Seats" value={String(leg.passengers)} />
-            <Fact label="Leg amount" value={money(leg.amount)} />
+            <Fact label={Number(b.taxAmount) > 0 ? "Leg amount (before tax)" : "Leg amount"} value={money(leg.amount)} />
           </DetailCard>
         ))}
 
         <DetailCard title="Booking">
           <Fact label="Passengers" value={String(b.passengers)} />
           {!!b.infants && <Fact label="Infants (0–2)" value={String(b.infants)} />}
+          {Number(b.taxAmount) > 0 && (
+            <>
+              <Fact label="Subtotal" value={money(b.subtotalAmount)} />
+              <Fact label={`Tax (IVA ${Number(b.taxRate)}%)`} value={money(b.taxAmount)} />
+            </>
+          )}
           <Fact label="Total" value={<span className={ui.money}>{money(b.totalAmount)}</span>} />
           <Fact label="Created" value={new Date(b.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} />
         </DetailCard>

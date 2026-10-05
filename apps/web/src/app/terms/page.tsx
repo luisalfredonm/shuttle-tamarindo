@@ -3,6 +3,8 @@ import Link from "next/link";
 import ContentPage, { contentStyles as s } from "@/components/ContentPage";
 import { BRAND_NAME } from "@/lib/brand";
 import { SUPPORT_EMAIL } from "@/components/CancellationPolicy";
+import { getPricingCached } from "@/lib/api";
+import { taxPolicyLine } from "@/lib/private-price";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -14,7 +16,8 @@ export const metadata: Metadata = {
 
 const UPDATED = "September 15, 2026";
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const taxLine = taxPolicyLine(await getPricingCached());
   return (
     <ContentPage
       title="Terms of Service"
@@ -32,10 +35,7 @@ export default function TermsPage() {
       <ul style={s.ul}>
         <li>Prices are shown per person (shared) or per vehicle (private).</li>
         <li>Rates are net rates and are payable at the time of booking.</li>
-        <li>
-          Card payments may be subject to an additional tax/fee, shown before you
-          confirm.
-        </li>
+        {taxLine && <li>{taxLine}</li>}
       </ul>
 
       <h2 style={s.h2}>3. Cancellations &amp; no-shows</h2>

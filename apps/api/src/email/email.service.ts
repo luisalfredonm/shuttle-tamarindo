@@ -20,6 +20,7 @@ import {
   sectionTitle,
   serviceLabel,
   spacer,
+  taxBreakdown,
   totalPanel,
 } from './email.templates';
 
@@ -43,7 +44,12 @@ export interface BookingEmailData {
   /** Infantes 0–2: no pagan pero el conductor tiene que llevar asiento */
   infants?: number;
   type: string;
+  /** Total cobrado, impuesto incluido */
   amount: number;
+  /** Desglose; sin impuesto (taxAmount 0) el panel muestra solo el total */
+  subtotal?: number;
+  taxRate?: number;
+  taxAmount?: number;
   transactionId?: string;
   /** Presente cuando no se cobro en linea: se paga el dia del viaje */
   payOnSite?: PayOnSiteMethod;
@@ -401,11 +407,15 @@ export class EmailService {
    * reserva que se cobra en el sitio dice cuanto y como se paga ese dia.
    */
   private paidPanel(data: BookingEmailData): string {
-    return data.payOnSite
+    const breakdown =
+      data.taxAmount && data.subtotal !== undefined
+        ? taxBreakdown(data.subtotal, data.taxRate ?? 0, data.taxAmount)
+        : '';
+    return breakdown + (data.payOnSite
       ? totalPanel(
           data.amount,
           `To pay on site · ${PAY_ON_SITE_LABEL[data.payOnSite]}`,
         )
-      : totalPanel(data.amount, 'Total paid');
+      : totalPanel(data.amount, 'Total paid'));
   }
 }

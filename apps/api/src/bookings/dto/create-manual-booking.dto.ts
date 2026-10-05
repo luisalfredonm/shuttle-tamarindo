@@ -95,8 +95,9 @@ export class CreateManualBookingDto {
   paymentMethod: PayOnSiteMethodEnum;
 
   /**
-   * Total acordado con el cliente, si difiere del que calcula el sistema
-   * (un descuento, un precio especial). Vacio = precio normal.
+   * Tarifa acordada con el cliente, si difiere de la que calcula el sistema
+   * (un descuento, un precio especial). Vacio = precio normal. Es antes de
+   * impuesto: si esta activo, se suma encima.
    */
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })

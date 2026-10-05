@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CancellationPolicy from "@/components/CancellationPolicy";
+import { getPricingCached } from "@/lib/api";
 
 export const metadata = {
   title: "Cancellation Policy — Retana Transfers Tamarindo",
@@ -10,7 +11,8 @@ export const metadata = {
   alternates: { canonical: "/cancellation" },
 };
 
-export default function CancellationPage() {
+export default async function CancellationPage() {
+  const pricing = await getPricingCached();
   return (
     <main
       style={{
@@ -43,7 +45,7 @@ export default function CancellationPage() {
             border: "1px solid #e8e4dc",
           }}
         >
-          <CancellationPolicy />
+          <CancellationPolicy pricing={pricing} />
         </div>
       </div>
     </main>

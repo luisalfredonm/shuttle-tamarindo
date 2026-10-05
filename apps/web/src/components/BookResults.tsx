@@ -11,7 +11,7 @@ import {
   Trip,
   Route,
 } from "@/lib/api";
-import { privateQuote, range } from "@/lib/private-price";
+import { formatMoney, privateQuote, range, withTax } from "@/lib/private-price";
 import { daysPhrase, isEveryDay } from "@/lib/days";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -325,10 +325,13 @@ export default function BookResults() {
 
   // El total va con seatsToBook, que es lo que la API va a cobrar en ambos
   // tramos, y no con los asientos de cada tarjeta por separado
-  const total = isPrivate
+  const subtotal = isPrivate
     ? (quote?.total ?? 0)
     : (pickedOut ? Number(pickedOut.priceShared) * seatsToBook : 0) +
       (pickedIn ? Number(pickedIn.priceShared) * seatsToBook : 0);
+  // El impuesto va sobre la reserva entera, igual que lo cobra la API
+  const taxed = withTax(subtotal, pricing);
+  const total = taxed.total;
 
   const ready =
     (!!user || guestReady) &&
@@ -1025,7 +1028,7 @@ export default function BookResults() {
                 overflowY: "auto",
               }}
             >
-              <CancellationPolicy />
+              <CancellationPolicy pricing={pricing} />
             </div>
 
             {!agreementScrolled ? (
@@ -1116,8 +1119,22 @@ export default function BookResults() {
                   color: "var(--brand-gold)",
                 }}
               >
-                ${total}
+                {formatMoney(total)}
               </div>
+              {/* El IVA se suma encima: se muestra antes de pagar, no en el cobro */}
+              {taxed.taxAmount > 0 && (
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "rgba(255,255,255,0.7)",
+                    fontFamily: "DM Sans, sans-serif",
+                    marginTop: "2px",
+                  }}
+                >
+                  {formatMoney(taxed.subtotal)} + {formatMoney(taxed.taxAmount)} tax (IVA{" "}
+                  {taxed.taxRate}%)
+                </div>
+              )}
               {/* Se cobran más asientos que viajeros: hay que decirlo acá,
                   que es donde el cliente mira el número antes de pagar */}
               {payingForMinimum && (

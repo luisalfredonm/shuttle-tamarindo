@@ -1,4 +1,6 @@
 import { BRAND_NAME } from "@/lib/brand";
+import { DEFAULT_PRICING, type PricingSettings } from "@/lib/api";
+import { taxPolicyLine } from "@/lib/private-price";
 
 export const SUPPORT_EMAIL = "reservas@retanatransfers.com";
 
@@ -6,7 +8,13 @@ export const SUPPORT_EMAIL = "reservas@retanatransfers.com";
  * Texto legal compartido entre el paso de firma en la reserva y la página
  * pública /cancellation, para que nunca queden dos versiones desincronizadas.
  */
-export default function CancellationPolicy() {
+export default function CancellationPolicy({
+  pricing = DEFAULT_PRICING,
+}: {
+  /** El IVA vigente sale del panel */
+  pricing?: PricingSettings;
+}) {
+  const taxLine = taxPolicyLine(pricing);
   return (
     <>
       <p style={eyebrow}>{BRAND_NAME}</p>
@@ -81,7 +89,7 @@ export default function CancellationPolicy() {
       <h2 style={h2}>5. Payment Policy</h2>
       <ul style={ul}>
         <li>Rates are net rates.</li>
-        <li>Credit card payments are subject to an additional 19% tax/fee.</li>
+        {taxLine && <li>{taxLine}</li>}
       </ul>
 
       <h2 style={h2}>6. Waiting Time</h2>

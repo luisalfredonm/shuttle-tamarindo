@@ -9,6 +9,8 @@ export interface PricingSettingsView {
   includedPassengers: number;
   extraPassengerPrice: number;
   vehicleCapacity: number;
+  taxEnabled: boolean;
+  taxRate: number;
 }
 
 @Injectable()
@@ -32,6 +34,8 @@ export class PricingService {
       includedPassengers: settings.includedPassengers,
       extraPassengerPrice: Number(settings.extraPassengerPrice),
       vehicleCapacity: settings.vehicleCapacity,
+      taxEnabled: settings.taxEnabled,
+      taxRate: Number(settings.taxRate),
     };
   }
 

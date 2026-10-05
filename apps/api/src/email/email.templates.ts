@@ -239,6 +239,24 @@ export function detailsTable(rows: string): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows}</table>`;
 }
 
+/** Subtotal e impuesto, encima del panel del total */
+export function taxBreakdown(
+  subtotal: number,
+  rate: number,
+  tax: number,
+): string {
+  const row = (label: string, value: string) => `
+    <tr>
+      <td style="padding:0 22px 8px;font-family:${SANS};font-size:14px;color:${C.gray};">${escapeHtml(label)}</td>
+      <td align="right" style="padding:0 22px 8px;font-family:${SANS};font-size:14px;color:${C.dark};white-space:nowrap;">${value}</td>
+    </tr>`;
+  return `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:6px;">
+    ${row('Subtotal', money(subtotal))}
+    ${row(`Tax (IVA ${rate}%)`, money(tax))}
+  </table>`;
+}
+
 export function totalPanel(amount: number, caption: string): string {
   return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.cream};border-left:3px solid ${C.gold};border-radius:3px 14px 14px 3px;">

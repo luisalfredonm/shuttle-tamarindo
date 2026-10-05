@@ -1,4 +1,11 @@
-import { IsInt, IsNumber, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  Max,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdatePricingDto {
@@ -19,4 +26,15 @@ export class UpdatePricingDto {
   @Min(1)
   @Max(50)
   vehicleCapacity?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  taxEnabled?: boolean;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(50)
+  @Type(() => Number)
+  taxRate?: number;
 }
