@@ -21,14 +21,15 @@ function formatDuration(min: number) {
  */
 export default function RouteHubCard({
   route: r,
-  bothWays = false,
+  href,
 }: {
   route: RouteView;
-  bothWays?: boolean;
+  /** El sentido inverso enlaza a la página del par con #return */
+  href: string;
 }) {
   return (
     <Link
-      href={`/routes/${r.slug}`}
+      href={href}
       className="hub-card"
       aria-label={`${r.origin} to ${r.destination} shuttle — see prices and book`}
     >
@@ -47,7 +48,6 @@ export default function RouteHubCard({
           {r.origin} <span aria-hidden="true">→</span> {r.destination}
         </h3>
         <div className="hub-card-meta">
-          {bothWays && <span className="hub-both">Both ways</span>}
           <span>
             <Clock size={14} strokeWidth={2} /> {formatDuration(r.durationMin)}
           </span>

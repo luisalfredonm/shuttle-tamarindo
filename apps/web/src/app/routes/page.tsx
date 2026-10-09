@@ -18,12 +18,21 @@ import RoutesHubSchema from "@/components/RoutesHubSchema";
 
 const TITLE = "Shuttle Routes & Prices in Guanacaste";
 
-/** Una entrada por página pública: el sentido inverso vive en la misma */
+/**
+ * Una tarjeta por sentido, cada una bajo su origen: quien sale de Tamarindo
+ * busca "From Tamarindo". El sentido inverso no tiene página propia: enlaza a
+ * la del par con #return, que abre el formulario en ese sentido.
+ */
 async function hubRoutes() {
-  return pairRoutes(await getActiveRoutes()).map(({ route, reverse }) => ({
-    view: buildRouteView(route),
-    bothWays: !!reverse,
-  }));
+  return pairRoutes(await getActiveRoutes()).flatMap(({ route, reverse }) => {
+    const href = `/routes/${route.slug}`;
+    return [
+      { view: buildRouteView(route), href, isPage: true },
+      ...(reverse
+        ? [{ view: buildRouteView(reverse), href: `${href}#return`, isPage: false }]
+        : []),
+    ];
+  });
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -59,7 +68,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * Agrupa por origen para que la página se escanee por "¿desde dónde salgo?".
  * Los aeropuertos van primero: es por donde llega casi todo el que busca.
  */
-type HubRoute = { view: RouteView; bothWays: boolean };
+type HubRoute = { view: RouteView; href: string; isPage: boolean };
 
 function groupByOrigin(routes: HubRoute[]) {
   const groups = new Map<string, HubRoute[]>();
@@ -81,7 +90,10 @@ export default async function RoutesIndexPage() {
   // y lo que se da de baja deja de ofrecerse sin tocar codigo.
   const routes = await hubRoutes();
   const groups = groupByOrigin(routes);
-  const ordered = groups.flatMap(([, rs]) => rs.map((r) => r.view));
+  // El schema lista páginas, no tarjetas: el sentido inverso no es otra URL
+  const ordered = groups.flatMap(([, rs]) =>
+    rs.filter((r) => r.isPage).map((r) => r.view),
+  );
 
   return (
     <main className="hub">
@@ -131,11 +143,7 @@ export default async function RoutesIndexPage() {
               <h2 id={`from-${rs[0].view.slug}`}>From {origin}</h2>
               <div className="hub-grid">
                 {rs.map((r) => (
-                  <RouteHubCard
-                    key={r.view.slug}
-                    route={r.view}
-                    bothWays={r.bothWays}
-                  />
+                  <RouteHubCard key={r.view.slug} route={r.view} href={r.href} />
                 ))}
               </div>
             </section>
@@ -205,7 +213,6 @@ export default async function RoutesIndexPage() {
         .hub-card-title span { color: var(--brand-gold); }
         .hub-card-meta { display: flex; gap: 1rem; font-family: DM Sans, sans-serif; font-size: 0.82rem; color: var(--brand-gray); }
         .hub-card-meta span { display: inline-flex; align-items: center; gap: 5px; }
-        .hub-card-meta .hub-both { padding: 1px 9px; border-radius: 999px; background: rgba(201,151,58,0.14); color: #8a6420; font-weight: 600; font-size: 0.74rem; }
         .hub-card-prices {
           display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem;
           padding: 0.8rem 0; border-top: 1px dashed #e0d9cc; border-bottom: 1px dashed #e0d9cc;

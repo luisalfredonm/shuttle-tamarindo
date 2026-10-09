@@ -38,6 +38,15 @@ export default function RouteDetail({ route, reverse }: Props) {
     getPricing().then(setPricing);
   }, []);
 
+  // /routes enlaza el sentido inverso como #return: se abre el formulario ya
+  // en ese sentido. Es un fragmento y no otra URL, así Google ve una sola página.
+  useEffect(() => {
+    if (!reverse || window.location.hash !== "#return") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- el hash solo existe en el cliente
+    setBackwards(true);
+    document.getElementById("return")?.scrollIntoView();
+  }, [reverse]);
+
   // Recortado al leerlo: 10 de compartido no entran en una van privada de 8
   const maxPassengers = bookType === "PRIVATE" ? pricing.vehicleCapacity : 10;
   const paxCount = Math.min(Number(passengers), maxPassengers);
@@ -231,9 +240,11 @@ export default function RouteDetail({ route, reverse }: Props) {
           </div>
         </section>
 
-        {/* Booking form */}
+        {/* Booking form. id="return": destino del enlace al sentido inverso */}
         <section
+          id="return"
           style={{
+            scrollMarginTop: "68px",
             background: "#fff",
             padding: "3rem 2rem",
             borderBottom: "1px solid #e8e4dc",
