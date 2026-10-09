@@ -65,4 +65,6 @@ export const LEGACY_ROUTE_SLUGS: Record<string, string> = {
   "liberia-airport-tamarindo": "liberia-airport-to-tamarindo",
   "tamarindo-liberia-airport": "liberia-airport-to-tamarindo",
   "tama-liberia-airport": "liberia-airport-to-tamarindo",
+  // Duplicado de LIR → Tamarindo que Google alcanzó a indexar
+  "lib-tama": "liberia-airport-to-tamarindo",
 };
