@@ -25,6 +25,20 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // La API no es contenido para buscadores. Se usa el header y no un
+  // robots.txt con Disallow: Googlebot pide /api/pricing y /api/routes al
+  // renderizar las paginas, y bloquearlo le dejaria el sitio sin datos.
+  app.use(
+    (
+      _req: unknown,
+      res: { setHeader(k: string, v: string): void },
+      next: () => void,
+    ) => {
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      next();
+    },
+  );
+
   app.setGlobalPrefix('api');
 
   const port = process.env.PORT || 4000;
